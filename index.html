@@ -3,13 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <title>КПП РФ — интерактивная карта</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
   <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
+<button id="mobileToggle" class="mobile-toggle">☰</button>
 
 <div id="loader" class="loader">
   <div class="loader-card">
@@ -29,11 +34,14 @@
     </div>
 
     <div class="controls">
-      <input id="searchInput" type="text" placeholder="Поиск по названию, региону или стране" />
+      <input id="searchInput" type="text"
+             placeholder="Поиск по названию, региону или стране" />
+
       <div class="grid2">
         <select id="typeFilter"></select>
         <select id="statusFilter"></select>
       </div>
+
       <div class="btnrow">
         <button id="toggleHeatmap" class="btn ghost">🔥 Heatmap</button>
         <button id="clearSelection" class="btn ghost">✖ Сброс</button>

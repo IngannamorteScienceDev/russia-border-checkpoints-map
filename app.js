@@ -70,6 +70,8 @@ const map = new maplibregl.Map({
 });
 
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+map.touchZoomRotate.enable();
+map.dragPan.enable();
 
 (async function init() {
   try {
@@ -78,38 +80,29 @@ map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     const resp = await fetch("data/checkpoints.geojson", { cache: "no-store" });
     geo = await resp.json();
 
-    allFeatures = (geo.features || [])
-      .filter(f => f && f.geometry && f.geometry.type === "Point")
-      .map(f => {
-        const p = f.properties || {};
-        const id = String(p.checkpoint_id || f.id || "");
-
-        return {
-          ...f,
-          properties: {
-            ...p,
-            __id: id,
-            __name: p.checkpoint_name || "Без названия",
-            __type: normalizeType(p.checkpoint_type),
-            __status: normalizeStatus(p.current_status),
-            __subject: p.subject_name || "—",
-            __country: p.neighbor_country || "—"
-          }
-        };
-      })
-      .filter(f => f.properties.__id);
+    allFeatures = (geo.features || []).map(f => {
+      const p = f.properties || {};
+      return {
+        ...f,
+        properties: {
+          ...p,
+          __id: String(p.checkpoint_id || ""),
+          __name: p.checkpoint_name || "Без названия",
+          __type: normalizeType(p.checkpoint_type),
+          __status: normalizeStatus(p.current_status),
+          __subject: p.subject_name || "—",
+          __country: p.neighbor_country || "—"
+        }
+      };
+    });
 
     updateDateEl.textContent = new Date().toLocaleDateString("ru-RU");
-
     fillFilters();
     buildLegend();
     applyFilters();
 
-    setLoader("Подготовка слоёв…", 65);
-
     map.on("load", () => {
-      addSourcesAndLayers();
-      map.resize();
+      addLayers();
       setLoader("Готово", 100);
       loader.style.display = "none";
     });
@@ -120,51 +113,34 @@ map.addControl(new maplibregl.NavigationControl(), "bottom-right");
 })();
 
 function fillFilters() {
-  const types = [...new Set(allFeatures.map(f => f.properties.__type))].sort();
-  const statuses = [...new Set(allFeatures.map(f => f.properties.__status))].sort();
+  const types = [...new Set(allFeatures.map(f => f.properties.__type))];
+  const statuses = [...new Set(allFeatures.map(f => f.properties.__status))];
 
   typeEl.innerHTML =
     `<option value="all">Все типы</option>` +
-    types.map(t => `<option value="${t}">${t}</option>`).join("");
+    types.map(t => `<option>${t}</option>`).join("");
 
   statusEl.innerHTML =
     `<option value="all">Все статусы</option>` +
-    statuses.map(s => `<option value="${s}">${s}</option>`).join("");
+    statuses.map(s => `<option>${s}</option>`).join("");
 }
 
 function buildLegend() {
   legendEl.innerHTML = `
     <div class="legend-title">Тип КПП</div>
     <div class="legend-grid">
-      ${Object.entries(TYPE_COLORS).map(([k, c]) => `
-        <div class="legend-item">
-          <span class="dot" style="background:${c}"></span>${k}
-        </div>
-      `).join("")}
-    </div>
-  `;
+      ${Object.entries(TYPE_COLORS).map(([k, c]) =>
+        `<div class="legend-item">
+           <span class="dot" style="background:${c}"></span>${k}
+         </div>`).join("")}
+    </div>`;
 }
 
 function applyFilters() {
-  const q = (searchEl.value || "").toLowerCase().trim();
-  const t = typeEl.value;
-  const s = statusEl.value;
-
-  viewFeatures = allFeatures.filter(f => {
-    if (t !== "all" && f.properties.__type !== t) return false;
-    if (s !== "all" && f.properties.__status !== s) return false;
-    if (!q) return true;
-
-    return (
-      String(f.properties.__name).toLowerCase().includes(q) ||
-      String(f.properties.__subject).toLowerCase().includes(q) ||
-      String(f.properties.__country).toLowerCase().includes(q)
-    );
-  });
-
-  renderStats();
-  renderList();
-  emptyEl.style.display = viewFeatures.length ? "none" : "block";
+  const q = searchEl.value.toLowerCase();
+  viewFeatures = allFeatures.filter(f =>
+    f.properties.__name.toLowerCase().includes(q)
+  );
 
   if (map.getSource("checkpoints")) {
     map.getSource("checkpoints").setData({
@@ -172,49 +148,19 @@ function applyFilters() {
       features: viewFeatures
     });
   }
+
+  statsEl.innerHTML = `Всего: ${allFeatures.length}<br>Показано: ${viewFeatures.length}`;
 }
 
-function renderStats() {
-  statsEl.innerHTML = `
-    Всего КПП: <b>${allFeatures.length}</b><br>
-    Отображено: <b>${viewFeatures.length}</b><br>
-    Выбрано: <b>${selectedIds.size}</b>
-  `;
-}
-
-function renderList() {
-  listEl.innerHTML = viewFeatures.slice(0, 200).map(f => `
-    <div class="item" data-id="${f.properties.__id}">
-      <div class="item-name">${f.properties.__name}</div>
-      <div class="item-sub">
-        ${f.properties.__subject} • ${f.properties.__country}<br>
-        ${f.properties.__type} • ${f.properties.__status}
-      </div>
-    </div>
-  `).join("");
-
-  listEl.querySelectorAll(".item").forEach(el => {
-    el.onclick = () => {
-      const id = el.dataset.id;
-      const f = viewFeatures.find(x => x.properties.__id === id);
-      if (!f) return;
-      toggleSelect(id);
-      map.easeTo({ center: f.geometry.coordinates, zoom: 7 });
-    };
-  });
-}
-
-function addSourcesAndLayers() {
+function addLayers() {
   map.addSource("checkpoints", {
     type: "geojson",
     data: {
       type: "FeatureCollection",
       features: viewFeatures
     },
-    promoteId: "__id",
     cluster: true,
-    clusterRadius: 48,
-    clusterMaxZoom: 10
+    clusterRadius: 48
   });
 
   map.addLayer({
@@ -224,9 +170,7 @@ function addSourcesAndLayers() {
     filter: ["has", "point_count"],
     paint: {
       "circle-color": "#3b82f6",
-      "circle-radius": ["step", ["get", "point_count"], 16, 30, 22, 80, 28],
-      "circle-stroke-width": 2,
-      "circle-stroke-color": "#020617"
+      "circle-radius": 20
     }
   });
 
@@ -258,118 +202,37 @@ function addSourcesAndLayers() {
         "Речной", TYPE_COLORS["Речной"],
         "Пешеходный", TYPE_COLORS["Пешеходный"],
         TYPE_COLORS["Другое"]
-      ],
-      "circle-opacity": [
-        "match",
-        ["get", "__status"],
-        "Действует", 0.95,
-        "Ограничен", 0.7,
-        "Временно закрыт", 0.45,
-        "Закрыт", 0.25,
-        0.6
-      ],
-      "circle-stroke-width": [
-        "case",
-        ["boolean", ["feature-state", "selected"], false],
-        3,
-        ["case", ["==", ["get", "__status"], "Закрыт"], 2.5, 1]
-      ],
-      "circle-stroke-color": [
-        "case",
-        ["boolean", ["feature-state", "selected"], false],
-        "#facc15",
-        ["case", ["==", ["get", "__status"], "Закрыт"], "#ef4444", "#020617"]
       ]
     }
   });
 
-  map.addLayer({
-    id: "heatmap",
-    type: "heatmap",
-    source: "checkpoints",
-    layout: { visibility: "none" },
-    paint: {
-      "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 3, 0.6, 8, 1.4],
-      "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 3, 18, 8, 42],
-      "heatmap-color": [
-        "interpolate", ["linear"], ["heatmap-density"],
-        0, "rgba(0,0,0,0)",
-        0.25, "rgba(59,130,246,.9)",
-        0.45, "rgba(14,165,233,.95)",
-        0.65, "rgba(34,197,94,.95)",
-        0.85, "rgba(250,204,21,.95)",
-        1, "rgba(239,68,68,.98)"
-      ],
-      "heatmap-opacity": 0.85
-    }
-  });
-
-  bindMapEvents();
-}
-
-function bindMapEvents() {
-  map.on("click", "clusters", e => {
-    const f = e.features[0];
-    map.getSource("checkpoints").getClusterExpansionZoom(
-      f.properties.cluster_id,
-      (err, zoom) => {
-        if (!err) map.easeTo({ center: f.geometry.coordinates, zoom });
-      }
-    );
-  });
-
-  map.on("mouseenter", "points", () => {
-    map.getCanvas().style.cursor = "pointer";
-  });
-  map.on("mouseleave", "points", () => {
-    map.getCanvas().style.cursor = "";
-  });
-
   map.on("click", "points", e => {
     const f = e.features[0];
-    toggleSelect(f.properties.__id);
 
-    new maplibregl.Popup({ closeButton: true, closeOnClick: true })
+    new maplibregl.Popup({
+      closeButton: true,
+      closeOnClick: true,
+      maxWidth: "90vw"
+    })
       .setLngLat(e.lngLat)
       .setHTML(`
-        <div class="popup-title">${f.properties.__name}</div>
-        <div class="popup-sub">
-          ${f.properties.__subject} • ${f.properties.__country}<br>
-          ${f.properties.__type} • ${f.properties.__status}
-        </div>
+        <b>${f.properties.__name}</b><br>
+        ${f.properties.__subject} • ${f.properties.__country}<br>
+        ${f.properties.__type} • ${f.properties.__status}
       `)
       .addTo(map);
+
+    if (window.innerWidth <= 768) {
+      panel.classList.remove("open");
+    }
   });
 }
 
-function toggleSelect(id) {
-  if (selectedIds.has(id)) {
-    selectedIds.delete(id);
-    map.setFeatureState({ source: "checkpoints", id }, { selected: false });
-  } else {
-    selectedIds.add(id);
-    map.setFeatureState({ source: "checkpoints", id }, { selected: true });
-  }
-  renderStats();
-}
+/* Mobile toggle */
 
-toggleHeatmapBtn.onclick = () => {
-  heatmapOn = !heatmapOn;
-  map.setLayoutProperty("heatmap", "visibility", heatmapOn ? "visible" : "none");
-  map.setLayoutProperty("clusters", "visibility", heatmapOn ? "none" : "visible");
-  map.setLayoutProperty("cluster-count", "visibility", heatmapOn ? "none" : "visible");
-  map.setLayoutProperty("points", "visibility", heatmapOn ? "none" : "visible");
-  toggleHeatmapBtn.classList.toggle("primary", heatmapOn);
+const mobileToggle = document.getElementById("mobileToggle");
+const panel = document.querySelector(".panel");
+
+mobileToggle.onclick = () => {
+  panel.classList.toggle("open");
 };
-
-clearSelectionBtn.onclick = () => {
-  selectedIds.forEach(id =>
-    map.setFeatureState({ source: "checkpoints", id }, { selected: false })
-  );
-  selectedIds.clear();
-  renderStats();
-};
-
-searchEl.oninput = applyFilters;
-typeEl.onchange = applyFilters;
-statusEl.onchange = applyFilters;
