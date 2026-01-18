@@ -36,7 +36,7 @@ build/
 # Data / Generated files
 # ===============================
 *.geojson
-!frontend/data/checkpoints.geojson
+!data/checkpoints.geojson
 
 # ===============================
 # Temporary
