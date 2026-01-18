@@ -6,16 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- MapLibre GL -->
-  <link
-    href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css"
-    rel="stylesheet"
-  />
+  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
 
   <!-- Font -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-    rel="stylesheet"
-  />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -44,14 +38,18 @@
         <option value="all">Все статусы</option>
       </select>
 
-      <button id="toggleTheme">🌗 День / Ночь</button>
+      <div class="btnrow">
+        <button id="toggleTheme" class="btn">🌗 Ночь</button>
+        <button id="toggleRoads" class="btn">🛣 Дороги</button>
+        <button id="toggle3D" class="btn">🏙 3D</button>
+      </div>
     </div>
 
     <div class="stats" id="stats"></div>
 
     <footer>
       Источник данных: Росгранстрой<br />
-      Карта: MapLibre GL
+      Векторная карта: MapLibre GL
     </footer>
   </aside>
 
