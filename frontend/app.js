@@ -1,6 +1,6 @@
-/* ===== Base map (NOT demo) ===== */
+/* ===== Base map (production style, NOT demo) ===== */
 
-const BASE_STYLE = "https://tiles.openfreemap.org/styles/liberty"; // :contentReference[oaicite:1]{index=1}
+const BASE_STYLE = "https://tiles.openfreemap.org/styles/liberty/style.json";
 
 /* ===== КПП colors ===== */
 
@@ -39,7 +39,6 @@ const clearSelectionBtn = document.getElementById("clearSelection");
 let geo = null;
 let allFeatures = [];
 let viewFeatures = [];
-
 let selectedIds = new Set();
 let heatmapOn = false;
 
@@ -50,61 +49,41 @@ const SUBJECT_KEYS = ["subject_name", "subject", "region"];
 const COUNTRY_KEYS = ["neighbor_country", "country", "border_country"];
 const ID_KEYS = ["checkpoint_id", "id", "uid"];
 
-/* ===== Loader steps ===== */
+/* ===== Loader helpers ===== */
 
-function setLoader(stepText, percent){
-  loaderStepEl.textContent = stepText;
-  loaderBarEl.style.width = `${Math.max(8, Math.min(100, percent))}%`;
+function setLoader(text, percent) {
+  loaderStepEl.textContent = text;
+  loaderBarEl.style.width = `${Math.max(6, Math.min(100, percent))}%`;
 }
 
-function hideLoader(){
+function hideLoader() {
   loaderEl.classList.add("hidden");
 }
 
-/* ===== Helpers for properties ===== */
+/* ===== Property helpers ===== */
 
-function pickProp(obj, keys, fallback = ""){
-  for (const k of keys){
-    if (obj && Object.prototype.hasOwnProperty.call(obj, k) && obj[k] !== null && obj[k] !== undefined && String(obj[k]).trim() !== ""){
+function pickProp(obj, keys, fallback = "") {
+  for (const k of keys) {
+    if (obj && obj[k] !== undefined && obj[k] !== null && String(obj[k]).trim() !== "") {
       return obj[k];
     }
   }
   return fallback;
 }
 
-function normalizeString(v){
+function norm(v) {
   return String(v ?? "").toLowerCase().trim();
 }
 
-function getId(f){
-  const p = f.properties || {};
-  const id = pickProp(p, ID_KEYS, "");
-  return String(id || f.id || "");
-}
-
-function getName(f){
-  return pickProp(f.properties || {}, NAME_KEYS, "Без названия");
-}
-
-function getType(f){
-  return pickProp(f.properties || {}, TYPE_KEYS, "Неизвестно");
-}
-
-function getStatus(f){
-  return pickProp(f.properties || {}, STATUS_KEYS, "Не указано");
-}
-
-function getSubject(f){
-  return pickProp(f.properties || {}, SUBJECT_KEYS, "—");
-}
-
-function getCountry(f){
-  return pickProp(f.properties || {}, COUNTRY_KEYS, "—");
+function getId(f) {
+  return String(
+    pickProp(f.properties || {}, ID_KEYS, f.id || "")
+  );
 }
 
 /* ===== Map init (NO intro animation) ===== */
 
-setLoader("Загрузка стиля карты…", 18);
+setLoader("Загрузка стиля карты…", 12);
 
 const map = new maplibregl.Map({
   container: "map",
@@ -116,81 +95,78 @@ const map = new maplibregl.Map({
 
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
-/* ===== Data load ===== */
+/* ===== Main init ===== */
 
-(async function init(){
-  try{
-    setLoader("Загрузка данных КПП…", 36);
+(async function init() {
+  try {
+    setLoader("Загрузка данных КПП…", 28);
 
     const resp = await fetch("data/checkpoints.geojson", { cache: "no-store" });
     geo = await resp.json();
 
-    allFeatures = Array.isArray(geo.features) ? geo.features : [];
-    allFeatures = allFeatures
-      .filter(f => f && f.geometry && f.geometry.type === "Point" && Array.isArray(f.geometry.coordinates))
+    allFeatures = (geo.features || [])
+      .filter(f => f?.geometry?.type === "Point")
       .map(f => {
         const id = getId(f);
         return {
           ...f,
-          id: id || f.id || undefined,
+          id,
           properties: {
             ...(f.properties || {}),
             __id: id,
-            __name: getName(f),
-            __type: getType(f),
-            __status: getStatus(f),
-            __subject: getSubject(f),
-            __country: getCountry(f),
+            __name: pickProp(f.properties, NAME_KEYS, "Без названия"),
+            __type: pickProp(f.properties, TYPE_KEYS, "Неизвестно"),
+            __status: pickProp(f.properties, STATUS_KEYS, "—"),
+            __subject: pickProp(f.properties, SUBJECT_KEYS, "—"),
+            __country: pickProp(f.properties, COUNTRY_KEYS, "—")
           }
         };
       })
-      .filter(f => (f.properties.__id || f.id));
+      .filter(f => f.properties.__id);
 
-    const updatedAt = geo?.metadata?.updated_at || geo?.metadata?.generated_at || null;
-    updateDateEl.textContent = updatedAt
-      ? new Date(updatedAt).toLocaleDateString("ru-RU")
-      : new Date().toLocaleDateString("ru-RU");
+    updateDateEl.textContent = new Date().toLocaleDateString("ru-RU");
 
     buildLegend();
     fillFilters();
-    applyFiltersAndRender();
+    applyFilters();
 
-    setLoader("Подготовка слоёв…", 64);
+    setLoader("Подготовка слоёв…", 55);
 
-    await waitForStyleReady();
+    await waitForMapLoad();
     addSourcesAndLayers();
 
     setLoader("Готово", 100);
     hideLoader();
 
-  }catch(e){
+  } catch (e) {
     console.error(e);
-    setLoader("Ошибка загрузки данных. Проверьте консоль.", 100);
+    setLoader("Ошибка загрузки карты", 100);
   }
 })();
 
-/* ===== Map readiness ===== */
+/* ===== Map ready ===== */
 
-function waitForStyleReady(){
+function waitForMapLoad() {
   return new Promise(resolve => {
     if (map.isStyleLoaded()) return resolve();
-    map.once("load", () => resolve());
+    map.once("load", resolve);
   });
 }
 
-/* ===== UI: legend + filters ===== */
+/* ===== Legend & filters ===== */
 
-function buildLegend(){
-  const entries = Object.entries(TYPE_COLORS);
+function buildLegend() {
   legendEl.innerHTML = `
     <div class="legend-title">Легенда</div>
     <div class="legend-grid">
-      ${entries.map(([t,c]) => `
-        <div class="legend-item">
-          <span class="dot" style="background:${c}"></span>
-          <span>${t}</span>
-        </div>
-      `).join("")}
+      ${Object.entries(TYPE_COLORS).map(
+        ([t, c]) => `
+          <div class="legend-item">
+            <span class="dot" style="background:${c}"></span>
+            <span>${t}</span>
+          </div>
+        `
+      ).join("")}
       <div class="legend-item">
         <span class="dot" style="background:${FALLBACK_COLOR}"></span>
         <span>Другое</span>
@@ -199,49 +175,44 @@ function buildLegend(){
   `;
 }
 
-function fillFilters(){
-  const types = new Set();
-  const statuses = new Set();
+function fillFilters() {
+  const types = [...new Set(allFeatures.map(f => f.properties.__type))].sort();
+  const statuses = [...new Set(allFeatures.map(f => f.properties.__status))].sort();
 
-  for (const f of allFeatures){
-    types.add(f.properties.__type);
-    statuses.add(f.properties.__status);
-  }
+  typeEl.innerHTML =
+    `<option value="all">Все типы</option>` +
+    types.map(t => `<option value="${t}">${t}</option>`).join("");
 
-  const typeList = [...types].sort((a,b) => a.localeCompare(b, "ru"));
-  const statusList = [...statuses].sort((a,b) => a.localeCompare(b, "ru"));
-
-  typeEl.innerHTML = `<option value="all">Все типы</option>` + typeList.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
-  statusEl.innerHTML = `<option value="all">Все статусы</option>` + statusList.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
+  statusEl.innerHTML =
+    `<option value="all">Все статусы</option>` +
+    statuses.map(s => `<option value="${s}">${s}</option>`).join("");
 }
 
-function applyFiltersAndRender(){
-  const q = normalizeString(searchEl.value);
+/* ===== Filtering ===== */
+
+function applyFilters() {
+  const q = norm(searchEl.value);
   const t = typeEl.value;
   const s = statusEl.value;
 
   viewFeatures = allFeatures.filter(f => {
     if (t !== "all" && f.properties.__type !== t) return false;
     if (s !== "all" && f.properties.__status !== s) return false;
-
     if (!q) return true;
 
-    const hay = [
+    return [
       f.properties.__name,
       f.properties.__subject,
-      f.properties.__country,
-      f.properties.__type,
-      f.properties.__status
-    ].map(normalizeString).join(" • ");
-
-    return hay.includes(q);
+      f.properties.__country
+    ].some(v => norm(v).includes(q));
   });
 
   renderStats();
   renderList();
+
   emptyEl.style.display = viewFeatures.length ? "none" : "block";
 
-  if (map.getSource("checkpoints")){
+  if (map.getSource("checkpoints")) {
     map.getSource("checkpoints").setData({
       type: "FeatureCollection",
       features: viewFeatures
@@ -249,87 +220,50 @@ function applyFiltersAndRender(){
   }
 }
 
-/* ===== Stats + list ===== */
+/* ===== Stats & list ===== */
 
-function renderStats(){
-  const total = allFeatures.length;
-  const shown = viewFeatures.length;
-  const selectedShown = viewFeatures.filter(f => selectedIds.has(f.properties.__id)).length;
-
-  const topRegions = topBy(viewFeatures, f => f.properties.__subject, 5);
-
+function renderStats() {
   statsEl.innerHTML = `
-    Всего КПП: <b>${total}</b><br>
-    Отображено: <b>${shown}</b><br>
-    Выбрано (в фильтре): <b>${selectedShown}</b><br>
-    Выбрано (всего): <b>${selectedIds.size}</b>
-    <div style="margin-top:10px; font-weight:800; color:rgba(226,232,240,.92)">Топ регионов</div>
-    <div style="margin-top:6px">
-      ${topRegions.length ? topRegions.map(([k,v]) => `— ${escapeHtml(k)}: <b>${v}</b>`).join("<br>") : "—"}
-    </div>
+    Всего КПП: <b>${allFeatures.length}</b><br>
+    Отображено: <b>${viewFeatures.length}</b><br>
+    Выбрано: <b>${selectedIds.size}</b>
   `;
 }
 
-function renderList(){
-  const items = viewFeatures.slice(0, 200);
-
-  listEl.innerHTML = items.map(f => {
-    const name = f.properties.__name;
-    const subject = f.properties.__subject;
-    const country = f.properties.__country;
-    const type = f.properties.__type;
-    const id = f.properties.__id;
-    const isSel = selectedIds.has(id);
-
-    return `
-      <div class="item" data-id="${escapeHtml(id)}">
-        <div class="item-top">
-          <div class="item-name">${escapeHtml(name)}</div>
-          <div class="badge" style="${isSel ? "background:rgba(250,204,21,.12);border-color:rgba(250,204,21,.35)" : ""}">
-            ${escapeHtml(type)}
-          </div>
-        </div>
-        <div class="item-sub">
-          ${escapeHtml(subject)} • ${escapeHtml(country)}<br>
-          Статус: ${escapeHtml(f.properties.__status)}
-        </div>
+function renderList() {
+  listEl.innerHTML = viewFeatures.slice(0, 200).map(f => `
+    <div class="item" data-id="${f.properties.__id}">
+      <div class="item-name">${f.properties.__name}</div>
+      <div class="item-sub">
+        ${f.properties.__subject} • ${f.properties.__country}<br>
+        ${f.properties.__type}, ${f.properties.__status}
       </div>
-    `;
-  }).join("");
+    </div>
+  `).join("");
 
-  for (const el of listEl.querySelectorAll(".item")){
-    el.addEventListener("click", () => {
-      const id = el.getAttribute("data-id");
+  listEl.querySelectorAll(".item").forEach(el => {
+    el.onclick = () => {
+      const id = el.dataset.id;
       const f = viewFeatures.find(x => x.properties.__id === id);
       if (!f) return;
-
       toggleSelect(id);
       focusFeature(f);
-    });
-  }
-}
-
-function focusFeature(f){
-  const [lon, lat] = f.geometry.coordinates;
-  map.easeTo({
-    center: [lon, lat],
-    zoom: Math.max(map.getZoom(), 7),
-    duration: 700
+    };
   });
-
-  showPopup(f, [lon, lat]);
 }
 
-/* ===== Map: sources & layers ===== */
+/* ===== Map layers ===== */
 
-function addSourcesAndLayers(){
+function addSourcesAndLayers() {
   map.addSource("checkpoints", {
     type: "geojson",
-    data: { type: "FeatureCollection", features: viewFeatures },
+    data: {
+      type: "FeatureCollection",
+      features: viewFeatures
+    },
     promoteId: "__id",
     cluster: true,
-    clusterRadius: 46,
-    clusterMaxZoom: 9
+    clusterRadius: 48
   });
 
   map.addLayer({
@@ -338,25 +272,10 @@ function addSourcesAndLayers(){
     source: "checkpoints",
     filter: ["has", "point_count"],
     paint: {
-      "circle-color": [
-        "step",
-        ["get", "point_count"],
-        "rgba(59,130,246,.55)",
-        20, "rgba(34,197,94,.55)",
-        60, "rgba(250,204,21,.55)",
-        120, "rgba(239,68,68,.55)"
-      ],
-      "circle-radius": [
-        "step",
-        ["get", "point_count"],
-        16,
-        20, 20,
-        60, 26,
-        120, 32
-      ],
-      "circle-stroke-color": "rgba(2,6,23,.85)",
+      "circle-color": "rgba(59,130,246,.55)",
+      "circle-radius": ["step", ["get", "point_count"], 16, 30, 22, 80, 28],
       "circle-stroke-width": 2,
-      "circle-blur": 0.25
+      "circle-stroke-color": "#020617"
     }
   });
 
@@ -367,11 +286,7 @@ function addSourcesAndLayers(){
     filter: ["has", "point_count"],
     layout: {
       "text-field": "{point_count_abbreviated}",
-      "text-size": 12,
-      "text-font": ["Open Sans Bold", "Noto Sans Bold"]
-    },
-    paint: {
-      "text-color": "rgba(226,232,240,.95)"
+      "text-size": 12
     }
   });
 
@@ -381,14 +296,13 @@ function addSourcesAndLayers(){
     source: "checkpoints",
     filter: ["!", ["has", "point_count"]],
     paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 5, 8, 7, 12, 9],
+      "circle-radius": 6,
       "circle-color": [
         "match",
         ["get", "__type"],
         ...Object.entries(TYPE_COLORS).flat(),
         FALLBACK_COLOR
       ],
-      "circle-opacity": 0.95,
       "circle-stroke-width": [
         "case",
         ["boolean", ["feature-state", "selected"], false],
@@ -398,9 +312,8 @@ function addSourcesAndLayers(){
         "case",
         ["boolean", ["feature-state", "selected"], false],
         "#facc15",
-        "rgba(2,6,23,.9)"
-      ],
-      "circle-blur": 0.35
+        "#020617"
+      ]
     }
   });
 
@@ -410,151 +323,85 @@ function addSourcesAndLayers(){
     source: "checkpoints",
     layout: { visibility: "none" },
     paint: {
-      "heatmap-weight": 1,
-      "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 3, 0.55, 7, 1.2],
-      "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 3, 18, 7, 44],
+      "heatmap-radius": 40,
+      "heatmap-intensity": 1,
       "heatmap-color": [
         "interpolate", ["linear"], ["heatmap-density"],
         0, "rgba(0,0,0,0)",
-        0.25, "rgba(59,130,246,.85)",
-        0.45, "rgba(14,165,233,.90)",
-        0.65, "rgba(34,197,94,.95)",
-        0.82, "rgba(250,204,21,.95)",
-        1, "rgba(239,68,68,.98)"
-      ],
-      "heatmap-opacity": 0.85
+        0.4, "#3b82f6",
+        0.7, "#facc15",
+        1, "#ef4444"
+      ]
     }
   });
 
-  bindMapInteractions();
+  bindMapEvents();
 }
 
-/* ===== Map interactions ===== */
+/* ===== Map events ===== */
 
-function bindMapInteractions(){
-  map.on("click", "clusters", (e) => {
-    const features = map.queryRenderedFeatures(e.point, { layers: ["clusters"] });
-    const clusterId = features[0].properties.cluster_id;
-    map.getSource("checkpoints").getClusterExpansionZoom(clusterId, (err, zoom) => {
-      if (err) return;
-      map.easeTo({ center: features[0].geometry.coordinates, zoom, duration: 600 });
-    });
+function bindMapEvents() {
+  map.on("click", "clusters", e => {
+    const f = map.queryRenderedFeatures(e.point, { layers: ["clusters"] })[0];
+    map.getSource("checkpoints").getClusterExpansionZoom(
+      f.properties.cluster_id,
+      (err, zoom) => {
+        if (!err) {
+          map.easeTo({ center: f.geometry.coordinates, zoom });
+        }
+      }
+    );
   });
 
-  map.on("click", "points", (e) => {
-    const f = e.features && e.features[0];
-    if (!f) return;
-
-    const id = f.properties.__id;
-    toggleSelect(id);
+  map.on("click", "points", e => {
+    const f = e.features[0];
+    toggleSelect(f.properties.__id);
     showPopup(f, e.lngLat);
   });
 
   map.on("mouseenter", "points", () => map.getCanvas().style.cursor = "pointer");
   map.on("mouseleave", "points", () => map.getCanvas().style.cursor = "");
-
-  map.on("mouseenter", "clusters", () => map.getCanvas().style.cursor = "pointer");
-  map.on("mouseleave", "clusters", () => map.getCanvas().style.cursor = "");
-}
-
-/* ===== Popup ===== */
-
-function showPopup(f, lngLat){
-  const p = f.properties || {};
-  const html = `
-    <div style="font-weight:800">${escapeHtml(p.__name || "КПП")}</div>
-    <div style="margin-top:6px; color:rgba(148,163,184,.9)">
-      ${escapeHtml(p.__subject || "—")} • ${escapeHtml(p.__country || "—")}
-    </div>
-    <div style="margin-top:8px; color:rgba(226,232,240,.92)">
-      Тип: <b>${escapeHtml(p.__type || "—")}</b><br>
-      Статус: <b>${escapeHtml(p.__status || "—")}</b>
-    </div>
-  `;
-
-  new maplibregl.Popup({ closeButton: true, closeOnClick: true })
-    .setLngLat(lngLat)
-    .setHTML(html)
-    .addTo(map);
 }
 
 /* ===== Selection ===== */
 
-function toggleSelect(id){
-  if (!id) return;
-
-  if (selectedIds.has(id)){
+function toggleSelect(id) {
+  if (selectedIds.has(id)) {
     selectedIds.delete(id);
-    setSelectedState(id, false);
-  }else{
+    map.setFeatureState({ source: "checkpoints", id }, { selected: false });
+  } else {
     selectedIds.add(id);
-    setSelectedState(id, true);
+    map.setFeatureState({ source: "checkpoints", id }, { selected: true });
   }
-
   renderStats();
   renderList();
-}
-
-function setSelectedState(id, value){
-  try{
-    map.setFeatureState({ source: "checkpoints", id }, { selected: value });
-  }catch{}
 }
 
 /* ===== Heatmap toggle ===== */
 
-toggleHeatmapBtn.addEventListener("click", () => {
+toggleHeatmapBtn.onclick = () => {
   heatmapOn = !heatmapOn;
-
   map.setLayoutProperty("heatmap", "visibility", heatmapOn ? "visible" : "none");
   map.setLayoutProperty("clusters", "visibility", heatmapOn ? "none" : "visible");
   map.setLayoutProperty("cluster-count", "visibility", heatmapOn ? "none" : "visible");
   map.setLayoutProperty("points", "visibility", heatmapOn ? "none" : "visible");
+};
 
-  toggleHeatmapBtn.classList.toggle("primary", heatmapOn);
-});
+/* ===== Filters ===== */
 
-/* ===== Clear selection ===== */
+searchEl.addEventListener("input", () => applyFilters());
+typeEl.addEventListener("change", () => applyFilters());
+statusEl.addEventListener("change", () => applyFilters());
 
-clearSelectionBtn.addEventListener("click", () => {
-  for (const id of selectedIds){
-    setSelectedState(id, false);
-  }
-  selectedIds.clear();
-  renderStats();
-  renderList();
-});
+/* ===== Popup ===== */
 
-/* ===== Filter bindings ===== */
-
-searchEl.addEventListener("input", debounce(() => applyFiltersAndRender(), 120));
-typeEl.addEventListener("change", () => applyFiltersAndRender());
-statusEl.addEventListener("change", () => applyFiltersAndRender());
-
-/* ===== Utils ===== */
-
-function topBy(arr, keyFn, limit){
-  const m = new Map();
-  for (const x of arr){
-    const k = keyFn(x) || "—";
-    m.set(k, (m.get(k) || 0) + 1);
-  }
-  return [...m.entries()].sort((a,b) => b[1] - a[1]).slice(0, limit);
-}
-
-function debounce(fn, ms){
-  let t = null;
-  return (...args) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn(...args), ms);
-  };
-}
-
-function escapeHtml(s){
-  return String(s ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+function showPopup(f, lngLat) {
+  new maplibregl.Popup()
+    .setLngLat(lngLat)
+    .setHTML(`
+      <b>${f.properties.__name}</b><br>
+      ${f.properties.__subject} • ${f.properties.__country}<br>
+      ${f.properties.__type}, ${f.properties.__status}
+    `)
+    .addTo(map);
 }
