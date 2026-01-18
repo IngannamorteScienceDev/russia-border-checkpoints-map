@@ -5,8 +5,16 @@
   <title>КПП РФ — интерактивная карта</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+
+  <!-- Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -19,13 +27,15 @@
     </div>
 
     <div class="filters">
+      <input id="searchInput" type="text" placeholder="Поиск: название / регион / страна…" autocomplete="off" />
       <select id="typeFilter">
         <option value="all">Все типы</option>
       </select>
-
       <select id="statusFilter">
         <option value="all">Все статусы</option>
       </select>
+
+      <div class="chips" id="typeChips"></div>
     </div>
 
     <div class="stats" id="stats"></div>
@@ -36,18 +46,23 @@
       <div class="lg air">Воздушные</div>
       <div class="lg sea">Морские</div>
       <div class="lg river">Речные</div>
+      <div class="lg other">Прочие</div>
     </div>
 
     <footer>
-      Данные: Росгранстрой
-      <br />Обновляется автоматически
+      Данные: Росгранстрой<br />Обновляется автоматически
     </footer>
   </aside>
 
   <main id="map"></main>
 </div>
 
+<!-- Leaflet -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- MarkerCluster -->
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
 <script src="app.js"></script>
 </body>
 </html>
