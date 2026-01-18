@@ -80,23 +80,26 @@ map.dragPan.enable();
     const resp = await fetch("data/checkpoints.geojson", { cache: "no-store" });
     geo = await resp.json();
 
-    allFeatures = (geo.features || []).map(f => {
-      const p = f.properties || {};
-      return {
-        ...f,
-        properties: {
-          ...p,
-          __id: String(p.checkpoint_id || ""),
-          __name: p.checkpoint_name || "Без названия",
-          __type: normalizeType(p.checkpoint_type),
-          __status: normalizeStatus(p.current_status),
-          __subject: p.subject_name || "—",
-          __country: p.neighbor_country || "—"
-        }
-      };
-    });
+    allFeatures = (geo.features || [])
+      .filter(f => f && f.geometry && f.geometry.type === "Point")
+      .map(f => {
+        const p = f.properties || {};
+        return {
+          ...f,
+          properties: {
+            ...p,
+            __id: String(p.checkpoint_id || ""),
+            __name: p.checkpoint_name || "Без названия",
+            __type: normalizeType(p.checkpoint_type),
+            __status: normalizeStatus(p.current_status),
+            __subject: p.subject_name || "—",
+            __country: p.neighbor_country || "—"
+          }
+        };
+      });
 
     updateDateEl.textContent = new Date().toLocaleDateString("ru-RU");
+
     fillFilters();
     buildLegend();
     applyFilters();
@@ -105,6 +108,7 @@ map.dragPan.enable();
       addLayers();
       setLoader("Готово", 100);
       loader.style.display = "none";
+      map.resize();
     });
   } catch (e) {
     console.error(e);
@@ -113,16 +117,16 @@ map.dragPan.enable();
 })();
 
 function fillFilters() {
-  const types = [...new Set(allFeatures.map(f => f.properties.__type))];
-  const statuses = [...new Set(allFeatures.map(f => f.properties.__status))];
+  const types = [...new Set(allFeatures.map(f => f.properties.__type))].sort();
+  const statuses = [...new Set(allFeatures.map(f => f.properties.__status))].sort();
 
   typeEl.innerHTML =
     `<option value="all">Все типы</option>` +
-    types.map(t => `<option>${t}</option>`).join("");
+    types.map(t => `<option value="${t}">${t}</option>`).join("");
 
   statusEl.innerHTML =
     `<option value="all">Все статусы</option>` +
-    statuses.map(s => `<option>${s}</option>`).join("");
+    statuses.map(s => `<option value="${s}">${s}</option>`).join("");
 }
 
 function buildLegend() {
@@ -133,14 +137,30 @@ function buildLegend() {
         `<div class="legend-item">
            <span class="dot" style="background:${c}"></span>${k}
          </div>`).join("")}
-    </div>`;
+    </div>
+  `;
 }
 
 function applyFilters() {
-  const q = searchEl.value.toLowerCase();
-  viewFeatures = allFeatures.filter(f =>
-    f.properties.__name.toLowerCase().includes(q)
-  );
+  const q = (searchEl.value || "").toLowerCase().trim();
+  const t = typeEl.value;
+  const s = statusEl.value;
+
+  viewFeatures = allFeatures.filter(f => {
+    if (t !== "all" && f.properties.__type !== t) return false;
+    if (s !== "all" && f.properties.__status !== s) return false;
+    if (!q) return true;
+
+    return (
+      String(f.properties.__name).toLowerCase().includes(q) ||
+      String(f.properties.__subject).toLowerCase().includes(q) ||
+      String(f.properties.__country).toLowerCase().includes(q)
+    );
+  });
+
+  renderStats();
+  renderList();
+  emptyEl.style.display = viewFeatures.length ? "none" : "block";
 
   if (map.getSource("checkpoints")) {
     map.getSource("checkpoints").setData({
@@ -148,8 +168,41 @@ function applyFilters() {
       features: viewFeatures
     });
   }
+}
 
-  statsEl.innerHTML = `Всего: ${allFeatures.length}<br>Показано: ${viewFeatures.length}`;
+function renderStats() {
+  statsEl.innerHTML = `
+    Всего КПП: <b>${allFeatures.length}</b><br>
+    Отображено: <b>${viewFeatures.length}</b><br>
+    Выбрано: <b>${selectedIds.size}</b>
+  `;
+}
+
+function renderList() {
+  listEl.innerHTML = viewFeatures.slice(0, 200).map(f => `
+    <div class="item" data-id="${f.properties.__id}">
+      <div class="item-name">${f.properties.__name}</div>
+      <div class="item-sub">
+        ${f.properties.__subject} • ${f.properties.__country}<br>
+        ${f.properties.__type} • ${f.properties.__status}
+      </div>
+    </div>
+  `).join("");
+
+  listEl.querySelectorAll(".item").forEach(el => {
+    el.onclick = () => {
+      const id = el.dataset.id;
+      const f = viewFeatures.find(x => x.properties.__id === id);
+      if (!f) return;
+
+      map.easeTo({ center: f.geometry.coordinates, zoom: 7 });
+
+      if (window.innerWidth <= 768 && panel) {
+        panel.classList.remove("open");
+        setTimeout(() => map.resize(), 300);
+      }
+    };
+  });
 }
 
 function addLayers() {
@@ -160,7 +213,8 @@ function addLayers() {
       features: viewFeatures
     },
     cluster: true,
-    clusterRadius: 48
+    clusterRadius: 48,
+    clusterMaxZoom: 10
   });
 
   map.addLayer({
@@ -170,7 +224,9 @@ function addLayers() {
     filter: ["has", "point_count"],
     paint: {
       "circle-color": "#3b82f6",
-      "circle-radius": 20
+      "circle-radius": ["step", ["get", "point_count"], 16, 30, 22, 80, 28],
+      "circle-stroke-width": 2,
+      "circle-stroke-color": "#020617"
     }
   });
 
@@ -202,8 +258,36 @@ function addLayers() {
         "Речной", TYPE_COLORS["Речной"],
         "Пешеходный", TYPE_COLORS["Пешеходный"],
         TYPE_COLORS["Другое"]
-      ]
+      ],
+      "circle-opacity": [
+        "match",
+        ["get", "__status"],
+        "Действует", 0.95,
+        "Ограничен", 0.7,
+        "Временно закрыт", 0.45,
+        "Закрыт", 0.25,
+        0.6
+      ],
+      "circle-stroke-width": 1.5,
+      "circle-stroke-color": "#020617"
     }
+  });
+
+  map.on("click", "clusters", e => {
+    const f = e.features[0];
+    map.getSource("checkpoints").getClusterExpansionZoom(
+      f.properties.cluster_id,
+      (err, zoom) => {
+        if (!err) map.easeTo({ center: f.geometry.coordinates, zoom });
+      }
+    );
+  });
+
+  map.on("mouseenter", "points", () => {
+    map.getCanvas().style.cursor = "pointer";
+  });
+  map.on("mouseleave", "points", () => {
+    map.getCanvas().style.cursor = "";
   });
 
   map.on("click", "points", e => {
@@ -216,23 +300,47 @@ function addLayers() {
     })
       .setLngLat(e.lngLat)
       .setHTML(`
-        <b>${f.properties.__name}</b><br>
-        ${f.properties.__subject} • ${f.properties.__country}<br>
-        ${f.properties.__type} • ${f.properties.__status}
+        <div class="popup-title">${f.properties.__name}</div>
+        <div class="popup-sub">
+          ${f.properties.__subject} • ${f.properties.__country}<br>
+          ${f.properties.__type} • ${f.properties.__status}
+        </div>
       `)
       .addTo(map);
 
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 768 && panel) {
       panel.classList.remove("open");
+      setTimeout(() => map.resize(), 300);
     }
   });
 }
 
-/* Mobile toggle */
+/* Buttons */
+toggleHeatmapBtn.onclick = () => {
+  heatmapOn = !heatmapOn;
 
+  // heatmap layer optional: if you add it later, handle here
+  // currently just toggling button appearance for consistency
+  toggleHeatmapBtn.classList.toggle("primary", heatmapOn);
+};
+
+clearSelectionBtn.onclick = () => {
+  selectedIds.clear();
+  renderStats();
+};
+
+/* Filters */
+searchEl.oninput = applyFilters;
+typeEl.onchange = applyFilters;
+statusEl.onchange = applyFilters;
+
+/* Mobile toggle + обязательный resize */
 const mobileToggle = document.getElementById("mobileToggle");
 const panel = document.querySelector(".panel");
 
-mobileToggle.onclick = () => {
-  panel.classList.toggle("open");
-};
+if (mobileToggle && panel) {
+  mobileToggle.onclick = () => {
+    panel.classList.toggle("open");
+    setTimeout(() => map.resize(), 300);
+  };
+}
