@@ -7,10 +7,17 @@
 
   <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="night">
+
+<!-- LOADER -->
+<div class="loader" id="loader">
+  <div class="loader-box">
+    <div class="loader-title">Загрузка карты</div>
+    <div class="loader-step" id="loaderStep">Инициализация…</div>
+  </div>
+</div>
 
 <div class="app">
   <aside class="panel">
@@ -32,46 +39,21 @@
 
       <div class="btnrow">
         <button id="toggleTheme" class="btn active">🌗 Ночь</button>
-        <button id="toggleRoads" class="btn">🛣 Дороги</button>
-        <button id="toggle3D" class="btn">🏙 3D</button>
-      </div>
-
-      <div class="btnrow">
         <button id="toggleTour" class="btn ghost">🎬 Тур</button>
-        <button id="btnShare" class="btn ghost">🔗 Ссылка</button>
-        <button id="btnExport" class="btn ghost">⬇ CSV</button>
+        <button id="btnExport" class="btn ghost">⬇ CSV (выбранные)</button>
       </div>
     </div>
 
     <div class="stats" id="stats"></div>
+    <div class="empty" id="emptyState">По заданным условиям КПП не найдены</div>
 
     <footer>
-      Источник данных: Росгранстрой<br>
-      Карта: MapLibre GL (OSM Bright)
+      <div><b>Источник:</b> Росгранстрой</div>
+      <div><b>Обновление данных:</b> <span id="updateDate">—</span></div>
     </footer>
   </aside>
 
   <main id="map"></main>
-
-  <!-- Легенда -->
-  <div class="legend">
-    <div class="legend-title">Легенда</div>
-    <div class="legend-item"><span class="dot auto"></span>Автомобильный</div>
-    <div class="legend-item"><span class="dot rail"></span>Железнодорожный</div>
-    <div class="legend-item"><span class="dot air"></span>Воздушный</div>
-    <div class="legend-item"><span class="dot sea"></span>Морской</div>
-    <div class="legend-item"><span class="dot river"></span>Речной</div>
-    <div class="legend-hint">
-      🌗 День / Ночь<br>
-      🛣 Навигация<br>
-      🏙 3D<br>
-      🎬 Презентация
-    </div>
-  </div>
-
-  <div class="hint">
-    Используйте фильтры, режимы и тур для просмотра карты
-  </div>
 </div>
 
 <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
