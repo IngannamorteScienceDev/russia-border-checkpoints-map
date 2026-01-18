@@ -9,23 +9,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
-<body class="night">
+<body>
 
-<!-- Loader -->
 <div id="loader" class="loader">
   <div class="loader-card">
-    <div class="loader-top">
-      <div class="loader-mark"></div>
-      <div class="loader-title">КПП РФ</div>
-    </div>
-
-    <div class="loader-sub" id="loaderStep">Запуск…</div>
-
+    <div class="loader-title">КПП РФ</div>
+    <div class="loader-sub" id="loaderStep">Загрузка карты…</div>
     <div class="loader-bar">
       <div class="loader-bar-fill" id="loaderBar"></div>
     </div>
-
-    <div class="loader-hint">Подключаем карту, загружаем данные и строим слои</div>
   </div>
 </div>
 
@@ -33,40 +25,34 @@
   <aside class="panel">
     <div class="brand">
       <h1>КПП РФ</h1>
-      <span>интерактивная карта пунктов пропуска</span>
+      <span>Интерактивная карта пунктов пропуска</span>
     </div>
 
     <div class="controls">
-      <input id="searchInput" type="text" placeholder="Поиск: название, регион, страна…" />
+      <input id="searchInput" type="text" placeholder="Поиск по названию, региону или стране" />
 
       <div class="grid2">
-        <select id="typeFilter">
-          <option value="all">Все типы</option>
-        </select>
-
-        <select id="statusFilter">
-          <option value="all">Все статусы</option>
-        </select>
+        <select id="typeFilter"></select>
+        <select id="statusFilter"></select>
       </div>
 
       <div class="btnrow">
         <button id="toggleHeatmap" class="btn ghost">🔥 Heatmap</button>
-        <button id="clearSelection" class="btn ghost">✖ Сброс выбора</button>
+        <button id="clearSelection" class="btn ghost">✖ Сброс</button>
       </div>
     </div>
 
-    <div class="legend" id="legend"></div>
-
-    <div class="stats" id="stats"></div>
-    <div class="empty" id="emptyState">По заданным условиям КПП не найдены</div>
+    <div id="legend" class="legend"></div>
+    <div id="stats" class="stats"></div>
+    <div id="emptyState" class="empty">КПП не найдены</div>
 
     <div class="showcase">
-      <div class="showcase-title">Результаты</div>
-      <div class="showcase-list" id="list"></div>
+      <div class="showcase-title">Список</div>
+      <div id="list" class="showcase-list"></div>
     </div>
 
     <footer>
-      Источник: Росгранстрой • Базовая карта: OpenFreeMap<br>
+      Источник: Росгранстрой<br>
       Обновление: <span id="updateDate">—</span>
     </footer>
   </aside>
