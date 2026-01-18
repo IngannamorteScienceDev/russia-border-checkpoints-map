@@ -11,6 +11,7 @@ const TYPE_COLORS = {
   "Другое": "#64748b"
 };
 
+const loader = document.getElementById("loader");
 const loaderStep = document.getElementById("loaderStep");
 const loaderBar = document.getElementById("loaderBar");
 
@@ -30,8 +31,13 @@ const clearSelectionBtn = document.getElementById("clearSelection");
 let geo = null;
 let allFeatures = [];
 let viewFeatures = [];
-let selected = new Set();
+let selectedIds = new Set();
 let heatmapOn = false;
+
+function setLoader(text, pct) {
+  loaderStep.textContent = text;
+  loaderBar.style.width = `${pct}%`;
+}
 
 function normalizeType(raw) {
   const v = String(raw || "").toLowerCase();
@@ -44,88 +50,103 @@ function normalizeType(raw) {
   return "Другое";
 }
 
-function setLoader(text, pct) {
-  loaderStep.textContent = text;
-  loaderBar.style.width = `${pct}%`;
+function normalizeStatus(raw) {
+  const v = String(raw || "").toLowerCase();
+  if (v.includes("действ")) return "Действует";
+  if (v.includes("огран")) return "Ограничен";
+  if (v.includes("врем")) return "Временно закрыт";
+  if (v.includes("закры")) return "Закрыт";
+  return "Неизвестно";
 }
 
-setLoader("Загрузка карты…", 15);
+setLoader("Загрузка карты…", 10);
 
 const map = new maplibregl.Map({
   container: "map",
   style: BASE_STYLE,
   center: [90, 61],
-  zoom: 4
+  zoom: 4,
+  antialias: true
 });
 
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
 (async function init() {
-  setLoader("Загрузка данных КПП…", 35);
+  try {
+    setLoader("Загрузка данных КПП…", 30);
 
-  const resp = await fetch("data/checkpoints.geojson");
-  geo = await resp.json();
+    const resp = await fetch("data/checkpoints.geojson", { cache: "no-store" });
+    geo = await resp.json();
 
-  allFeatures = geo.features.map(f => {
-    const p = f.properties || {};
-    return {
-      ...f,
-      id: p.checkpoint_id || f.id,
-      properties: {
-        ...p,
-        __name: p.checkpoint_name || "Без названия",
-        __type: normalizeType(p.checkpoint_type),
-        __status: p.current_status || "—",
-        __subject: p.subject_name || "—",
-        __country: p.neighbor_country || "—"
-      }
-    };
-  });
+    allFeatures = (geo.features || [])
+      .filter(f => f && f.geometry && f.geometry.type === "Point")
+      .map(f => {
+        const p = f.properties || {};
+        const id = String(p.checkpoint_id || f.id || "");
 
-  updateDateEl.textContent = new Date().toLocaleDateString("ru-RU");
+        return {
+          ...f,
+          properties: {
+            ...p,
+            __id: id,
+            __name: p.checkpoint_name || "Без названия",
+            __type: normalizeType(p.checkpoint_type),
+            __status: normalizeStatus(p.current_status),
+            __subject: p.subject_name || "—",
+            __country: p.neighbor_country || "—"
+          }
+        };
+      })
+      .filter(f => f.properties.__id);
 
-  fillFilters();
-  buildLegend();
-  applyFilters();
+    updateDateEl.textContent = new Date().toLocaleDateString("ru-RU");
 
-  setLoader("Подготовка слоёв…", 65);
+    fillFilters();
+    buildLegend();
+    applyFilters();
 
-  map.on("load", () => {
-    addLayers();
-    map.resize();
-    setLoader("Готово", 100);
-    document.getElementById("loader").style.display = "none";
-  });
+    setLoader("Подготовка слоёв…", 65);
+
+    map.on("load", () => {
+      addSourcesAndLayers();
+      map.resize();
+      setLoader("Готово", 100);
+      loader.style.display = "none";
+    });
+  } catch (e) {
+    console.error(e);
+    setLoader("Ошибка загрузки", 100);
+  }
 })();
 
 function fillFilters() {
+  const types = [...new Set(allFeatures.map(f => f.properties.__type))].sort();
+  const statuses = [...new Set(allFeatures.map(f => f.properties.__status))].sort();
+
   typeEl.innerHTML =
     `<option value="all">Все типы</option>` +
-    [...new Set(allFeatures.map(f => f.properties.__type))]
-      .map(t => `<option value="${t}">${t}</option>`).join("");
+    types.map(t => `<option value="${t}">${t}</option>`).join("");
 
   statusEl.innerHTML =
     `<option value="all">Все статусы</option>` +
-    [...new Set(allFeatures.map(f => f.properties.__status))]
-      .map(s => `<option value="${s}">${s}</option>`).join("");
+    statuses.map(s => `<option value="${s}">${s}</option>`).join("");
 }
 
 function buildLegend() {
   legendEl.innerHTML = `
-    <div class="legend-title">Легенда</div>
+    <div class="legend-title">Тип КПП</div>
     <div class="legend-grid">
-      ${Object.entries(TYPE_COLORS).map(
-        ([k, c]) => `
-          <div class="legend-item">
-            <span class="dot" style="background:${c}"></span>${k}
-          </div>`
-      ).join("")}
+      ${Object.entries(TYPE_COLORS).map(([k, c]) => `
+        <div class="legend-item">
+          <span class="dot" style="background:${c}"></span>${k}
+        </div>
+      `).join("")}
     </div>
   `;
 }
 
 function applyFilters() {
-  const q = searchEl.value.toLowerCase();
+  const q = (searchEl.value || "").toLowerCase().trim();
   const t = typeEl.value;
   const s = statusEl.value;
 
@@ -133,16 +154,16 @@ function applyFilters() {
     if (t !== "all" && f.properties.__type !== t) return false;
     if (s !== "all" && f.properties.__status !== s) return false;
     if (!q) return true;
+
     return (
-      f.properties.__name.toLowerCase().includes(q) ||
-      f.properties.__subject.toLowerCase().includes(q) ||
-      f.properties.__country.toLowerCase().includes(q)
+      String(f.properties.__name).toLowerCase().includes(q) ||
+      String(f.properties.__subject).toLowerCase().includes(q) ||
+      String(f.properties.__country).toLowerCase().includes(q)
     );
   });
 
   renderStats();
   renderList();
-
   emptyEl.style.display = viewFeatures.length ? "none" : "block";
 
   if (map.getSource("checkpoints")) {
@@ -157,17 +178,17 @@ function renderStats() {
   statsEl.innerHTML = `
     Всего КПП: <b>${allFeatures.length}</b><br>
     Отображено: <b>${viewFeatures.length}</b><br>
-    Выбрано: <b>${selected.size}</b>
+    Выбрано: <b>${selectedIds.size}</b>
   `;
 }
 
 function renderList() {
   listEl.innerHTML = viewFeatures.slice(0, 200).map(f => `
-    <div class="item" data-id="${f.id}">
+    <div class="item" data-id="${f.properties.__id}">
       <div class="item-name">${f.properties.__name}</div>
       <div class="item-sub">
         ${f.properties.__subject} • ${f.properties.__country}<br>
-        ${f.properties.__type}, ${f.properties.__status}
+        ${f.properties.__type} • ${f.properties.__status}
       </div>
     </div>
   `).join("");
@@ -175,7 +196,7 @@ function renderList() {
   listEl.querySelectorAll(".item").forEach(el => {
     el.onclick = () => {
       const id = el.dataset.id;
-      const f = viewFeatures.find(x => String(x.id) === id);
+      const f = viewFeatures.find(x => x.properties.__id === id);
       if (!f) return;
       toggleSelect(id);
       map.easeTo({ center: f.geometry.coordinates, zoom: 7 });
@@ -183,13 +204,17 @@ function renderList() {
   });
 }
 
-function addLayers() {
+function addSourcesAndLayers() {
   map.addSource("checkpoints", {
     type: "geojson",
-    data: { type: "FeatureCollection", features: viewFeatures },
-    promoteId: "id",
+    data: {
+      type: "FeatureCollection",
+      features: viewFeatures
+    },
+    promoteId: "__id",
     cluster: true,
-    clusterRadius: 48
+    clusterRadius: 48,
+    clusterMaxZoom: 10
   });
 
   map.addLayer({
@@ -210,7 +235,10 @@ function addLayers() {
     type: "symbol",
     source: "checkpoints",
     filter: ["has", "point_count"],
-    layout: { "text-field": "{point_count_abbreviated}", "text-size": 12 }
+    layout: {
+      "text-field": "{point_count_abbreviated}",
+      "text-size": 12
+    }
   });
 
   map.addLayer({
@@ -220,9 +248,38 @@ function addLayers() {
     filter: ["!", ["has", "point_count"]],
     paint: {
       "circle-radius": 6,
-      "circle-color": ["get", "__type", ["literal", TYPE_COLORS]],
-      "circle-stroke-width": 1,
-      "circle-stroke-color": "#020617"
+      "circle-color": [
+        "match",
+        ["get", "__type"],
+        "Автомобильный", TYPE_COLORS["Автомобильный"],
+        "Железнодорожный", TYPE_COLORS["Железнодорожный"],
+        "Воздушный", TYPE_COLORS["Воздушный"],
+        "Морской", TYPE_COLORS["Морской"],
+        "Речной", TYPE_COLORS["Речной"],
+        "Пешеходный", TYPE_COLORS["Пешеходный"],
+        TYPE_COLORS["Другое"]
+      ],
+      "circle-opacity": [
+        "match",
+        ["get", "__status"],
+        "Действует", 0.95,
+        "Ограничен", 0.7,
+        "Временно закрыт", 0.45,
+        "Закрыт", 0.25,
+        0.6
+      ],
+      "circle-stroke-width": [
+        "case",
+        ["boolean", ["feature-state", "selected"], false],
+        3,
+        ["case", ["==", ["get", "__status"], "Закрыт"], 2.5, 1]
+      ],
+      "circle-stroke-color": [
+        "case",
+        ["boolean", ["feature-state", "selected"], false],
+        "#facc15",
+        ["case", ["==", ["get", "__status"], "Закрыт"], "#ef4444", "#020617"]
+      ]
     }
   });
 
@@ -232,15 +289,18 @@ function addLayers() {
     source: "checkpoints",
     layout: { visibility: "none" },
     paint: {
-      "heatmap-radius": 40,
-      "heatmap-intensity": 1,
+      "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 3, 0.6, 8, 1.4],
+      "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 3, 18, 8, 42],
       "heatmap-color": [
         "interpolate", ["linear"], ["heatmap-density"],
         0, "rgba(0,0,0,0)",
-        0.4, "#3b82f6",
-        0.7, "#facc15",
-        1, "#ef4444"
-      ]
+        0.25, "rgba(59,130,246,.9)",
+        0.45, "rgba(14,165,233,.95)",
+        0.65, "rgba(34,197,94,.95)",
+        0.85, "rgba(250,204,21,.95)",
+        1, "rgba(239,68,68,.98)"
+      ],
+      "heatmap-opacity": 0.85
     }
   });
 
@@ -258,22 +318,36 @@ function bindMapEvents() {
     );
   });
 
+  map.on("mouseenter", "points", () => {
+    map.getCanvas().style.cursor = "pointer";
+  });
+  map.on("mouseleave", "points", () => {
+    map.getCanvas().style.cursor = "";
+  });
+
   map.on("click", "points", e => {
     const f = e.features[0];
-    toggleSelect(f.id);
-    new maplibregl.Popup()
+    toggleSelect(f.properties.__id);
+
+    new maplibregl.Popup({ closeButton: true, closeOnClick: true })
       .setLngLat(e.lngLat)
-      .setHTML(`<b>${f.properties.__name}</b>`)
+      .setHTML(`
+        <div class="popup-title">${f.properties.__name}</div>
+        <div class="popup-sub">
+          ${f.properties.__subject} • ${f.properties.__country}<br>
+          ${f.properties.__type} • ${f.properties.__status}
+        </div>
+      `)
       .addTo(map);
   });
 }
 
 function toggleSelect(id) {
-  if (selected.has(id)) {
-    selected.delete(id);
+  if (selectedIds.has(id)) {
+    selectedIds.delete(id);
     map.setFeatureState({ source: "checkpoints", id }, { selected: false });
   } else {
-    selected.add(id);
+    selectedIds.add(id);
     map.setFeatureState({ source: "checkpoints", id }, { selected: true });
   }
   renderStats();
@@ -289,10 +363,10 @@ toggleHeatmapBtn.onclick = () => {
 };
 
 clearSelectionBtn.onclick = () => {
-  selected.forEach(id =>
+  selectedIds.forEach(id =>
     map.setFeatureState({ source: "checkpoints", id }, { selected: false })
   );
-  selected.clear();
+  selectedIds.clear();
   renderStats();
 };
 
