@@ -2,65 +2,45 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Пункты пропуска через границу РФ</title>
+  <title>КПП РФ — интерактивная карта</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Leaflet -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<div class="layout">
-  <aside class="sidebar">
-    <h1>КПП РФ</h1>
-    <p class="subtitle">Пункты пропуска через государственную границу</p>
-
-    <div class="section">
-      <h2>Фильтры</h2>
-
-      <label>
-        Тип КПП
-        <select id="typeFilter">
-          <option value="all">Все</option>
-        </select>
-      </label>
-
-      <label>
-        Статус
-        <select id="statusFilter">
-          <option value="all">Все</option>
-        </select>
-      </label>
+<div class="app">
+  <aside class="panel">
+    <div class="brand">
+      <h1>КПП РФ</h1>
+      <span>Интерактивная карта</span>
     </div>
 
-    <div class="section">
-      <h2>Статистика</h2>
-      <div id="stats"></div>
+    <div class="filters">
+      <select id="typeFilter">
+        <option value="all">Все типы</option>
+      </select>
+
+      <select id="statusFilter">
+        <option value="all">Все статусы</option>
+      </select>
     </div>
 
-    <div class="section legend">
-      <h2>Легенда</h2>
-      <div class="legend-item"><span class="dot auto"></span> Автомобильный</div>
-      <div class="legend-item"><span class="dot rail"></span> Железнодорожный</div>
-      <div class="legend-item"><span class="dot air"></span> Воздушный</div>
-      <div class="legend-item"><span class="dot sea"></span> Морской</div>
-      <div class="legend-item"><span class="dot river"></span> Речной</div>
+    <div class="stats" id="stats"></div>
+
+    <div class="legend">
+      <div class="lg auto">Автомобильные</div>
+      <div class="lg rail">Железнодорожные</div>
+      <div class="lg air">Воздушные</div>
+      <div class="lg sea">Морские</div>
+      <div class="lg river">Речные</div>
     </div>
 
     <footer>
-      Источник данных: Росгранстрой
-      <br />
-      Обновляется автоматически
+      Данные: Росгранстрой
+      <br />Обновляется автоматически
     </footer>
   </aside>
 

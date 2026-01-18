@@ -1,104 +1,82 @@
-const map = L.map('map').setView([61, 90], 4);
+const map = L.map('map', { zoomControl: false }).setView([61, 90], 4);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap',
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap'
 }).addTo(map);
 
-const typeColors = {
-  "Автомобильный": "#2563eb",
-  "Железнодорожный": "#16a34a",
-  "Воздушный": "#9333ea",
-  "Морской": "#0284c7",
-  "Речной": "#0d9488",
+const colors = {
+  "Автомобильный": "#3b82f6",
+  "Железнодорожный": "#22c55e",
+  "Воздушный": "#a855f7",
+  "Морской": "#0ea5e9",
+  "Речной": "#14b8a6",
 };
 
-let geoLayer;
-let allFeatures = [];
+let all = [];
+let layer;
 
-fetch('data/checkpoints.geojson')
-  .then(res => res.json())
-  .then(data => {
-    allFeatures = data.features;
-    initFilters(allFeatures);
-    renderStats(allFeatures);
-    renderLayer(allFeatures);
+fetch("data/checkpoints.geojson")
+  .then(r => r.json())
+  .then(d => {
+    all = d.features;
+    initFilters();
+    render(all);
+    updateStats(all);
   });
 
-function getColor(type) {
-  return typeColors[type] || "#6b7280";
-}
+function render(features) {
+  if (layer) layer.remove();
 
-function renderLayer(features) {
-  if (geoLayer) geoLayer.remove();
-
-  geoLayer = L.geoJSON(features, {
-    pointToLayer: (feature, latlng) =>
+  layer = L.geoJSON(features, {
+    pointToLayer: (f, latlng) =>
       L.circleMarker(latlng, {
         radius: 6,
-        fillColor: getColor(feature.properties.checkpoint_type),
-        color: "#fff",
+        color: "#020617",
         weight: 1,
-        fillOpacity: 0.9,
+        fillColor: colors[f.properties.checkpoint_type] || "#64748b",
+        fillOpacity: 0.9
       }),
-    onEachFeature: (feature, layer) => {
-      const p = feature.properties;
-      layer.bindPopup(`
-        <strong>${p.checkpoint_name}</strong><br/>
-        Тип: ${p.checkpoint_type}<br/>
-        Статус: ${p.status}<br/>
-        Регион: ${p.subject_name}<br/>
-        Режим: ${p.working_time || "—"}
+    onEachFeature: (f, l) => {
+      const p = f.properties;
+      l.bindPopup(`
+        <div style="font-size:14px">
+          <strong>${p.checkpoint_name}</strong><br/>
+          <span style="color:#94a3b8">${p.checkpoint_type}</span><br/>
+          <span>${p.subject_name}</span><br/>
+          <em>${p.working_time || "Режим не указан"}</em>
+        </div>
       `);
     }
   }).addTo(map);
 }
 
-function initFilters(features) {
-  const typeSelect = document.getElementById("typeFilter");
-  const statusSelect = document.getElementById("statusFilter");
+function initFilters() {
+  const t = document.getElementById("typeFilter");
+  const s = document.getElementById("statusFilter");
 
-  const types = new Set();
-  const statuses = new Set();
-
-  features.forEach(f => {
-    types.add(f.properties.checkpoint_type);
-    statuses.add(f.properties.status);
+  [...new Set(all.map(f => f.properties.checkpoint_type))].forEach(v => {
+    t.innerHTML += `<option>${v}</option>`;
   });
 
-  types.forEach(t => {
-    const opt = document.createElement("option");
-    opt.value = t;
-    opt.textContent = t;
-    typeSelect.appendChild(opt);
+  [...new Set(all.map(f => f.properties.status))].forEach(v => {
+    s.innerHTML += `<option>${v}</option>`;
   });
 
-  statuses.forEach(s => {
-    const opt = document.createElement("option");
-    opt.value = s;
-    opt.textContent = s;
-    statusSelect.appendChild(opt);
-  });
-
-  function applyFilters() {
-    const tVal = typeSelect.value;
-    const sVal = statusSelect.value;
-
-    const filtered = allFeatures.filter(f =>
-      (tVal === "all" || f.properties.checkpoint_type === tVal) &&
-      (sVal === "all" || f.properties.status === sVal)
+  function apply() {
+    const tf = t.value;
+    const sf = s.value;
+    const f = all.filter(x =>
+      (tf === "all" || x.properties.checkpoint_type === tf) &&
+      (sf === "all" || x.properties.status === sf)
     );
-
-    renderStats(filtered);
-    renderLayer(filtered);
+    render(f);
+    updateStats(f);
   }
 
-  typeSelect.addEventListener("change", applyFilters);
-  statusSelect.addEventListener("change", applyFilters);
+  t.onchange = s.onchange = apply;
 }
 
-function renderStats(features) {
-  const el = document.getElementById("stats");
-  el.innerHTML = `
-    Всего отображено: <strong>${features.length}</strong>
-  `;
+function updateStats(f) {
+  document.getElementById("stats").innerHTML =
+    `Отображено КПП: <strong>${f.length}</strong>`;
 }

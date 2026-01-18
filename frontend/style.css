@@ -1,91 +1,76 @@
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
-  background: #f6f7f9;
-  color: #1f2937;
+  font-family: Inter, sans-serif;
+  background: #020617;
+  color: #e5e7eb;
 }
 
-.layout {
+.app {
   display: flex;
   height: 100vh;
 }
 
-.sidebar {
-  width: 340px;
-  background: #ffffff;
-  padding: 24px;
-  border-right: 1px solid #e5e7eb;
+.panel {
+  width: 320px;
+  background: #020617;
+  padding: 20px;
   display: flex;
   flex-direction: column;
+  border-right: 1px solid #020617;
 }
 
-.sidebar h1 {
+.brand h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
 }
 
-.subtitle {
-  margin-top: 4px;
-  color: #6b7280;
-  font-size: 14px;
+.brand span {
+  color: #94a3b8;
+  font-size: 13px;
 }
 
-.section {
-  margin-top: 24px;
-}
-
-.section h2 {
-  font-size: 16px;
-  margin-bottom: 12px;
-}
-
-label {
-  display: block;
-  font-size: 14px;
-  margin-bottom: 12px;
-}
-
-select {
+.filters select {
   width: 100%;
-  padding: 8px;
-  margin-top: 4px;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
+  margin-top: 12px;
+  padding: 10px;
+  background: #0f172a;
+  border: none;
+  border-radius: 8px;
+  color: #e5e7eb;
 }
 
-#stats {
+.stats {
+  margin-top: 16px;
   font-size: 14px;
-  color: #374151;
+  color: #cbd5f5;
 }
 
-.legend-item {
-  display: flex;
-  align-items: center;
+.legend {
+  margin-top: 20px;
   font-size: 14px;
+}
+
+.lg {
   margin-bottom: 6px;
 }
 
-.dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+.lg::before {
+  content: "●";
   margin-right: 8px;
 }
 
-.dot.auto { background: #2563eb; }
-.dot.rail { background: #16a34a; }
-.dot.air { background: #9333ea; }
-.dot.sea { background: #0284c7; }
-.dot.river { background: #0d9488; }
+.auto::before { color: #3b82f6; }
+.rail::before { color: #22c55e; }
+.air::before { color: #a855f7; }
+.sea::before { color: #0ea5e9; }
+.river::before { color: #14b8a6; }
 
 footer {
   margin-top: auto;
   font-size: 12px;
-  color: #6b7280;
+  color: #64748b;
 }
 
 #map {
