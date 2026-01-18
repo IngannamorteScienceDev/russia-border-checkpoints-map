@@ -9,13 +9,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="night">
 
+<!-- Loader -->
 <div id="loader" class="loader">
-  <div class="loader-inner">
-    <div class="spinner"></div>
-    <div class="loader-title">Загрузка карты</div>
-    <div class="loader-sub">Подготовка данных и слоёв</div>
+  <div class="loader-card">
+    <div class="loader-top">
+      <div class="loader-mark"></div>
+      <div class="loader-title">КПП РФ</div>
+    </div>
+
+    <div class="loader-sub" id="loaderStep">Запуск…</div>
+
+    <div class="loader-bar">
+      <div class="loader-bar-fill" id="loaderBar"></div>
+    </div>
+
+    <div class="loader-hint">Подключаем карту, загружаем данные и строим слои</div>
   </div>
 </div>
 
@@ -23,21 +33,40 @@
   <aside class="panel">
     <div class="brand">
       <h1>КПП РФ</h1>
-      <span>Интерактивная карта пунктов пропуска</span>
+      <span>интерактивная карта пунктов пропуска</span>
     </div>
 
     <div class="controls">
-      <input id="searchInput" type="text" placeholder="Поиск по названию или региону" />
+      <input id="searchInput" type="text" placeholder="Поиск: название, регион, страна…" />
+
+      <div class="grid2">
+        <select id="typeFilter">
+          <option value="all">Все типы</option>
+        </select>
+
+        <select id="statusFilter">
+          <option value="all">Все статусы</option>
+        </select>
+      </div>
 
       <div class="btnrow">
         <button id="toggleHeatmap" class="btn ghost">🔥 Heatmap</button>
+        <button id="clearSelection" class="btn ghost">✖ Сброс выбора</button>
       </div>
     </div>
 
+    <div class="legend" id="legend"></div>
+
     <div class="stats" id="stats"></div>
+    <div class="empty" id="emptyState">По заданным условиям КПП не найдены</div>
+
+    <div class="showcase">
+      <div class="showcase-title">Результаты</div>
+      <div class="showcase-list" id="list"></div>
+    </div>
 
     <footer>
-      Источник данных: Росгранстрой<br>
+      Источник: Росгранстрой • Базовая карта: OpenFreeMap<br>
       Обновление: <span id="updateDate">—</span>
     </footer>
   </aside>
