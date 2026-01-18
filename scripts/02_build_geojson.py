@@ -1,46 +1,51 @@
 import csv
 import json
+import shutil
 from pathlib import Path
+from tqdm import tqdm
 
 INPUT_FILE = Path("data/checkpoints_v1.csv")
 OUTPUT_FILE = Path("data/checkpoints_v1.geojson")
+FRONTEND_COPY = Path("frontend/data/checkpoints.geojson")
 
 
-def is_float(value):
+def is_float(v):
     try:
-        float(value)
+        float(v)
         return True
-    except (TypeError, ValueError):
+    except Exception:
         return False
 
 
 def main():
     features = []
 
-    with INPUT_FILE.open(encoding="utf-8") as f:
-        reader = csv.DictReader(f)
+    rows = list(csv.DictReader(INPUT_FILE.open(encoding="utf-8")))
 
-        for row in reader:
-            lat = row.get("latitude")
-            lon = row.get("longitude")
+    print("🗺 Building GeoJSON")
+
+    with tqdm(total=len(rows), desc="Processing checkpoints") as pbar:
+        for row in rows:
+            lat, lon = row.get("latitude"), row.get("longitude")
 
             if not (is_float(lat) and is_float(lon)):
+                pbar.update(1)
                 continue
 
-            properties = dict(row)
-            properties.pop("latitude", None)
-            properties.pop("longitude", None)
+            props = dict(row)
+            props.pop("latitude", None)
+            props.pop("longitude", None)
 
-            feature = {
+            features.append({
                 "type": "Feature",
                 "geometry": {
                     "type": "Point",
                     "coordinates": [float(lon), float(lat)],
                 },
-                "properties": properties,
-            }
+                "properties": props,
+            })
 
-            features.append(feature)
+            pbar.update(1)
 
     geojson = {
         "type": "FeatureCollection",
@@ -48,10 +53,17 @@ def main():
     }
 
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with OUTPUT_FILE.open("w", encoding="utf-8") as f:
-        json.dump(geojson, f, ensure_ascii=False, indent=2)
+    OUTPUT_FILE.write_text(
+        json.dumps(geojson, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
-    print(f"✅ GeoJSON created: {OUTPUT_FILE}")
+    # 🔁 Автокопирование во frontend
+    FRONTEND_COPY.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(OUTPUT_FILE, FRONTEND_COPY)
+
+    print(f"✅ GeoJSON saved → {OUTPUT_FILE}")
+    print(f"🔁 Copied to frontend → {FRONTEND_COPY}")
     print(f"📍 Features count: {len(features)}")
 
 
