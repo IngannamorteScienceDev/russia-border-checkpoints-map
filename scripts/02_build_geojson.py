@@ -9,26 +9,34 @@ OUTPUT_FILE = Path("data/checkpoints_v1.geojson")
 FRONTEND_COPY = Path("frontend/data/checkpoints.geojson")
 
 
-def is_float(v):
+def is_float(value):
     try:
-        float(v)
+        float(value)
         return True
     except Exception:
         return False
 
 
 def main():
-    features = []
+    print("══════════════════════════════════════════════")
+    print("🗺 ШАГ 3. Формирование GeoJSON для карты")
+    print("Источник CSV:", INPUT_FILE.resolve())
+    print("══════════════════════════════════════════════\n")
 
     rows = list(csv.DictReader(INPUT_FILE.open(encoding="utf-8")))
+    print("📊 Записей в CSV:", len(rows))
 
-    print("🗺 Building GeoJSON")
+    features = []
+    skipped = 0
 
-    with tqdm(total=len(rows), desc="Processing checkpoints") as pbar:
+    print("\n⏳ Преобразование записей в GeoJSON…\n")
+
+    with tqdm(total=len(rows), desc="Создание геообъектов", unit="КПП") as pbar:
         for row in rows:
             lat, lon = row.get("latitude"), row.get("longitude")
 
             if not (is_float(lat) and is_float(lon)):
+                skipped += 1
                 pbar.update(1)
                 continue
 
@@ -58,13 +66,16 @@ def main():
         encoding="utf-8",
     )
 
-    # 🔁 Автокопирование во frontend
     FRONTEND_COPY.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(OUTPUT_FILE, FRONTEND_COPY)
 
-    print(f"✅ GeoJSON saved → {OUTPUT_FILE}")
-    print(f"🔁 Copied to frontend → {FRONTEND_COPY}")
-    print(f"📍 Features count: {len(features)}")
+    print("\n💾 GeoJSON успешно создан")
+    print("📄 Основной файл:", OUTPUT_FILE.resolve())
+    print("🔁 Копия для frontend:", FRONTEND_COPY.resolve())
+    print("📍 Геообъектов создано:", len(features))
+    print("⚠️ Пропущено без координат:", skipped)
+    print("══════════════════════════════════════════════")
+    print("🏁 ШАГ 3 ЗАВЕРШЁН\n")
 
 
 if __name__ == "__main__":

@@ -39,19 +39,29 @@ def safe_get(obj, *keys):
 
 
 def main():
+    print("══════════════════════════════════════════════")
+    print("🧩 ШАГ 2. Разбор и нормализация данных Росгранстроя")
+    print("Источник:", INPUT_FILE.resolve())
+    print("══════════════════════════════════════════════\n")
+
     raw = json.loads(INPUT_FILE.read_text(encoding="utf-8"))
     data = raw.get("data", {})
     federal_districts = data.get("federal_districts", {})
 
+    print("📂 Обнаружено федеральных округов:", len(federal_districts))
+
     rows = []
 
     subjects_total = sum(
-        len(subjects) for subjects in federal_districts.values() if isinstance(subjects, list)
+        len(subjects)
+        for subjects in federal_districts.values()
+        if isinstance(subjects, list)
     )
 
-    print("🧩 Parsing Rosgranstroy structure")
+    print("🏘 Всего субъектов РФ в данных:", subjects_total)
+    print("\n⏳ Начинаем обработку субъектов и пунктов пропуска…\n")
 
-    with tqdm(total=subjects_total, desc="Processing subjects") as pbar:
+    with tqdm(total=subjects_total, desc="Обработка субъектов", unit="субъект") as pbar:
         for subjects in federal_districts.values():
             if not isinstance(subjects, list):
                 continue
@@ -60,7 +70,10 @@ def main():
                 subject_name = safe_get(subject, "title", "ru")
                 federal_district = safe_get(subject, "federal_district", "title", "ru")
 
-                for checkpoint in subject.get("checkpoints", []):
+                checkpoints = subject.get("checkpoints", [])
+                print(f"➡️  {subject_name}: найдено КПП — {len(checkpoints)}")
+
+                for checkpoint in checkpoints:
                     rows.append({
                         "checkpoint_id": checkpoint.get("id", ""),
                         "checkpoint_name": safe_get(checkpoint, "title", "ru"),
@@ -92,7 +105,11 @@ def main():
         writer.writeheader()
         writer.writerows(rows)
 
-    print(f"✅ Parsed {len(rows)} checkpoints → {OUTPUT_FILE}")
+    print("\n💾 CSV успешно сформирован")
+    print("📄 Файл:", OUTPUT_FILE.resolve())
+    print("📊 Всего пунктов пропуска:", len(rows))
+    print("══════════════════════════════════════════════")
+    print("🏁 ШАГ 2 ЗАВЕРШЁН\n")
 
 
 if __name__ == "__main__":
