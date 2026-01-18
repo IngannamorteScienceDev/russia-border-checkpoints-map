@@ -1,0 +1,18 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Verkhny Lars",
+        "country": "Georgia",
+        "type": "Road",
+        "status": "Open"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [44.674, 42.756]
+      }
+    }
+  ]
+}
