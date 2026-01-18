@@ -137,28 +137,6 @@ document.getElementById("toggleHeatmap").onclick = () => {
   map.setLayoutProperty("heatmap", "visibility", heatmapEnabled ? "visible" : "none");
 };
 
-document.getElementById("btnExport").onclick = () => {
-  const rows = geoData.features
-    .filter(f => selectedIds.has(f.properties.checkpoint_id))
-    .map(f => {
-      const p = f.properties;
-      const [lon, lat] = f.geometry.coordinates;
-      return `"${p.checkpoint_name}","${p.subject_name}",${lat},${lon}`;
-    });
-
-  if (!rows.length) {
-    alert("Нет выбранных КПП");
-    return;
-  }
-
-  const csv = "name,region,lat,lon\n" + rows.join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "selected_checkpoints.csv";
-  a.click();
-};
-
 /* ===== Helpers ===== */
 
 function toggleSelect(id) {
