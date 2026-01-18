@@ -31,35 +31,29 @@
       </select>
 
       <div class="btnrow">
-        <button id="toggleTheme" class="btn">🌗 Ночь</button>
+        <button id="toggleTheme" class="btn active">🌗 Ночь</button>
         <button id="toggleRoads" class="btn">🛣 Дороги</button>
         <button id="toggle3D" class="btn">🏙 3D</button>
       </div>
 
       <div class="btnrow">
+        <button id="toggleTour" class="btn ghost">🎬 Тур</button>
         <button id="btnShare" class="btn ghost">🔗 Ссылка</button>
-        <button id="btnClear" class="btn ghost">🧹 Сброс</button>
         <button id="btnExport" class="btn ghost">⬇ CSV</button>
       </div>
     </div>
 
     <div class="stats" id="stats"></div>
 
-    <div class="resultsHead">
-      <div>Результаты</div>
-      <div class="muted" id="resultsCount"></div>
-    </div>
-    <div class="results" id="results"></div>
-
     <footer>
       Источник данных: Росгранстрой<br>
-      Карта: MapLibre GL + CARTO
+      Карта: MapLibre GL (OSM Bright)
     </footer>
   </aside>
 
   <main id="map"></main>
 
-  <!-- ЛЕГЕНДА -->
+  <!-- Легенда -->
   <div class="legend">
     <div class="legend-title">Легенда</div>
     <div class="legend-item"><span class="dot auto"></span>Автомобильный</div>
@@ -67,17 +61,16 @@
     <div class="legend-item"><span class="dot air"></span>Воздушный</div>
     <div class="legend-item"><span class="dot sea"></span>Морской</div>
     <div class="legend-item"><span class="dot river"></span>Речной</div>
-
     <div class="legend-hint">
       🌗 День / Ночь<br>
       🛣 Навигация<br>
       🏙 3D<br>
-      🧩 Кластеры на малом зуме
+      🎬 Презентация
     </div>
   </div>
 
-  <div class="hint" id="hint">
-    Фильтруй, кликай по КПП, включай режимы. Есть ссылка и экспорт CSV.
+  <div class="hint">
+    Используйте фильтры, режимы и тур для просмотра карты
   </div>
 </div>
 
