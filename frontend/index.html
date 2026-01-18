@@ -1,20 +1,73 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Russia Border Checkpoints Map</title>
+  <meta charset="UTF-8" />
+  <title>Пункты пропуска через границу РФ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Leaflet -->
   <link
     rel="stylesheet"
-    href="https://unpkg.com/leaflet/dist/leaflet.css"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
-  <link rel="stylesheet" href="style.css">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <div id="map"></div>
+<div class="layout">
+  <aside class="sidebar">
+    <h1>КПП РФ</h1>
+    <p class="subtitle">Пункты пропуска через государственную границу</p>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="app.js"></script>
+    <div class="section">
+      <h2>Фильтры</h2>
+
+      <label>
+        Тип КПП
+        <select id="typeFilter">
+          <option value="all">Все</option>
+        </select>
+      </label>
+
+      <label>
+        Статус
+        <select id="statusFilter">
+          <option value="all">Все</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="section">
+      <h2>Статистика</h2>
+      <div id="stats"></div>
+    </div>
+
+    <div class="section legend">
+      <h2>Легенда</h2>
+      <div class="legend-item"><span class="dot auto"></span> Автомобильный</div>
+      <div class="legend-item"><span class="dot rail"></span> Железнодорожный</div>
+      <div class="legend-item"><span class="dot air"></span> Воздушный</div>
+      <div class="legend-item"><span class="dot sea"></span> Морской</div>
+      <div class="legend-item"><span class="dot river"></span> Речной</div>
+    </div>
+
+    <footer>
+      Источник данных: Росгранстрой
+      <br />
+      Обновляется автоматически
+    </footer>
+  </aside>
+
+  <main id="map"></main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
