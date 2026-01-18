@@ -5,17 +5,8 @@
   <title>КПП РФ — интерактивная карта</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- MapLibre -->
-  <link
-    href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css"
-    rel="stylesheet"
-  />
-
-  <!-- Font -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-    rel="stylesheet"
-  />
+  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -44,9 +35,21 @@
         <button id="toggleRoads" class="btn">🛣 Дороги</button>
         <button id="toggle3D" class="btn">🏙 3D</button>
       </div>
+
+      <div class="btnrow">
+        <button id="btnShare" class="btn ghost">🔗 Ссылка</button>
+        <button id="btnClear" class="btn ghost">🧹 Сброс</button>
+        <button id="btnExport" class="btn ghost">⬇ CSV</button>
+      </div>
     </div>
 
     <div class="stats" id="stats"></div>
+
+    <div class="resultsHead">
+      <div>Результаты</div>
+      <div class="muted" id="resultsCount"></div>
+    </div>
+    <div class="results" id="results"></div>
 
     <footer>
       Источник данных: Росгранстрой<br>
@@ -59,22 +62,22 @@
   <!-- ЛЕГЕНДА -->
   <div class="legend">
     <div class="legend-title">Легенда</div>
-    <div class="legend-item"><span class="dot auto"></span>Автомобильный КПП</div>
-    <div class="legend-item"><span class="dot rail"></span>Железнодорожный КПП</div>
-    <div class="legend-item"><span class="dot air"></span>Воздушный КПП</div>
-    <div class="legend-item"><span class="dot sea"></span>Морской КПП</div>
-    <div class="legend-item"><span class="dot river"></span>Речной КПП</div>
+    <div class="legend-item"><span class="dot auto"></span>Автомобильный</div>
+    <div class="legend-item"><span class="dot rail"></span>Железнодорожный</div>
+    <div class="legend-item"><span class="dot air"></span>Воздушный</div>
+    <div class="legend-item"><span class="dot sea"></span>Морской</div>
+    <div class="legend-item"><span class="dot river"></span>Речной</div>
 
     <div class="legend-hint">
       🌗 День / Ночь<br>
       🛣 Навигация<br>
-      🏙 3D
+      🏙 3D<br>
+      🧩 Кластеры на малом зуме
     </div>
   </div>
 
-  <!-- HINT -->
-  <div class="hint">
-    Используйте фильтры и режимы для навигации по КПП
+  <div class="hint" id="hint">
+    Фильтруй, кликай по КПП, включай режимы. Есть ссылка и экспорт CSV.
   </div>
 </div>
 
