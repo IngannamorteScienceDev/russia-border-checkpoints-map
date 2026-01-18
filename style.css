@@ -1,4 +1,6 @@
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
@@ -17,6 +19,7 @@ body {
 
 .panel {
   width: 380px;
+  min-width: 380px;
   background: linear-gradient(180deg, #0b1224, #070b17);
   padding: 18px;
   display: flex;
@@ -25,8 +28,15 @@ body {
   z-index: 10;
 }
 
-.brand h1 { margin: 0; font-size: 22px; }
-.brand span { font-size: 13px; color: rgba(148,163,184,.85); }
+.brand h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.brand span {
+  font-size: 13px;
+  color: rgba(148,163,184,.85);
+}
 
 .controls {
   margin-top: 16px;
@@ -64,6 +74,8 @@ body {
   cursor: pointer;
 }
 
+/* ===== Info blocks ===== */
+
 .legend,
 .stats {
   margin-top: 14px;
@@ -74,18 +86,29 @@ body {
   font-size: 13px;
 }
 
+/* ===== List ===== */
+
 .showcase {
   flex: 1;
   display: flex;
   flex-direction: column;
   margin-top: 12px;
+  min-height: 0;
+}
+
+.showcase-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
 }
 
 .showcase-list {
-  overflow: auto;
+  flex: 1;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding-right: 4px;
 }
 
 .item {
@@ -110,13 +133,23 @@ body {
   color: #facc15;
 }
 
-#map { flex: 1; }
+/* ===== Map ===== */
+
+#map {
+  flex: 1;
+}
 
 /* ===== Buttons ===== */
 
-.mobile-toggle,
+/* ⛔ ПО УМОЛЧАНИЮ СКРЫТО */
+.mobile-toggle {
+  display: none;
+}
+
 .geo-btn {
   position: fixed;
+  top: 14px;
+  right: 14px;
   z-index: 50;
   background: rgba(2,6,23,.9);
   border: 1px solid rgba(148,163,184,.25);
@@ -126,10 +159,23 @@ body {
   font-size: 18px;
 }
 
-.mobile-toggle { top: 14px; left: 14px; }
-.geo-btn { top: 14px; right: 14px; }
+/* ===== Mobile ONLY ===== */
 
 @media (max-width: 768px) {
+  .mobile-toggle {
+    display: block;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 50;
+    background: rgba(2,6,23,.9);
+    border: 1px solid rgba(148,163,184,.25);
+    color: #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 18px;
+  }
+
   .panel {
     position: fixed;
     inset: 0;
@@ -140,5 +186,7 @@ body {
     z-index: 40;
   }
 
-  .panel.open { transform: translateX(0); }
+  .panel.open {
+    transform: translateX(0);
+  }
 }
