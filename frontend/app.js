@@ -1,3 +1,5 @@
+/* ===== Configuration ===== */
+
 const BASE_STYLE =
   "https://raw.githubusercontent.com/maplibre/demotiles/gh-pages/style.json";
 
@@ -9,16 +11,19 @@ const COLORS = {
   "Речной": "#14b8a6",
 };
 
+/* ===== State ===== */
+
+let geoData = null;
+let selectedIds = new Set();
+let heatmapEnabled = false;
+
+/* ===== DOM ===== */
+
 const loader = document.getElementById("loader");
-const loaderStep = document.getElementById("loaderStep");
-const emptyState = document.getElementById("emptyState");
 const statsEl = document.getElementById("stats");
 const updateDateEl = document.getElementById("updateDate");
 
-let geoData = null;
-let filtered = [];
-let selectedIds = new Set();
-let nightMode = true;
+/* ===== Map init ===== */
 
 const map = new maplibregl.Map({
   container: "map",
@@ -30,126 +35,145 @@ const map = new maplibregl.Map({
 
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
-map.on("error", e => console.error("Map error:", e.error));
+map.once("load", () => {
+  loader.classList.add("hidden");
+});
 
-loaderStep.textContent = "Загрузка стиля карты…";
+/* ===== Data loading ===== */
 
 fetch("data/checkpoints.geojson")
   .then(r => r.json())
   .then(data => {
     geoData = data;
-    filtered = data.features;
-
-    updateDateEl.textContent =
-      new Date(data.metadata?.updated_at || Date.now()).toLocaleDateString("ru-RU");
-
-    loaderStep.textContent = "Добавление данных КПП…";
-
-    map.on("style.load", () => {
-      addLayers();
-      applyFog();
-      updateStats();
-      loader.style.display = "none";
-    });
+    updateDateEl.textContent = new Date().toLocaleDateString("ru-RU");
+    addSource();
+    addPointLayer();
+    addHeatmapLayer();
+    updateStats();
   });
 
-function applyFog(){
-  try{
-    map.setFog({
-      range:[0.8,8],
-      color:"rgb(2,6,23)",
-      "high-color":"rgb(15,23,42)",
-      "space-color":"rgb(2,6,23)",
-      "horizon-blend":0.25,
-      starIntensity:0.15
-    });
-  }catch{}
+/* ===== Sources ===== */
+
+function addSource() {
+  map.addSource("checkpoints", {
+    type: "geojson",
+    data: geoData,
+    promoteId: "checkpoint_id",
+  });
 }
 
-function addLayers(){
-  map.addSource("checkpoints",{
-    type:"geojson",
-    data: geoData,
-    promoteId:"checkpoint_id"
-  });
+/* ===== Layers ===== */
 
+function addPointLayer() {
   map.addLayer({
-    id:"points",
-    type:"circle",
-    source:"checkpoints",
-    paint:{
-      "circle-radius":6,
-      "circle-color":[
-        "match",["get","checkpoint_type"],
-        "Автомобильный",COLORS["Автомобильный"],
-        "Железнодорожный",COLORS["Железнодорожный"],
-        "Воздушный",COLORS["Воздушный"],
-        "Морской",COLORS["Морской"],
-        "Речной",COLORS["Речной"],
+    id: "points",
+    type: "circle",
+    source: "checkpoints",
+    paint: {
+      "circle-radius": 6,
+      "circle-color": [
+        "match",
+        ["get", "checkpoint_type"],
+        "Автомобильный", COLORS["Автомобильный"],
+        "Железнодорожный", COLORS["Железнодорожный"],
+        "Воздушный", COLORS["Воздушный"],
+        "Морской", COLORS["Морской"],
+        "Речной", COLORS["Речной"],
         "#64748b"
       ],
-      "circle-stroke-width":[
+      "circle-stroke-width": [
         "case",
-        ["boolean",["feature-state","selected"],false],
-        3,1
+        ["boolean", ["feature-state", "selected"], false],
+        3, 1
       ],
-      "circle-stroke-color":[
+      "circle-stroke-color": [
         "case",
-        ["boolean",["feature-state","selected"],false],
-        "#facc15","#020617"
+        ["boolean", ["feature-state", "selected"], false],
+        "#facc15", "#020617"
       ]
     }
   });
 
-  map.on("click","points",e=>{
+  map.on("click", "points", e => {
     const f = e.features[0];
     const id = f.id ?? f.properties.checkpoint_id;
     toggleSelect(id);
 
     new maplibregl.Popup()
       .setLngLat(e.lngLat)
-      .setHTML(`<b>${f.properties.checkpoint_name}</b><br>${f.properties.subject_name}`)
+      .setHTML(
+        `<b>${f.properties.checkpoint_name}</b><br>${f.properties.subject_name}`
+      )
       .addTo(map);
   });
 }
 
-function toggleSelect(id){
-  if(selectedIds.has(id)){
-    selectedIds.delete(id);
-    map.setFeatureState({source:"checkpoints",id},{selected:false});
-  }else{
-    selectedIds.add(id);
-    map.setFeatureState({source:"checkpoints",id},{selected:true});
-  }
-  updateStats();
+function addHeatmapLayer() {
+  map.addLayer({
+    id: "heatmap",
+    type: "heatmap",
+    source: "checkpoints",
+    layout: { visibility: "none" },
+    paint: {
+      "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 3, 18, 7, 40],
+      "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 3, 0.6, 7, 1.2],
+      "heatmap-color": [
+        "interpolate", ["linear"], ["heatmap-density"],
+        0, "rgba(0,0,0,0)",
+        0.3, "#3b82f6",
+        0.6, "#22c55e",
+        0.85, "#facc15",
+        1, "#ef4444"
+      ]
+    }
+  });
 }
 
-function updateStats(){
-  statsEl.innerHTML =
-    `Отображено КПП: <b>${filtered.length}</b><br>
-     Выбрано КПП: <b>${selectedIds.size}</b>`;
+/* ===== UI ===== */
 
-  emptyState.style.display = filtered.length === 0 ? "block" : "none";
-}
+document.getElementById("toggleHeatmap").onclick = () => {
+  heatmapEnabled = !heatmapEnabled;
+  map.setLayoutProperty("points", "visibility", heatmapEnabled ? "none" : "visible");
+  map.setLayoutProperty("heatmap", "visibility", heatmapEnabled ? "visible" : "none");
+};
 
-document.getElementById("btnExport").onclick = ()=>{
+document.getElementById("btnExport").onclick = () => {
   const rows = geoData.features
-    .filter(f=>selectedIds.has(f.properties.checkpoint_id))
-    .map(f=>{
+    .filter(f => selectedIds.has(f.properties.checkpoint_id))
+    .map(f => {
       const p = f.properties;
-      const [lon,lat]=f.geometry.coordinates;
+      const [lon, lat] = f.geometry.coordinates;
       return `"${p.checkpoint_name}","${p.subject_name}",${lat},${lon}`;
     });
 
-  if(!rows.length){
+  if (!rows.length) {
     alert("Нет выбранных КПП");
     return;
   }
 
-  const csv = "name,region,lat,lon\n"+rows.join("\n");
-  const blob = new Blob([csv],{type:"text/csv"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="selected_checkpoints.csv";
+  const csv = "name,region,lat,lon\n" + rows.join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "selected_checkpoints.csv";
   a.click();
 };
+
+/* ===== Helpers ===== */
+
+function toggleSelect(id) {
+  if (selectedIds.has(id)) {
+    selectedIds.delete(id);
+    map.setFeatureState({ source: "checkpoints", id }, { selected: false });
+  } else {
+    selectedIds.add(id);
+    map.setFeatureState({ source: "checkpoints", id }, { selected: true });
+  }
+  updateStats();
+}
+
+function updateStats() {
+  statsEl.innerHTML =
+    `Всего КПП: <b>${geoData.features.length}</b><br>
+     Выбрано КПП: <b>${selectedIds.size}</b>`;
+}

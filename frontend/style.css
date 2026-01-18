@@ -1,39 +1,137 @@
-/* Loader */
-.loader{
-  position:fixed;
-  inset:0;
-  background:rgba(2,6,23,.96);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:100;
-}
-.loader-box{
-  text-align:center;
-}
-.loader-title{
-  font-size:18px;
-  font-weight:700;
-  margin-bottom:10px;
-}
-.loader-step{
-  font-size:13px;
-  color:rgba(148,163,184,.9);
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  background: #020617;
+  color: #e5e7eb;
+  overflow: hidden;
 }
 
-/* Empty state */
-.empty{
-  display:none;
-  margin-top:14px;
-  padding:12px;
-  border-radius:14px;
-  background:rgba(15,23,42,.6);
-  border:1px solid rgba(148,163,184,.15);
-  font-size:13px;
-  color:rgba(226,232,240,.9);
+/* ===== Loader ===== */
+
+.loader {
+  position: fixed;
+  inset: 0;
+  background: #020617;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: opacity .5s ease, visibility .5s ease;
 }
 
-/* Selected КПП */
-.maplibregl-popup-content.selected {
-  border:2px solid #facc15;
+.loader.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loader-inner {
+  text-align: center;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 3px solid rgba(148,163,184,.25);
+  border-top-color: #3b82f6;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loader-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.loader-sub {
+  font-size: 13px;
+  color: rgba(148,163,184,.85);
+}
+
+/* ===== Layout ===== */
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+.panel {
+  width: 360px;
+  background: linear-gradient(180deg, #0b1224, #070b17);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(148,163,184,.15);
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.brand span {
+  font-size: 13px;
+  color: rgba(148,163,184,.85);
+}
+
+.controls {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.controls input {
+  padding: 11px 12px;
+  background: rgba(15,23,42,.9);
+  border: 1px solid rgba(148,163,184,.2);
+  border-radius: 12px;
+  color: #e5e7eb;
+}
+
+.btnrow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btn {
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(148,163,184,.2);
+  background: rgba(15,23,42,.85);
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.btn.ghost {
+  background: rgba(2,6,23,.4);
+}
+
+.stats {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(2,6,23,.45);
+  border: 1px solid rgba(148,163,184,.15);
+  font-size: 13px;
+}
+
+footer {
+  margin-top: auto;
+  font-size: 12px;
+  color: rgba(148,163,184,.8);
+}
+
+#map {
+  flex: 1;
+}
+
+.maplibregl-canvas {
+  filter: saturate(0.95) contrast(1.05) brightness(0.96);
 }
