@@ -5,11 +5,17 @@
   <title>КПП РФ — интерактивная карта</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- MapLibre GL -->
-  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+  <!-- MapLibre -->
+  <link
+    href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css"
+    rel="stylesheet"
+  />
 
   <!-- Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
 
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -23,12 +29,7 @@
     </div>
 
     <div class="controls">
-      <input
-        id="searchInput"
-        type="text"
-        placeholder="Поиск: название, регион, страна…"
-        autocomplete="off"
-      />
+      <input id="searchInput" type="text" placeholder="Поиск: название, регион, страна…" />
 
       <select id="typeFilter">
         <option value="all">Все типы</option>
@@ -48,12 +49,33 @@
     <div class="stats" id="stats"></div>
 
     <footer>
-      Источник данных: Росгранстрой<br />
-      Векторная карта: MapLibre GL
+      Источник данных: Росгранстрой<br>
+      Карта: MapLibre GL + CARTO
     </footer>
   </aside>
 
   <main id="map"></main>
+
+  <!-- ЛЕГЕНДА -->
+  <div class="legend">
+    <div class="legend-title">Легенда</div>
+    <div class="legend-item"><span class="dot auto"></span>Автомобильный КПП</div>
+    <div class="legend-item"><span class="dot rail"></span>Железнодорожный КПП</div>
+    <div class="legend-item"><span class="dot air"></span>Воздушный КПП</div>
+    <div class="legend-item"><span class="dot sea"></span>Морской КПП</div>
+    <div class="legend-item"><span class="dot river"></span>Речной КПП</div>
+
+    <div class="legend-hint">
+      🌗 День / Ночь<br>
+      🛣 Навигация<br>
+      🏙 3D
+    </div>
+  </div>
+
+  <!-- HINT -->
+  <div class="hint">
+    Используйте фильтры и режимы для навигации по КПП
+  </div>
 </div>
 
 <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>

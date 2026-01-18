@@ -1,14 +1,6 @@
-// =====================================================
-// КПП РФ — MapLibre GL (FIXED & STABLE)
-// =====================================================
-
-// ─────────────────────────────────────────────────────
-// Базовый навигационный стиль (НЕ демо)
-// ─────────────────────────────────────────────────────
 const BASE_STYLE =
   "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
 
-// Цвета КПП
 const COLORS = {
   "Автомобильный": "#3b82f6",
   "Железнодорожный": "#22c55e",
@@ -17,155 +9,101 @@ const COLORS = {
   "Речной": "#14b8a6",
 };
 
-// ─────────────────────────────────────────────────────
-// Состояние
-// ─────────────────────────────────────────────────────
-let geoData = null;
-let filteredFeatures = [];
+let geoData;
+let filtered = [];
 
 let nightMode = true;
 let roadsMode = false;
 let threeDMode = false;
 
-// Слои стиля
-let roadLayerIds = [];
-let labelLayerIds = [];
-let buildingSourceName = null;
+let roadLayers = [];
+let labelLayers = [];
+let buildingSource = null;
 
-// ─────────────────────────────────────────────────────
-// UI элементы
-// ─────────────────────────────────────────────────────
-const searchInput = document.getElementById("searchInput");
-const typeFilter = document.getElementById("typeFilter");
-const statusFilter = document.getElementById("statusFilter");
-const statsEl = document.getElementById("stats");
-
-const btnTheme = document.getElementById("toggleTheme");
-const btnRoads = document.getElementById("toggleRoads");
-const btn3d = document.getElementById("toggle3D");
-
-// ─────────────────────────────────────────────────────
-// Инициализация карты
-// ─────────────────────────────────────────────────────
 const map = new maplibregl.Map({
   container: "map",
   style: BASE_STYLE,
   center: [90, 61],
-  zoom: 3.8,
+  zoom: 4,
   antialias: true,
 });
 
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
-// ─────────────────────────────────────────────────────
-// Загрузка данных
-// ─────────────────────────────────────────────────────
 fetch("data/checkpoints.geojson")
   .then(r => r.json())
   .then(data => {
     geoData = data;
-    filteredFeatures = data.features;
+    filtered = data.features;
 
     initUI();
 
-    // ВАЖНО: всё, что связано со слоями — ТОЛЬКО здесь
     map.on("style.load", () => {
-      indexStyleLayers();
-      addCheckpointsLayer();
+      indexStyle();
+      addCheckpoints();
       applyTheme();
-      applyRoadHighlight();
+      applyRoads();
       if (threeDMode) apply3D();
+    });
+
+    map.once("load", () => {
+      map.easeTo({ zoom: 4.6, pitch: 30, bearing: -10, duration: 1600 });
     });
   });
 
-// ─────────────────────────────────────────────────────
-// UI
-// ─────────────────────────────────────────────────────
 function initUI() {
-  btnTheme.onclick = () => {
+  const typeFilter = document.getElementById("typeFilter");
+  const statusFilter = document.getElementById("statusFilter");
+  const searchInput = document.getElementById("searchInput");
+
+  const types = [...new Set(geoData.features.map(f => f.properties.checkpoint_type))];
+  const statuses = [...new Set(geoData.features.map(f => f.properties.status))];
+
+  fill(typeFilter, types);
+  fill(statusFilter, statuses);
+
+  typeFilter.onchange = filter;
+  statusFilter.onchange = filter;
+  searchInput.oninput = debounce(filter, 150);
+
+  document.getElementById("toggleTheme").onclick = () => {
     nightMode = !nightMode;
-    btnTheme.classList.toggle("active", nightMode);
-    btnTheme.textContent = nightMode ? "🌗 Ночь" : "☀️ День";
     applyTheme();
   };
 
-  btnRoads.onclick = () => {
+  document.getElementById("toggleRoads").onclick = () => {
     roadsMode = !roadsMode;
-    btnRoads.classList.toggle("active", roadsMode);
-    applyRoadHighlight();
+    applyRoads();
   };
 
-  btn3d.onclick = () => {
+  document.getElementById("toggle3D").onclick = () => {
     threeDMode = !threeDMode;
-    btn3d.classList.toggle("active", threeDMode);
     apply3D();
   };
-
-  const types = uniq(geoData.features.map(f => f.properties.checkpoint_type));
-  const statuses = uniq(geoData.features.map(f => f.properties.status));
-
-  fillSelect(typeFilter, types);
-  fillSelect(statusFilter, statuses);
-
-  const debounced = debounce(applyFilters, 150);
-  typeFilter.onchange = applyFilters;
-  statusFilter.onchange = applyFilters;
-  searchInput.oninput = debounced;
-
-  btnTheme.textContent = "🌗 Ночь";
-  btnTheme.classList.add("active");
 }
 
-// ─────────────────────────────────────────────────────
-// Слои стиля карты
-// ─────────────────────────────────────────────────────
-function indexStyleLayers() {
-  roadLayerIds = [];
-  labelLayerIds = [];
-  buildingSourceName = null;
-
+function indexStyle() {
   const style = map.getStyle();
-  if (!style) return;
+  roadLayers = [];
+  labelLayers = [];
 
-  // Векторные источники
   const sources = style.sources || {};
-  const vectorSources = Object.keys(sources).filter(
-    k => sources[k].type === "vector"
-  );
-  buildingSourceName = vectorSources[0] || null;
+  buildingSource = Object.keys(sources).find(k => sources[k].type === "vector");
 
-  for (const layer of style.layers) {
-    const id = layer.id.toLowerCase();
-
-    if (
-      layer.type === "line" &&
-      (id.includes("road") || id.includes("transport"))
-    ) {
-      roadLayerIds.push(layer.id);
-    }
-
-    if (
-      layer.type === "symbol" &&
-      (id.includes("label") || id.includes("place"))
-    ) {
-      labelLayerIds.push(layer.id);
-    }
+  for (const l of style.layers) {
+    const id = l.id.toLowerCase();
+    if (l.type === "line" && id.includes("road")) roadLayers.push(l.id);
+    if (l.type === "symbol" && id.includes("label")) labelLayers.push(l.id);
   }
 }
 
-// ─────────────────────────────────────────────────────
-// КПП
-// ─────────────────────────────────────────────────────
-function addCheckpointsLayer() {
+function addCheckpoints() {
   if (map.getSource("checkpoints")) return;
 
   map.addSource("checkpoints", {
     type: "geojson",
-    data: {
-      type: "FeatureCollection",
-      features: filteredFeatures,
-    },
-    promoteId: "checkpoint_id",
+    data: { type: "FeatureCollection", features: filtered },
+    promoteId: "checkpoint_id"
   });
 
   map.addLayer({
@@ -173,14 +111,7 @@ function addCheckpointsLayer() {
     type: "circle",
     source: "checkpoints",
     paint: {
-      "circle-radius": [
-        "interpolate",
-        ["linear"],
-        ["zoom"],
-        3, 3,
-        7, 6,
-        10, 10
-      ],
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 3, 8, 8],
       "circle-color": [
         "match",
         ["get", "checkpoint_type"],
@@ -193,139 +124,80 @@ function addCheckpointsLayer() {
       ],
       "circle-stroke-color": "#020617",
       "circle-stroke-width": 1,
-      "circle-opacity": 0.9,
-    },
+    }
   });
 
   map.on("click", "checkpoints-layer", e => {
     const p = e.features[0].properties;
     new maplibregl.Popup()
       .setLngLat(e.lngLat)
-      .setHTML(buildPopup(p))
+      .setHTML(`<b>${p.checkpoint_name}</b><br>${p.checkpoint_type}<br>${p.subject_name}`)
       .addTo(map);
   });
 
-  map.on("mouseenter", "checkpoints-layer", () => {
-    map.getCanvas().style.cursor = "pointer";
-  });
-  map.on("mouseleave", "checkpoints-layer", () => {
-    map.getCanvas().style.cursor = "";
-  });
-
-  updateStats(filteredFeatures);
+  updateStats(filtered);
 }
 
-// ─────────────────────────────────────────────────────
-// Фильтрация
-// ─────────────────────────────────────────────────────
-function applyFilters() {
-  const typeVal = typeFilter.value;
-  const statusVal = statusFilter.value;
-  const q = searchInput.value.toLowerCase();
+function filter() {
+  const q = document.getElementById("searchInput").value.toLowerCase();
+  const t = document.getElementById("typeFilter").value;
+  const s = document.getElementById("statusFilter").value;
 
-  filteredFeatures = geoData.features.filter(f => {
+  filtered = geoData.features.filter(f => {
     const p = f.properties;
-
-    const okType = typeVal === "all" || p.checkpoint_type === typeVal;
-    const okStatus = statusVal === "all" || p.status === statusVal;
-
-    if (!q) return okType && okStatus;
-
-    const text = [
-      p.checkpoint_name,
-      p.subject_name,
-      p.foreign_country,
-      p.address,
-    ].join(" ").toLowerCase();
-
-    return okType && okStatus && text.includes(q);
+    return (
+      (t === "all" || p.checkpoint_type === t) &&
+      (s === "all" || p.status === s) &&
+      (!q || `${p.checkpoint_name} ${p.subject_name}`.toLowerCase().includes(q))
+    );
   });
 
-  const src = map.getSource("checkpoints");
-  if (src) {
-    src.setData({
-      type: "FeatureCollection",
-      features: filteredFeatures,
-    });
-  }
+  map.getSource("checkpoints").setData({
+    type: "FeatureCollection",
+    features: filtered
+  });
 
-  updateStats(filteredFeatures);
+  updateStats(filtered);
 }
 
-// ─────────────────────────────────────────────────────
-// День / ночь
-// ─────────────────────────────────────────────────────
 function applyTheme() {
-  for (const id of labelLayerIds) {
-    try {
-      map.setPaintProperty(id, "text-opacity", nightMode ? 0.75 : 1.0);
-    } catch {}
+  for (const id of labelLayers) {
+    try { map.setPaintProperty(id, "text-opacity", nightMode ? 0.7 : 1); } catch {}
   }
-  applyRoadHighlight();
 }
 
-// ─────────────────────────────────────────────────────
-// Подсветка дорог
-// ─────────────────────────────────────────────────────
-function applyRoadHighlight() {
-  for (const id of roadLayerIds) {
+function applyRoads() {
+  for (const id of roadLayers) {
     try {
-      map.setPaintProperty(
-        id,
-        "line-opacity",
-        roadsMode ? 0.9 : nightMode ? 0.5 : 0.7
-      );
-      map.setPaintProperty(
-        id,
-        "line-width",
-        roadsMode
-          ? ["interpolate", ["linear"], ["zoom"], 4, 1.5, 10, 4]
-          : ["interpolate", ["linear"], ["zoom"], 4, 0.8, 10, 2.5]
-      );
+      map.setPaintProperty(id, "line-width",
+        roadsMode ? ["interpolate",["linear"],["zoom"],4,1.5,10,4]
+                  : ["interpolate",["linear"],["zoom"],4,0.8,10,2.5]);
     } catch {}
   }
 }
 
-// ─────────────────────────────────────────────────────
-// 3D
-// ─────────────────────────────────────────────────────
 function apply3D() {
-  map.easeTo({
-    pitch: threeDMode ? 55 : 0,
-    bearing: threeDMode ? -12 : 0,
-    duration: 600,
+  map.easeTo({ pitch: threeDMode ? 55 : 0, bearing: threeDMode ? -12 : 0 });
+
+  if (!threeDMode && map.getLayer("3d")) map.removeLayer("3d");
+  if (!threeDMode || !buildingSource || map.getLayer("3d")) return;
+
+  map.addLayer({
+    id: "3d",
+    type: "fill-extrusion",
+    source: buildingSource,
+    "source-layer": "building",
+    minzoom: 12,
+    paint: {
+      "fill-extrusion-height": ["get", "height"],
+      "fill-extrusion-color": "rgba(148,163,184,.45)",
+      "fill-extrusion-opacity": 0.5
+    }
   });
-
-  const layerId = "3d-buildings";
-
-  if (!threeDMode) {
-    if (map.getLayer(layerId)) map.removeLayer(layerId);
-    return;
-  }
-
-  if (!buildingSourceName || map.getLayer(layerId)) return;
-
-  try {
-    map.addLayer({
-      id: layerId,
-      type: "fill-extrusion",
-      source: buildingSourceName,
-      "source-layer": "building",
-      minzoom: 12,
-      paint: {
-        "fill-extrusion-color": "rgba(148,163,184,0.45)",
-        "fill-extrusion-height": ["get", "height"],
-        "fill-extrusion-opacity": 0.5,
-      },
-    });
-  } catch {}
 }
 
-// ─────────────────────────────────────────────────────
-// Вспомогательные
-// ─────────────────────────────────────────────────────
-function fillSelect(select, values) {
-  values.filter(Boolean).sort().forEach(v => {
+function fill(select, arr) {
+  arr.filter(Boolean).sort().forEach(v => {
     const o = document.createElement("option");
     o.value = v;
     o.textContent = v;
@@ -333,27 +205,11 @@ function fillSelect(select, values) {
   });
 }
 
-function uniq(arr) {
-  return [...new Set(arr)];
-}
-
 function debounce(fn, ms) {
-  let t;
-  return (...args) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn(...args), ms);
-  };
+  let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); };
 }
 
-function updateStats(features) {
-  statsEl.innerHTML = `Отображено КПП: <strong>${features.length}</strong>`;
-}
-
-function buildPopup(p) {
-  return `
-    <strong>${p.checkpoint_name}</strong><br/>
-    ${p.checkpoint_type} • ${p.status}<br/>
-    ${p.subject_name}<br/>
-    <em>${p.working_time || "Режим не указан"}</em>
-  `;
+function updateStats(arr) {
+  document.getElementById("stats").innerHTML =
+    `Отображено КПП: <b>${arr.length}</b>`;
 }
