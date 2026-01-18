@@ -15,6 +15,8 @@ body {
   height: 100vh;
 }
 
+/* ===== Panel ===== */
+
 .panel {
   width: 380px;
   background: linear-gradient(180deg, #0b1224, #070b17);
@@ -50,6 +52,12 @@ body {
   color: #e5e7eb;
 }
 
+.controls input:focus,
+.controls select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
 .grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -69,10 +77,16 @@ body {
   background: rgba(2,6,23,.4);
   color: #e5e7eb;
   cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.btn:hover {
+  background: rgba(59,130,246,.15);
 }
 
 .btn.primary {
-  background: rgba(59,130,246,.25);
+  background: rgba(59,130,246,.3);
+  border-color: rgba(59,130,246,.6);
 }
 
 .legend,
@@ -109,14 +123,7 @@ body {
   border-radius: 50%;
 }
 
-.empty {
-  display: none;
-  margin-top: 10px;
-  padding: 10px;
-  border-radius: 12px;
-  background: rgba(250,204,21,.1);
-  color: #facc15;
-}
+/* ===== List ===== */
 
 .showcase {
   flex: 1;
@@ -144,6 +151,16 @@ body {
   background: rgba(2,6,23,.4);
   border: 1px solid rgba(148,163,184,.15);
   cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.item:hover {
+  background: rgba(59,130,246,.12);
+}
+
+.item.active {
+  background: rgba(59,130,246,.25);
+  border-color: rgba(59,130,246,.6);
 }
 
 .item-name {
@@ -157,62 +174,30 @@ body {
   margin-top: 4px;
 }
 
+.empty {
+  display: none;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(250,204,21,.1);
+  color: #facc15;
+}
+
+/* ===== Footer ===== */
+
 footer {
   margin-top: auto;
   font-size: 12px;
   color: rgba(148,163,184,.75);
 }
 
+/* ===== Map ===== */
+
 #map {
   flex: 1;
 }
 
-/* ===== Loader ===== */
-
-.loader {
-  position: fixed;
-  inset: 0;
-  background: #020617;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.loader-card {
-  width: 320px;
-  padding: 16px;
-  border-radius: 16px;
-  background: rgba(2,6,23,.8);
-  border: 1px solid rgba(148,163,184,.2);
-}
-
-.loader-title {
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-
-.loader-sub {
-  font-size: 13px;
-  color: rgba(148,163,184,.85);
-}
-
-.loader-bar {
-  margin-top: 10px;
-  height: 8px;
-  background: rgba(148,163,184,.15);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.loader-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: #3b82f6;
-  transition: width .2s ease;
-}
-
-/* ===== Map popup ===== */
+/* ===== Popup ===== */
 
 .maplibregl-popup-content {
   background: rgba(2,6,23,.95);

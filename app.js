@@ -11,33 +11,40 @@ const TYPE_COLORS = {
   "Другое": "#64748b"
 };
 
-const loader = document.getElementById("loader");
-const loaderStep = document.getElementById("loaderStep");
-const loaderBar = document.getElementById("loaderBar");
-
 const searchEl = document.getElementById("searchInput");
 const typeEl = document.getElementById("typeFilter");
 const statusEl = document.getElementById("statusFilter");
-
 const legendEl = document.getElementById("legend");
 const statsEl = document.getElementById("stats");
 const listEl = document.getElementById("list");
 const emptyEl = document.getElementById("emptyState");
-const updateDateEl = document.getElementById("updateDate");
 
 const toggleHeatmapBtn = document.getElementById("toggleHeatmap");
 const clearSelectionBtn = document.getElementById("clearSelection");
 
-let geo = null;
+const mobileToggle = document.getElementById("mobileToggle");
+const panel = document.querySelector(".panel");
+
 let allFeatures = [];
 let viewFeatures = [];
-let selectedIds = new Set();
-let heatmapOn = false;
+let selectedId = null;
+let debounceTimer = null;
 
-function setLoader(text, pct) {
-  loaderStep.textContent = text;
-  loaderBar.style.width = `${pct}%`;
-}
+/* ===== Map ===== */
+
+const map = new maplibregl.Map({
+  container: "map",
+  style: BASE_STYLE,
+  center: [90, 61],
+  zoom: 4,
+  antialias: true
+});
+
+map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+map.touchZoomRotate.enable();
+map.dragPan.enable();
+
+/* ===== Utils ===== */
 
 function normalizeType(raw) {
   const v = String(raw || "").toLowerCase();
@@ -59,46 +66,25 @@ function normalizeStatus(raw) {
   return "Неизвестно";
 }
 
-setLoader("Загрузка карты…", 10);
+/* ===== Load data ===== */
 
-const map = new maplibregl.Map({
-  container: "map",
-  style: BASE_STYLE,
-  center: [90, 61],
-  zoom: 4,
-  antialias: true
-});
-
-map.addControl(new maplibregl.NavigationControl(), "bottom-right");
-map.touchZoomRotate.enable();
-map.dragPan.enable();
-
-(async function init() {
-  try {
-    setLoader("Загрузка данных КПП…", 30);
-
-    const resp = await fetch("data/checkpoints.geojson", { cache: "no-store" });
-    geo = await resp.json();
-
-    allFeatures = (geo.features || [])
-      .filter(f => f && f.geometry && f.geometry.type === "Point")
-      .map(f => {
-        const p = f.properties || {};
-        return {
-          ...f,
-          properties: {
-            ...p,
-            __id: String(p.checkpoint_id || ""),
-            __name: p.checkpoint_name || "Без названия",
-            __type: normalizeType(p.checkpoint_type),
-            __status: normalizeStatus(p.current_status),
-            __subject: p.subject_name || "—",
-            __country: p.neighbor_country || "—"
-          }
-        };
-      });
-
-    updateDateEl.textContent = new Date().toLocaleDateString("ru-RU");
+fetch("data/checkpoints.geojson", { cache: "no-store" })
+  .then(r => r.json())
+  .then(data => {
+    allFeatures = (data.features || [])
+      .filter(f => f.geometry && f.geometry.type === "Point")
+      .map(f => ({
+        ...f,
+        properties: {
+          ...f.properties,
+          __id: String(f.properties.checkpoint_id || ""),
+          __name: f.properties.checkpoint_name || "Без названия",
+          __type: normalizeType(f.properties.checkpoint_type),
+          __status: normalizeStatus(f.properties.current_status),
+          __subject: f.properties.subject_name || "—",
+          __country: f.properties.neighbor_country || "—"
+        }
+      }));
 
     fillFilters();
     buildLegend();
@@ -106,27 +92,86 @@ map.dragPan.enable();
 
     map.on("load", () => {
       addLayers();
-      setLoader("Готово", 100);
-      loader.style.display = "none";
       map.resize();
     });
-  } catch (e) {
-    console.error(e);
-    setLoader("Ошибка загрузки", 100);
-  }
-})();
+  });
+
+/* ===== Filters ===== */
 
 function fillFilters() {
-  const types = [...new Set(allFeatures.map(f => f.properties.__type))].sort();
-  const statuses = [...new Set(allFeatures.map(f => f.properties.__status))].sort();
+  const types = [...new Set(allFeatures.map(f => f.properties.__type))];
+  const statuses = [...new Set(allFeatures.map(f => f.properties.__status))];
 
   typeEl.innerHTML =
     `<option value="all">Все типы</option>` +
-    types.map(t => `<option value="${t}">${t}</option>`).join("");
+    types.map(t => `<option>${t}</option>`).join("");
 
   statusEl.innerHTML =
     `<option value="all">Все статусы</option>` +
-    statuses.map(s => `<option value="${s}">${s}</option>`).join("");
+    statuses.map(s => `<option>${s}</option>`).join("");
+}
+
+function applyFilters() {
+  const q = searchEl.value.toLowerCase().trim();
+  const t = typeEl.value;
+  const s = statusEl.value;
+
+  const next = allFeatures.filter(f => {
+    if (t !== "all" && f.properties.__type !== t) return false;
+    if (s !== "all" && f.properties.__status !== s) return false;
+    if (!q) return true;
+
+    return (
+      f.properties.__name.toLowerCase().includes(q) ||
+      f.properties.__subject.toLowerCase().includes(q) ||
+      f.properties.__country.toLowerCase().includes(q)
+    );
+  });
+
+  if (next.length === viewFeatures.length) return;
+
+  viewFeatures = next;
+  updateSource();
+  renderStats();
+  renderList();
+}
+
+function updateSource() {
+  const src = map.getSource("checkpoints");
+  if (src) {
+    src.setData({
+      type: "FeatureCollection",
+      features: viewFeatures
+    });
+  }
+}
+
+/* ===== UI ===== */
+
+function renderStats() {
+  statsEl.innerHTML = `
+    Всего: <b>${allFeatures.length}</b><br>
+    Показано: <b>${viewFeatures.length}</b>
+  `;
+}
+
+function renderList() {
+  listEl.innerHTML = viewFeatures.slice(0, 200).map(f => `
+    <div class="item ${f.properties.__id === selectedId ? "active" : ""}"
+         data-id="${f.properties.__id}">
+      <div class="item-name">${f.properties.__name}</div>
+      <div class="item-sub">
+        ${f.properties.__subject} • ${f.properties.__country}<br>
+        ${f.properties.__type} • ${f.properties.__status}
+      </div>
+    </div>
+  `).join("");
+
+  emptyEl.style.display = viewFeatures.length ? "none" : "block";
+
+  listEl.querySelectorAll(".item").forEach(el => {
+    el.onclick = () => focusFeature(el.dataset.id);
+  });
 }
 
 function buildLegend() {
@@ -141,69 +186,7 @@ function buildLegend() {
   `;
 }
 
-function applyFilters() {
-  const q = (searchEl.value || "").toLowerCase().trim();
-  const t = typeEl.value;
-  const s = statusEl.value;
-
-  viewFeatures = allFeatures.filter(f => {
-    if (t !== "all" && f.properties.__type !== t) return false;
-    if (s !== "all" && f.properties.__status !== s) return false;
-    if (!q) return true;
-
-    return (
-      String(f.properties.__name).toLowerCase().includes(q) ||
-      String(f.properties.__subject).toLowerCase().includes(q) ||
-      String(f.properties.__country).toLowerCase().includes(q)
-    );
-  });
-
-  renderStats();
-  renderList();
-  emptyEl.style.display = viewFeatures.length ? "none" : "block";
-
-  if (map.getSource("checkpoints")) {
-    map.getSource("checkpoints").setData({
-      type: "FeatureCollection",
-      features: viewFeatures
-    });
-  }
-}
-
-function renderStats() {
-  statsEl.innerHTML = `
-    Всего КПП: <b>${allFeatures.length}</b><br>
-    Отображено: <b>${viewFeatures.length}</b><br>
-    Выбрано: <b>${selectedIds.size}</b>
-  `;
-}
-
-function renderList() {
-  listEl.innerHTML = viewFeatures.slice(0, 200).map(f => `
-    <div class="item" data-id="${f.properties.__id}">
-      <div class="item-name">${f.properties.__name}</div>
-      <div class="item-sub">
-        ${f.properties.__subject} • ${f.properties.__country}<br>
-        ${f.properties.__type} • ${f.properties.__status}
-      </div>
-    </div>
-  `).join("");
-
-  listEl.querySelectorAll(".item").forEach(el => {
-    el.onclick = () => {
-      const id = el.dataset.id;
-      const f = viewFeatures.find(x => x.properties.__id === id);
-      if (!f) return;
-
-      map.easeTo({ center: f.geometry.coordinates, zoom: 7 });
-
-      if (window.innerWidth <= 768 && panel) {
-        panel.classList.remove("open");
-        setTimeout(() => map.resize(), 300);
-      }
-    };
-  });
-}
+/* ===== Map layers ===== */
 
 function addLayers() {
   map.addSource("checkpoints", {
@@ -213,8 +196,7 @@ function addLayers() {
       features: viewFeatures
     },
     cluster: true,
-    clusterRadius: 48,
-    clusterMaxZoom: 10
+    clusterRadius: 48
   });
 
   map.addLayer({
@@ -224,7 +206,7 @@ function addLayers() {
     filter: ["has", "point_count"],
     paint: {
       "circle-color": "#3b82f6",
-      "circle-radius": ["step", ["get", "point_count"], 16, 30, 22, 80, 28],
+      "circle-radius": 18,
       "circle-stroke-width": 2,
       "circle-stroke-color": "#020617"
     }
@@ -247,7 +229,12 @@ function addLayers() {
     source: "checkpoints",
     filter: ["!", ["has", "point_count"]],
     paint: {
-      "circle-radius": 6,
+      "circle-radius": [
+        "case",
+        ["==", ["get", "__id"], selectedId],
+        9,
+        6
+      ],
       "circle-color": [
         "match",
         ["get", "__type"],
@@ -259,88 +246,66 @@ function addLayers() {
         "Пешеходный", TYPE_COLORS["Пешеходный"],
         TYPE_COLORS["Другое"]
       ],
-      "circle-opacity": [
-        "match",
-        ["get", "__status"],
-        "Действует", 0.95,
-        "Ограничен", 0.7,
-        "Временно закрыт", 0.45,
-        "Закрыт", 0.25,
-        0.6
-      ],
-      "circle-stroke-width": 1.5,
+      "circle-stroke-width": 2,
       "circle-stroke-color": "#020617"
     }
   });
 
-  map.on("click", "clusters", e => {
-    const f = e.features[0];
-    map.getSource("checkpoints").getClusterExpansionZoom(
-      f.properties.cluster_id,
-      (err, zoom) => {
-        if (!err) map.easeTo({ center: f.geometry.coordinates, zoom });
-      }
-    );
-  });
-
-  map.on("mouseenter", "points", () => {
-    map.getCanvas().style.cursor = "pointer";
-  });
-  map.on("mouseleave", "points", () => {
-    map.getCanvas().style.cursor = "";
-  });
-
   map.on("click", "points", e => {
     const f = e.features[0];
-
-    new maplibregl.Popup({
-      closeButton: true,
-      closeOnClick: true,
-      maxWidth: "90vw"
-    })
-      .setLngLat(e.lngLat)
-      .setHTML(`
-        <div class="popup-title">${f.properties.__name}</div>
-        <div class="popup-sub">
-          ${f.properties.__subject} • ${f.properties.__country}<br>
-          ${f.properties.__type} • ${f.properties.__status}
-        </div>
-      `)
-      .addTo(map);
-
-    if (window.innerWidth <= 768 && panel) {
-      panel.classList.remove("open");
-      setTimeout(() => map.resize(), 300);
-    }
+    focusFeature(f.properties.__id, e.lngLat);
   });
 }
 
-/* Buttons */
-toggleHeatmapBtn.onclick = () => {
-  heatmapOn = !heatmapOn;
+/* ===== Interaction ===== */
 
-  // heatmap layer optional: if you add it later, handle here
-  // currently just toggling button appearance for consistency
-  toggleHeatmapBtn.classList.toggle("primary", heatmapOn);
+function focusFeature(id, lngLatOverride = null) {
+  const f = viewFeatures.find(x => x.properties.__id === id);
+  if (!f) return;
+
+  selectedId = id;
+  renderList();
+  updateSource();
+
+  const center = lngLatOverride || f.geometry.coordinates;
+  map.easeTo({ center, zoom: 7 });
+
+  new maplibregl.Popup({
+    closeButton: true,
+    closeOnClick: true,
+    maxWidth: "90vw"
+  })
+    .setLngLat(center)
+    .setHTML(`
+      <b>${f.properties.__name}</b><br>
+      ${f.properties.__subject} • ${f.properties.__country}<br>
+      ${f.properties.__type} • ${f.properties.__status}
+    `)
+    .addTo(map);
+
+  if (window.innerWidth <= 768 && panel) {
+    panel.classList.remove("open");
+    setTimeout(() => map.resize(), 300);
+  }
+}
+
+/* ===== Events ===== */
+
+searchEl.oninput = () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(applyFilters, 300);
 };
 
-clearSelectionBtn.onclick = () => {
-  selectedIds.clear();
-  renderStats();
-};
-
-/* Filters */
-searchEl.oninput = applyFilters;
 typeEl.onchange = applyFilters;
 statusEl.onchange = applyFilters;
 
-/* Mobile toggle + обязательный resize */
-const mobileToggle = document.getElementById("mobileToggle");
-const panel = document.querySelector(".panel");
+clearSelectionBtn.onclick = () => {
+  selectedId = null;
+  renderList();
+  updateSource();
+};
 
-if (mobileToggle && panel) {
-  mobileToggle.onclick = () => {
-    panel.classList.toggle("open");
-    setTimeout(() => map.resize(), 300);
-  };
-}
+mobileToggle.onclick = () => {
+  panel.classList.toggle("open");
+  setTimeout(() => map.resize(), 300);
+};
