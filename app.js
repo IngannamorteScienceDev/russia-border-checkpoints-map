@@ -32,11 +32,9 @@ const legendEl = document.getElementById("legend");
 const statsEl = document.getElementById("stats");
 const listEl = document.getElementById("list");
 const emptyEl = document.getElementById("emptyState");
-
 const loaderEl = document.getElementById("loader");
 const loaderTextEl = document.getElementById("loaderText");
 const loaderProgressEl = document.getElementById("loaderProgress");
-
 const geoBtn = document.getElementById("geoBtn");
 const styleToggle = document.getElementById("styleToggle");
 const mobileToggle = document.getElementById("mobileToggle");
@@ -46,11 +44,9 @@ const clearSelectionBtn = document.getElementById("clearSelection");
 let allFeatures = [];
 let viewFeatures = [];
 let selectedId = null;
-
 let userLocation = null;
 let userMarker = null;
 let popupRef = null;
-
 let currentStyle = "map";
 let debounceTimer = null;
 
@@ -64,8 +60,6 @@ const map = new maplibregl.Map({
 
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
-/* ===================== UTILS ===================== */
-
 function setProgress(pct, text) {
   if (loaderProgressEl) loaderProgressEl.style.width = `${pct}%`;
   if (loaderTextEl && text) loaderTextEl.textContent = text;
@@ -74,22 +68,22 @@ function setProgress(pct, text) {
 function hideLoader() {
   if (!loaderEl) return;
   loaderEl.style.opacity = "0";
-  setTimeout(() => loaderEl.remove(), 250);
+  setTimeout(() => loaderEl.remove(), 300);
 }
 
-function normalizeType(raw) {
-  const v = String(raw || "").toLowerCase();
+function normalizeType(v) {
+  v = String(v || "").toLowerCase();
   if (v.includes("авто")) return "Автомобильный";
   if (v.includes("желез")) return "Железнодорожный";
   if (v.includes("воздуш")) return "Воздушный";
   if (v.includes("морск")) return "Морской";
-  if (v.includes("речн")) return "Речной";
+  if (v.includes("реч")) return "Речной";
   if (v.includes("пеш")) return "Пешеходный";
   return "Другое";
 }
 
-function normalizeStatus(raw) {
-  const v = String(raw || "").toLowerCase();
+function normalizeStatus(v) {
+  v = String(v || "").toLowerCase();
   if (v.includes("действ")) return "Действует";
   if (v.includes("огран")) return "Ограничен";
   if (v.includes("врем")) return "Временно закрыт";
@@ -98,89 +92,55 @@ function normalizeStatus(raw) {
 }
 
 function haversine(a, b) {
-  const toRad = x => x * Math.PI / 180;
   const R = 6371;
+  const toRad = x => x * Math.PI / 180;
   const dLat = toRad(b[1] - a[1]);
   const dLon = toRad(b[0] - a[0]);
   const lat1 = toRad(a[1]);
   const lat2 = toRad(b[1]);
   const h =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) *
-    Math.sin(dLon / 2) ** 2;
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-function buildRouteUrl(from, to) {
+function routeUrl(from, to) {
   return `https://yandex.ru/maps/?rtext=${from[1]},${from[0]}~${to[1]},${to[0]}&rtt=auto`;
 }
 
-function osmStaticPreview([lng, lat]) {
-  return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=8&size=320x180&markers=${lat},${lng},lightblue1`;
+function staticMap([lng, lat]) {
+  return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=8&size=320x180&markers=${lat},${lng},blue`;
 }
-
-function getDataUrl() {
-  return new URL("data/checkpoints.geojson", window.location.href).toString();
-}
-
-/* ===================== DATA ===================== */
 
 async function loadData() {
-  setProgress(20, "Загружаем данные КПП…");
-  const resp = await fetch(getDataUrl(), { cache: "no-store" });
-  const data = await resp.json();
+  setProgress(25, "Загружаем данные КПП…");
+  const r = await fetch("data/checkpoints.geojson", { cache: "no-store" });
+  const d = await r.json();
 
-  allFeatures = (data.features || [])
-    .filter(f => f && f.geometry && f.geometry.type === "Point")
-    .map(f => ({
-      ...f,
-      properties: {
-        ...f.properties,
-        __id: String(f.properties.checkpoint_id || ""),
-        __name: f.properties.checkpoint_name || "Без названия",
-        __type: normalizeType(f.properties.checkpoint_type),
-        __status: normalizeStatus(f.properties.current_status),
-        __subject: f.properties.subject_name || "—",
-        __country: f.properties.neighbor_country || "Не указано"
-      }
-    }));
+  allFeatures = d.features.map(f => ({
+    ...f,
+    properties: {
+      ...f.properties,
+      __id: String(f.properties.checkpoint_id),
+      __name: f.properties.checkpoint_name || "Без названия",
+      __type: normalizeType(f.properties.checkpoint_type),
+      __status: normalizeStatus(f.properties.current_status),
+      __country: f.properties.neighbor_country || "Не указано",
+      __subject: f.properties.subject_name || "—"
+    }
+  }));
 
   viewFeatures = allFeatures;
 }
 
-/* ===================== UI BUILD ===================== */
-
 function buildLegend() {
-  legendEl.innerHTML = `
-    <div class="legend-title">Тип КПП</div>
-    <div class="legend-grid">
-      ${Object.entries(TYPE_COLORS).map(
-        ([k, c]) =>
-          `<div class="legend-item"><span class="dot" style="background:${c}"></span>${k}</div>`
-      ).join("")}
-    </div>
-  `;
-}
-
-function fillFilters() {
-  const types = [...new Set(allFeatures.map(f => f.properties.__type))].sort();
-  const statuses = [...new Set(allFeatures.map(f => f.properties.__status))].sort();
-
-  typeEl.innerHTML =
-    `<option value="all">Все типы</option>` +
-    types.map(t => `<option value="${t}">${t}</option>`).join("");
-
-  statusEl.innerHTML =
-    `<option value="all">Все статусы</option>` +
-    statuses.map(s => `<option value="${s}">${s}</option>`).join("");
-}
-
-function renderStats() {
-  statsEl.innerHTML = `Всего: <b>${allFeatures.length}</b><br>Показано: <b>${viewFeatures.length}</b>`;
+  legendEl.innerHTML = Object.entries(TYPE_COLORS).map(
+    ([k, c]) => `<div><span style="background:${c}"></span>${k}</div>`
+  ).join("");
 }
 
 function applyFilters() {
-  const q = (searchEl.value || "").toLowerCase().trim();
+  const q = searchEl.value.toLowerCase();
   const t = typeEl.value;
   const s = statusEl.value;
 
@@ -188,65 +148,44 @@ function applyFilters() {
     if (t !== "all" && f.properties.__type !== t) return false;
     if (s !== "all" && f.properties.__status !== s) return false;
     if (!q) return true;
-
     return (
       f.properties.__name.toLowerCase().includes(q) ||
-      f.properties.__subject.toLowerCase().includes(q) ||
       f.properties.__country.toLowerCase().includes(q)
     );
   });
 
   updateSource();
-  renderStats();
-  renderListGrouped();
-  emptyEl.style.display = viewFeatures.length ? "none" : "block";
+  renderList();
 }
 
-function renderListGrouped() {
-  const groups = new Map();
-
-  for (const f of viewFeatures) {
+function renderList() {
+  const groups = {};
+  viewFeatures.forEach(f => {
     const c = f.properties.__country;
-    if (!groups.has(c)) groups.set(c, []);
-    groups.get(c).push(f);
-  }
+    groups[c] = groups[c] || [];
+    groups[c].push(f);
+  });
 
-  const sorted = [...groups.entries()].sort((a, b) =>
-    a[0].localeCompare(b[0], "ru")
-  );
-
-  listEl.innerHTML = sorted.map(([country, items]) => {
-    const html = items
-      .sort((x, y) => x.properties.__name.localeCompare(y.properties.__name, "ru"))
-      .map(f => {
-        const dist = userLocation
-          ? ` • 📏 ${haversine(userLocation, f.geometry.coordinates).toFixed(1)} км`
-          : "";
-        const active = f.properties.__id === selectedId ? "active" : "";
-        return `
-          <div class="item ${active}" data-id="${f.properties.__id}">
-            <div>${f.properties.__name}</div>
-            <small>${f.properties.__subject} • ${country}<br>${f.properties.__type} • ${f.properties.__status}${dist}</small>
-          </div>
-        `;
-      }).join("");
-
-    return `<div class="group">🌍 ${country} (${items.length})</div>${html}`;
+  listEl.innerHTML = Object.entries(groups).map(([c, items]) => {
+    return `<div class="group">${c}</div>` + items.map(f => {
+      const d = userLocation
+        ? ` • ${haversine(userLocation, f.geometry.coordinates).toFixed(1)} км`
+        : "";
+      return `
+        <div class="item" data-id="${f.properties.__id}">
+          <b>${f.properties.__name}</b><br>
+          <small>${f.properties.__type} • ${f.properties.__status}${d}</small>
+        </div>
+      `;
+    }).join("");
   }).join("");
 
   listEl.querySelectorAll(".item").forEach(el => {
-    el.onclick = () => focusFeature(el.dataset.id);
+    el.onclick = () => focus(el.dataset.id);
   });
 }
 
-/* ===================== MAP ===================== */
-
-function updateSource() {
-  const src = map.getSource("checkpoints");
-  if (src) src.setData({ type: "FeatureCollection", features: viewFeatures });
-}
-
-function ensureSourcesAndLayers() {
+function ensureLayers() {
   if (map.getSource("checkpoints")) return;
 
   map.addSource("checkpoints", {
@@ -261,10 +200,7 @@ function ensureSourcesAndLayers() {
     type: "circle",
     source: "checkpoints",
     filter: ["has", "point_count"],
-    paint: {
-      "circle-color": "#3b82f6",
-      "circle-radius": 18
-    }
+    paint: { "circle-color": "#2563eb", "circle-radius": 18 }
   });
 
   map.addLayer({
@@ -283,9 +219,7 @@ function ensureSourcesAndLayers() {
     filter: ["!", ["has", "point_count"]],
     paint: {
       "circle-radius": 6,
-      "circle-color": [
-        "match",
-        ["get", "__type"],
+      "circle-color": ["match", ["get", "__type"],
         "Автомобильный", TYPE_COLORS.Автомобильный,
         "Железнодорожный", TYPE_COLORS.Железнодорожный,
         "Воздушный", TYPE_COLORS.Воздушный,
@@ -297,7 +231,6 @@ function ensureSourcesAndLayers() {
     }
   });
 
-  // 🔴 ВАЖНЫЙ ФИКС КЛИКАБЕЛЬНОСТИ
   map.on("mouseenter", "points", () => {
     map.getCanvas().style.cursor = "pointer";
     map.dragPan.disable();
@@ -308,57 +241,47 @@ function ensureSourcesAndLayers() {
     map.dragPan.enable();
   });
 
-  map.on("click", "points", e => {
-    focusFeature(e.features[0].properties.__id, e.lngLat);
+  map.on("click", e => {
+    const feats = map.queryRenderedFeatures(e.point, { layers: ["points"] });
+    if (!feats.length) return;
+    focus(feats[0].properties.__id, e.lngLat);
   });
 }
 
-function focusFeature(id, lngLatOverride = null) {
+function updateSource() {
+  const s = map.getSource("checkpoints");
+  if (s) s.setData({ type: "FeatureCollection", features: viewFeatures });
+}
+
+function focus(id, lngLat) {
   const f = viewFeatures.find(x => x.properties.__id === id);
   if (!f) return;
 
-  selectedId = id;
-  renderListGrouped();
-  updateSource();
-
-  const center = lngLatOverride || f.geometry.coordinates;
-  map.easeTo({ center, zoom: 7 });
+  const c = lngLat || f.geometry.coordinates;
+  map.easeTo({ center: c, zoom: 7 });
 
   if (popupRef) popupRef.remove();
 
-  const previewUrl = osmStaticPreview(center);
-  const dist = userLocation ? haversine(userLocation, center).toFixed(1) : null;
-
   popupRef = new maplibregl.Popup({ maxWidth: "92vw" })
-    .setLngLat(center)
+    .setLngLat(c)
     .setHTML(`
-      <div class="popup-title">${f.properties.__name}</div>
-      <div class="popup-sub">
-        ${f.properties.__subject} • ${f.properties.__country}<br>
-        ${f.properties.__type} • ${f.properties.__status}<br>
-        ${dist ? `📏 ${dist} км` : `📏 включите геолокацию`}
-      </div>
-      <div class="popup-map" style="background-image:url('${previewUrl}')"></div>
-      ${userLocation ? `<div class="popup-actions">
-        <a class="popup-link" href="${buildRouteUrl(userLocation, center)}" target="_blank">🛣 Маршрут</a>
-      </div>` : ""}
+      <b>${f.properties.__name}</b><br>
+      ${f.properties.__type} • ${f.properties.__status}<br>
+      ${userLocation ? `📏 ${haversine(userLocation, c).toFixed(1)} км` : ""}
+      <div style="margin-top:8px;background:url('${staticMap(c)}');height:180px;border-radius:8px"></div>
+      ${userLocation ? `<a href="${routeUrl(userLocation, c)}" target="_blank">🛣 Маршрут</a>` : ""}
     `)
     .addTo(map);
 }
 
-/* ===================== INIT ===================== */
-
 async function init() {
   setProgress(10, "Подключаем карту…");
   await loadData();
-
-  fillFilters();
   buildLegend();
-  renderStats();
-  renderListGrouped();
+  renderList();
 
   map.on("load", () => {
-    ensureSourcesAndLayers();
+    ensureLayers();
     updateSource();
     hideLoader();
   });
@@ -368,33 +291,25 @@ geoBtn.onclick = () => {
   navigator.geolocation.getCurrentPosition(pos => {
     userLocation = [pos.coords.longitude, pos.coords.latitude];
     if (userMarker) userMarker.remove();
-    userMarker = new maplibregl.Marker({ color: "#f97316" })
-      .setLngLat(userLocation)
-      .addTo(map);
+    userMarker = new maplibregl.Marker({ color: "#f97316" }).setLngLat(userLocation).addTo(map);
     map.easeTo({ center: userLocation, zoom: 8 });
-    renderListGrouped();
+    renderList();
   });
 };
 
 styleToggle.onclick = () => {
   currentStyle = currentStyle === "map" ? "sat" : "map";
   const next = currentStyle === "map" ? STYLE_MAP : STYLE_SAT;
-  const state = {
-    center: map.getCenter(),
-    zoom: map.getZoom(),
-    bearing: map.getBearing(),
-    pitch: map.getPitch()
-  };
+  const state = map.getCenter();
+  const zoom = map.getZoom();
 
   map.setStyle(next);
   map.once("styledata", () => {
-    map.jumpTo(state);
-    ensureSourcesAndLayers();
+    map.jumpTo({ center: state, zoom });
+    ensureLayers();
     updateSource();
     if (userLocation) {
-      userMarker = new maplibregl.Marker({ color: "#f97316" })
-        .setLngLat(userLocation)
-        .addTo(map);
+      userMarker = new maplibregl.Marker({ color: "#f97316" }).setLngLat(userLocation).addTo(map);
     }
   });
 };
@@ -406,17 +321,6 @@ searchEl.oninput = () => {
 
 typeEl.onchange = applyFilters;
 statusEl.onchange = applyFilters;
-
-clearSelectionBtn.onclick = () => {
-  selectedId = null;
-  if (popupRef) popupRef.remove();
-  updateSource();
-  renderListGrouped();
-};
-
-mobileToggle.onclick = () => {
-  panel.classList.toggle("open");
-  setTimeout(() => map.resize(), 300);
-};
+mobileToggle.onclick = () => panel.classList.toggle("open");
 
 init();
