@@ -122,10 +122,6 @@ function haversine(a, b) {
   return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-function staticMap([lng, lat]) {
-  return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=8&size=360x190&markers=${lat},${lng},blue`;
-}
-
 function routeUrl(from, to) {
   return `https://yandex.ru/maps/?rtext=${from[1]},${from[0]}~${to[1]},${to[0]}&rtt=auto`;
 }
@@ -181,7 +177,9 @@ function extractSubject(props) {
 function extractExtra(props) {
   const pick = (...keys) => {
     for (const k of keys) {
-      if (props[k] !== undefined && props[k] !== null && String(props[k]).trim() !== "") return String(props[k]).trim();
+      if (props[k] !== undefined && props[k] !== null && String(props[k]).trim() !== "") {
+        return String(props[k]).trim();
+      }
     }
     return "";
   };
@@ -228,7 +226,9 @@ async function loadData() {
         __status: status,
         __country: country,
         __subject: subject,
-        __coords: (lng !== null && lat !== null) ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : "—",
+        __coords: (lng !== null && lat !== null)
+          ? `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+          : "—",
         __extra: extra,
         __search: norm([name, subject, country, type, status].filter(Boolean).join(" | "))
       }
@@ -254,8 +254,11 @@ function fillFilters() {
   const types = [...new Set(allFeatures.map(f => f.properties.__type))].sort((a,b) => a.localeCompare(b, "ru"));
   const statuses = [...new Set(allFeatures.map(f => f.properties.__status))].sort((a,b) => a.localeCompare(b, "ru"));
 
-  typeEl.innerHTML = `<option value="all">Все типы</option>` + types.map(t => `<option value="${t}">${t}</option>`).join("");
-  statusEl.innerHTML = `<option value="all">Все статусы</option>` + statuses.map(s => `<option value="${s}">${s}</option>`).join("");
+  typeEl.innerHTML = `<option value="all">Все типы</option>` +
+    types.map(t => `<option value="${t}">${t}</option>`).join("");
+
+  statusEl.innerHTML = `<option value="all">Все статусы</option>` +
+    statuses.map(s => `<option value="${s}">${s}</option>`).join("");
 }
 
 function renderStats() {
@@ -281,12 +284,15 @@ function renderList() {
   const grouped = groupByCountry(viewFeatures);
 
   listEl.innerHTML = grouped.map(([country, items]) => {
-    const sorted = items.sort((x,y) => x.properties.__name.localeCompare(y.properties.__name, "ru"));
+    const sorted = items.sort((x,y) =>
+      x.properties.__name.localeCompare(y.properties.__name, "ru")
+    );
+
     const block = sorted.map(f => {
       const p = f.properties;
-      const dist = userLocation ? ` · 📏 ${haversine(userLocation, f.geometry.coordinates).toFixed(1)} км` : "";
-      const line1 = `${p.__subject || "—"} · ${p.__country || "—"}`;
-      const line2 = `${p.__type} · ${p.__status}${dist}`;
+      const dist = userLocation
+        ? ` · 📏 ${haversine(userLocation, f.geometry.coordinates).toFixed(1)} км`
+        : "";
 
       return `
         <div class="item" data-id="${p.__id}">
@@ -295,8 +301,8 @@ function renderList() {
             <span>${p.__name}</span>
           </div>
           <div class="item__meta">
-            ${line1}<br>
-            ${line2}
+            ${p.__subject || "—"} · ${p.__country || "—"}<br>
+            ${p.__type} · ${p.__status}${dist}
           </div>
         </div>
       `;
@@ -388,10 +394,7 @@ function rebuildLayers() {
     type: "symbol",
     source: "checkpoints",
     filter: ["has", "point_count"],
-    layout: {
-      "text-field": "{point_count_abbreviated}",
-      "text-size": 12
-    },
+    layout: { "text-field": "{point_count_abbreviated}", "text-size": 12 },
     paint: { "text-color": "#e5e7eb" }
   });
 
@@ -434,24 +437,13 @@ function rebuildLayers() {
     if (!f) return;
     const src = map.getSource("checkpoints");
     src.getClusterExpansionZoom(f.properties.cluster_id, (err, zoom) => {
-      if (err) return;
-      map.easeTo({ center: f.geometry.coordinates, zoom });
+      if (!err) map.easeTo({ center: f.geometry.coordinates, zoom });
     });
   };
 
-  handlers.enterPoints = () => {
-    map.getCanvas().style.cursor = "pointer";
-  };
-
-  handlers.leavePoints = () => {
-    map.getCanvas().style.cursor = "";
-  };
-
-  handlers.pointsClick = e => {
-    const f = e.features?.[0];
-    if (!f) return;
-    openPopup(f, e.lngLat);
-  };
+  handlers.enterPoints = () => map.getCanvas().style.cursor = "pointer";
+  handlers.leavePoints = () => map.getCanvas().style.cursor = "";
+  handlers.pointsClick = e => openPopup(e.features?.[0], e.lngLat);
 
   map.on("click", "clusters", handlers.clustersClick);
   map.on("mouseenter", "points-hit", handlers.enterPoints);
@@ -463,10 +455,13 @@ function buildPopupHtml(feature) {
   const p = feature.properties;
   const coords = feature.geometry.coordinates;
 
-  const dist = userLocation ? `${haversine(userLocation, coords).toFixed(1)} км` : "включите геолокацию";
-  const route = userLocation ? `<a href="${routeUrl(userLocation, coords)}" target="_blank" rel="noreferrer">🛣 Маршрут</a>` : "";
+  const dist = userLocation
+    ? `${haversine(userLocation, coords).toFixed(1)} км`
+    : "включите геолокацию";
 
-  const mapImg = staticMap(coords);
+  const route = userLocation
+    ? `<a href="${routeUrl(userLocation, coords)}" target="_blank" rel="noreferrer">🛣 Маршрут</a>`
+    : "";
 
   const extra = p.__extra || {};
   const lines = [
@@ -495,9 +490,11 @@ function buildPopupHtml(feature) {
     <div style="font-weight:900;font-size:16px;margin-bottom:6px">${p.__name}</div>
     <div style="font-size:13px;opacity:.85;margin-bottom:8px">📏 ${dist}</div>
 
-    <img src="${mapImg}" alt="Мини-карта" style="width:100%;height:190px;object-fit:cover;border-radius:12px;border:1px solid rgba(148,163,184,.18);margin-bottom:10px" />
-
-    <div style="border:1px solid rgba(148,163,184,.14);border-radius:12px;padding:10px;background:rgba(15,23,42,.35);margin-bottom:10px">
+    <div style="border:1px solid rgba(148,163,184,.14);
+                border-radius:12px;
+                padding:10px;
+                background:rgba(15,23,42,.35);
+                margin-bottom:10px">
       ${table}
     </div>
 
@@ -508,6 +505,8 @@ function buildPopupHtml(feature) {
 }
 
 function openPopup(feature, lngLat) {
+  if (!feature) return;
+
   lastPopupFeature = feature;
 
   if (popupRef) popupRef.remove();
@@ -521,15 +520,17 @@ function openPopup(feature, lngLat) {
 }
 
 function focusById(id) {
-  const f = viewFeatures.find(x => x.properties.__id === id) || allFeatures.find(x => x.properties.__id === id);
-  if (!f) return;
-  openPopup(f, f.geometry.coordinates);
+  const f = viewFeatures.find(x => x.properties.__id === id) ||
+            allFeatures.find(x => x.properties.__id === id);
+  if (f) openPopup(f, f.geometry.coordinates);
 }
 
 function updateUserMarker() {
   if (!userLocation) return;
   if (userMarker) userMarker.remove();
-  userMarker = new maplibregl.Marker({ color: "#f97316" }).setLngLat(userLocation).addTo(map);
+  userMarker = new maplibregl.Marker({ color: "#f97316" })
+    .setLngLat(userLocation)
+    .addTo(map);
 }
 
 function attachUi() {
@@ -559,10 +560,7 @@ function attachUi() {
       rebuildLayers();
       updateSourceData();
       updateUserMarker();
-
-      if (lastPopupFeature) {
-        openPopup(lastPopupFeature, lastPopupFeature.geometry.coordinates);
-      }
+      if (lastPopupFeature) openPopup(lastPopupFeature);
     });
   };
 
@@ -578,11 +576,7 @@ function attachUi() {
         updateUserMarker();
         renderStats();
         renderList();
-
-        if (lastPopupFeature) {
-          openPopup(lastPopupFeature, lastPopupFeature.geometry.coordinates);
-        }
-
+        if (lastPopupFeature) openPopup(lastPopupFeature);
         geoBtnEl.disabled = false;
         geoBtnEl.textContent = "📍 Гео";
       },
