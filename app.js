@@ -1,5 +1,7 @@
 const STYLE_MAP = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
+/* STYLE_SAT ОСТАВЛЕН, НО БОЛЬШЕ НЕ ИСПОЛЬЗУЕТСЯ
+   (можно удалить позже, сейчас не трогаю) */
 const STYLE_SAT = {
   version: 8,
   sources: {
@@ -44,7 +46,7 @@ const geoBtnEl = el("geoBtn");
 let allFeatures = [];
 let viewFeatures = [];
 
-let currentStyle = "map";
+let currentStyle = "map"; // оставлен, но больше не влияет на карту
 
 let userLocation = null;
 let userMarker = null;
@@ -542,26 +544,17 @@ function attachUi() {
   typeEl.onchange = applyFilters;
   statusEl.onchange = applyFilters;
 
+  // ✅ ПЕРЕКЛЮЧЕНИЕ СПУТНИКА ЧЕРЕЗ VISIBILITY
   styleToggleEl.onclick = () => {
-    currentStyle = currentStyle === "map" ? "sat" : "map";
-    styleToggleEl.textContent = currentStyle === "map" ? "🛰 Спутник" : "🗺 Карта";
+    const visible = map.getLayoutProperty("sat-layer", "visibility") === "visible";
 
-    const state = {
-      center: map.getCenter(),
-      zoom: map.getZoom(),
-      bearing: map.getBearing(),
-      pitch: map.getPitch()
-    };
+    map.setLayoutProperty(
+      "sat-layer",
+      "visibility",
+      visible ? "none" : "visible"
+    );
 
-    map.setStyle(currentStyle === "map" ? STYLE_MAP : STYLE_SAT);
-
-    map.once("load", () => {
-      map.jumpTo(state);
-      rebuildLayers();
-      updateSourceData();
-      updateUserMarker();
-      if (lastPopupFeature) openPopup(lastPopupFeature);
-    });
+    styleToggleEl.textContent = visible ? "🛰 Спутник" : "🗺 Карта";
   };
 
   geoBtnEl.onclick = () => {
@@ -600,6 +593,29 @@ async function init() {
   try {
     setProgress(10, "Подключаем карту…");
     await new Promise(resolve => (map.loaded() ? resolve() : map.once("load", resolve)));
+
+    /* === ДОБАВЛЕНИЕ СПУТНИКА КАК RASTER LAYER === */
+    map.addSource("sat", {
+      type: "raster",
+      tiles: [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+      ],
+      tileSize: 256
+    });
+
+    const layers = map.getStyle().layers;
+    const bgIndex = layers.findIndex(l => l.type === "background");
+    const beforeId = layers[bgIndex + 1]?.id;
+
+    map.addLayer(
+      {
+        id: "sat-layer",
+        type: "raster",
+        source: "sat",
+        layout: { visibility: "none" }
+      },
+      beforeId
+    );
 
     setProgress(25, "Загружаем КПП…");
     await loadData();
