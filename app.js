@@ -26,59 +26,38 @@ const TYPE_COLORS = {
 
 const el = id => document.getElementById(id);
 
-const panelEl = el("panel");
-const mobileToggleEl = el("mobileToggle");
 const searchEl = el("searchInput");
 const typeEl = el("typeFilter");
 const statusEl = el("statusFilter");
+const listEl = el("list");
 const legendEl = el("legend");
 const statsEl = el("stats");
-const listEl = el("list");
 const emptyEl = el("emptyState");
-
 const loaderEl = el("loader");
-const loaderTextEl = el("loaderText");
 const loaderProgressEl = el("loaderProgress");
-
-const geoBtn = el("geoBtn");
+const loaderTextEl = el("loaderText");
 const styleToggle = el("styleToggle");
 
 let allFeatures = [];
 let viewFeatures = [];
-
-let userLocation = null;
-let userMarker = null;
-
-let popupRef = null;
-let lastPopupFeature = null;
-
 let currentStyle = "map";
-let debounceTimer = null;
+let popupRef = null;
 
 const map = new maplibregl.Map({
   container: "map",
   style: STYLE_MAP,
   center: [90, 61],
-  zoom: 4,
-  antialias: true
+  zoom: 4
 });
 
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
-function setProgress(pct, text) {
-  if (loaderProgressEl) loaderProgressEl.style.width = `${pct}%`;
-  if (loaderTextEl && text) loaderTextEl.textContent = text;
-}
-
-function hideLoader() {
-  if (!loaderEl) return;
-  loaderEl.style.opacity = "0";
-  loaderEl.style.pointerEvents = "none";
-  setTimeout(() => loaderEl.remove(), 250);
+function normalize(v) {
+  return String(v || "").toLowerCase().trim();
 }
 
 function normalizeType(v) {
-  v = String(v || "").toLowerCase();
+  v = normalize(v);
   if (v.includes("авто")) return "Автомобильный";
   if (v.includes("желез")) return "Железнодорожный";
   if (v.includes("воздуш")) return "Воздушный";
@@ -89,7 +68,7 @@ function normalizeType(v) {
 }
 
 function normalizeStatus(v) {
-  v = String(v || "").toLowerCase();
+  v = normalize(v);
   if (v.includes("действ")) return "Действует";
   if (v.includes("огран")) return "Ограничен";
   if (v.includes("врем")) return "Временно закрыт";
@@ -97,146 +76,67 @@ function normalizeStatus(v) {
   return "Неизвестно";
 }
 
-function haversine(a, b) {
-  const toRad = x => x * Math.PI / 180;
-  const R = 6371;
-  const dLat = toRad(b[1] - a[1]);
-  const dLon = toRad(b[0] - a[0]);
-  const lat1 = toRad(a[1]);
-  const lat2 = toRad(b[1]);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-}
-
-function staticMap([lng, lat]) {
-  return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=8&size=320x180&markers=${lat},${lng},blue`;
-}
-
-function routeUrl(from, to) {
-  return `https://yandex.ru/maps/?rtext=${from[1]},${from[0]}~${to[1]},${to[0]}&rtt=auto`;
-}
-
-function dataUrl() {
-  return new URL("./data/checkpoints.geojson", window.location.href).toString();
-}
-
 async function loadData() {
-  setProgress(25, "Загружаем данные КПП…");
-  const resp = await fetch(dataUrl(), { cache: "no-store" });
-  if (!resp.ok) throw new Error(`Не удалось загрузить data/checkpoints.geojson (${resp.status})`);
-  const data = await resp.json();
+  const url = new URL("./data/checkpoints.geojson", location.href);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Не удалось загрузить checkpoints.geojson");
 
-  allFeatures = (data.features || [])
-    .filter(f => f?.geometry?.type === "Point")
-    .map(f => ({
+  const data = await res.json();
+
+  allFeatures = data.features.map(f => {
+    const p = f.properties || {};
+    return {
       ...f,
       properties: {
-        ...f.properties,
-        __id: String(f.properties.checkpoint_id || ""),
-        __name: f.properties.checkpoint_name || "Без названия",
-        __type: normalizeType(f.properties.checkpoint_type),
-        __status: normalizeStatus(f.properties.current_status),
-        __subject: f.properties.subject_name || "—",
-        __country: f.properties.neighbor_country || "Не указано"
+        ...p,
+        __id: String(p.checkpoint_id || crypto.randomUUID()),
+        __name: p.checkpoint_name || "Без названия",
+        __type: normalizeType(p.checkpoint_type),
+        __status: normalizeStatus(p.current_status),
+        __subject: p.subject_name || "",
+        __country: [
+          p.neighbor_country,
+          p.country,
+          p.border_country
+        ].filter(Boolean).join(", ")
       }
-    }));
+    };
+  });
 
   viewFeatures = allFeatures;
 }
 
 function buildLegend() {
-  legendEl.innerHTML = `
-    <div class="legend__title">Тип КПП</div>
-    <div class="legend__grid">
-      ${Object.entries(TYPE_COLORS).map(([k, c]) =>
-        `<div class="legend__item"><span class="legend__dot" style="background:${c}"></span>${k}</div>`
-      ).join("")}
-    </div>
-  `;
-}
-
-function fillFilters() {
-  const types = [...new Set(allFeatures.map(f => f.properties.__type))].sort((a,b) => a.localeCompare(b, "ru"));
-  const statuses = [...new Set(allFeatures.map(f => f.properties.__status))].sort((a,b) => a.localeCompare(b, "ru"));
-
-  typeEl.innerHTML = `<option value="all">Все типы</option>` + types.map(t => `<option value="${t}">${t}</option>`).join("");
-  statusEl.innerHTML = `<option value="all">Все статусы</option>` + statuses.map(s => `<option value="${s}">${s}</option>`).join("");
-}
-
-function renderStats() {
-  statsEl.innerHTML = `Всего: <b>${allFeatures.length}</b> · Показано: <b>${viewFeatures.length}</b>`;
+  legendEl.innerHTML = Object.entries(TYPE_COLORS).map(
+    ([k, c]) =>
+      `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
+        <span style="width:10px;height:10px;border-radius:50%;background:${c}"></span>${k}
+      </div>`
+  ).join("");
 }
 
 function updateSource() {
-  const src = map.getSource("checkpoints");
-  if (!src) return;
-  src.setData({ type: "FeatureCollection", features: viewFeatures });
-}
-
-function applyFilters() {
-  const q = (searchEl.value || "").trim().toLowerCase();
-  const t = typeEl.value;
-  const s = statusEl.value;
-
-  viewFeatures = allFeatures.filter(f => {
-    if (t !== "all" && f.properties.__type !== t) return false;
-    if (s !== "all" && f.properties.__status !== s) return false;
-    if (!q) return true;
-    return (
-      f.properties.__name.toLowerCase().includes(q) ||
-      f.properties.__subject.toLowerCase().includes(q) ||
-      f.properties.__country.toLowerCase().includes(q)
-    );
-  });
-
-  updateSource();
-  renderStats();
-  renderListGrouped();
-  emptyEl.style.display = viewFeatures.length ? "none" : "block";
-}
-
-function renderListGrouped() {
-  const groups = new Map();
-  for (const f of viewFeatures) {
-    const c = f.properties.__country || "Не указано";
-    if (!groups.has(c)) groups.set(c, []);
-    groups.get(c).push(f);
-  }
-
-  const sorted = [...groups.entries()].sort((a,b) => a[0].localeCompare(b[0], "ru"));
-
-  listEl.innerHTML = sorted.map(([country, items]) => {
-    const itemsHtml = items
-      .sort((x,y) => x.properties.__name.localeCompare(y.properties.__name, "ru"))
-      .map(f => {
-        const dist = userLocation ? ` · 📏 ${haversine(userLocation, f.geometry.coordinates).toFixed(1)} км` : "";
-        return `
-          <div class="item" data-id="${f.properties.__id}">
-            <div><b>${f.properties.__name}</b></div>
-            <small>${f.properties.__subject} · ${country}<br>${f.properties.__type} · ${f.properties.__status}${dist}</small>
-          </div>
-        `;
-      }).join("");
-
-    return `<div class="group">🌍 ${country} (${items.length})</div>${itemsHtml}`;
-  }).join("");
-
-  listEl.querySelectorAll(".item").forEach(node => {
-    node.onclick = () => focusById(node.dataset.id);
+  if (!map.getSource("checkpoints")) return;
+  map.getSource("checkpoints").setData({
+    type: "FeatureCollection",
+    features: viewFeatures
   });
 }
 
-function ensureLayers() {
-  if (map.getSource("checkpoints")) return;
+function rebuildLayers() {
+  ["points", "points-hit", "clusters", "cluster-count"].forEach(id => {
+    if (map.getLayer(id)) map.removeLayer(id);
+  });
+  if (map.getSource("checkpoints")) map.removeSource("checkpoints");
 
   map.addSource("checkpoints", {
     type: "geojson",
-    data: { type: "FeatureCollection", features: viewFeatures },
+    data: {
+      type: "FeatureCollection",
+      features: viewFeatures
+    },
     cluster: true,
-    clusterRadius: 52,
-    clusterMaxZoom: 10
+    clusterRadius: 50
   });
 
   map.addLayer({
@@ -246,7 +146,7 @@ function ensureLayers() {
     filter: ["has", "point_count"],
     paint: {
       "circle-color": "#3b82f6",
-      "circle-radius": ["step", ["get", "point_count"], 16, 30, 22, 80, 28],
+      "circle-radius": 20,
       "circle-stroke-width": 2,
       "circle-stroke-color": "#020617"
     }
@@ -257,8 +157,11 @@ function ensureLayers() {
     type: "symbol",
     source: "checkpoints",
     filter: ["has", "point_count"],
-    layout: { "text-field": "{point_count_abbreviated}", "text-size": 12 },
-    paint: { "text-color": "#e5e7eb" }
+    layout: {
+      "text-field": "{point_count_abbreviated}",
+      "text-size": 12
+    },
+    paint: { "text-color": "#fff" }
   });
 
   map.addLayer({
@@ -271,13 +174,13 @@ function ensureLayers() {
       "circle-color": [
         "match",
         ["get", "__type"],
-        "Автомобильный", TYPE_COLORS["Автомобильный"],
-        "Железнодорожный", TYPE_COLORS["Железнодорожный"],
-        "Воздушный", TYPE_COLORS["Воздушный"],
-        "Морской", TYPE_COLORS["Морской"],
-        "Речной", TYPE_COLORS["Речной"],
-        "Пешеходный", TYPE_COLORS["Пешеходный"],
-        TYPE_COLORS["Другое"]
+        "Автомобильный", TYPE_COLORS.Автомобильный,
+        "Железнодорожный", TYPE_COLORS.Железнодорожный,
+        "Воздушный", TYPE_COLORS.Воздушный,
+        "Морской", TYPE_COLORS.Морской,
+        "Речной", TYPE_COLORS.Речной,
+        "Пешеходный", TYPE_COLORS.Пешеходный,
+        TYPE_COLORS.Другое
       ],
       "circle-stroke-width": 2,
       "circle-stroke-color": "#020617"
@@ -289,162 +192,80 @@ function ensureLayers() {
     type: "circle",
     source: "checkpoints",
     filter: ["!", ["has", "point_count"]],
-    paint: { "circle-radius": 18, "circle-opacity": 0 }
-  });
-
-  map.on("click", "clusters", e => {
-    const f = e.features?.[0];
-    if (!f) return;
-    map.getSource("checkpoints").getClusterExpansionZoom(f.properties.cluster_id, (err, zoom) => {
-      if (err) return;
-      map.easeTo({ center: f.geometry.coordinates, zoom });
-    });
-  });
-
-  map.on("mouseenter", "points-hit", () => {
-    map.getCanvas().style.cursor = "pointer";
-    map.dragPan.disable();
-  });
-
-  map.on("mouseleave", "points-hit", () => {
-    map.getCanvas().style.cursor = "";
-    map.dragPan.enable();
+    paint: {
+      "circle-radius": 18,
+      "circle-opacity": 0
+    }
   });
 
   map.on("click", "points-hit", e => {
     const f = e.features?.[0];
     if (!f) return;
-    openPopup(f, e.lngLat);
+
+    if (popupRef) popupRef.remove();
+    popupRef = new maplibregl.Popup()
+      .setLngLat(f.geometry.coordinates)
+      .setHTML(`<b>${f.properties.__name}</b><br>${f.properties.__country}<br>${f.properties.__type}`)
+      .addTo(map);
   });
 }
 
-function openPopup(feature, lngLat) {
-  lastPopupFeature = feature;
+function applyFilters() {
+  const q = normalize(searchEl.value);
+  const t = typeEl.value;
+  const s = statusEl.value;
 
-  const coords = lngLat || feature.geometry.coordinates;
-  const dist = userLocation ? `${haversine(userLocation, coords).toFixed(1)} км` : "включите геолокацию";
-  const preview = staticMap(coords);
-  const actions = userLocation ? `<a href="${routeUrl(userLocation, coords)}" target="_blank" rel="noreferrer">🛣 Маршрут</a>` : "";
+  viewFeatures = allFeatures.filter(f => {
+    const p = f.properties;
+    if (t !== "all" && p.__type !== t) return false;
+    if (s !== "all" && p.__status !== s) return false;
+    if (!q) return true;
 
-  if (popupRef) popupRef.remove();
+    return (
+      normalize(p.__name).includes(q) ||
+      normalize(p.__subject).includes(q) ||
+      normalize(p.__country).includes(q)
+    );
+  });
 
-  popupRef = new maplibregl.Popup({ maxWidth: "360px", closeButton: true, closeOnClick: true })
-    .setLngLat(coords)
-    .setHTML(`
-      <div style="font-weight:850;font-size:16px;margin-bottom:6px">${feature.properties.__name}</div>
-      <div style="opacity:.85;font-size:13px;line-height:1.35;margin-bottom:8px">
-        ${feature.properties.__subject} · ${feature.properties.__country}<br>
-        ${feature.properties.__type} · ${feature.properties.__status}<br>
-        📏 ${dist}
-      </div>
-      <div style="width:100%;height:160px;border-radius:12px;overflow:hidden;background:url('${preview}') center/cover no-repeat;border:1px solid rgba(148,163,184,.18);margin-bottom:10px"></div>
-      ${actions}
-    `)
-    .addTo(map);
-
-  map.easeTo({ center: coords, zoom: Math.max(map.getZoom(), 7) });
+  updateSource();
+  renderList();
 }
 
-function focusById(id) {
-  const f = viewFeatures.find(x => x.properties.__id === id);
-  if (!f) return;
-  openPopup(f, f.geometry.coordinates);
+function renderList() {
+  statsEl.innerHTML = `Показано: ${viewFeatures.length}`;
+  emptyEl.style.display = viewFeatures.length ? "none" : "block";
+
+  listEl.innerHTML = viewFeatures.map(f =>
+    `<div class="item">${f.properties.__name}<br><small>${f.properties.__country}</small></div>`
+  ).join("");
 }
-
-async function init() {
-  try {
-    setProgress(10, "Подключаем карту…");
-    const mapLoaded = new Promise(resolve => (map.loaded() ? resolve() : map.once("load", resolve)));
-
-    await loadData();
-    setProgress(55, "Готовим интерфейс…");
-    buildLegend();
-    fillFilters();
-    renderStats();
-    renderListGrouped();
-    emptyEl.style.display = viewFeatures.length ? "none" : "block";
-
-    await mapLoaded;
-    setProgress(80, "Строим слои…");
-    ensureLayers();
-    updateSource();
-
-    setProgress(100, "Готово");
-    setTimeout(hideLoader, 150);
-  } catch (err) {
-    console.error(err);
-    setProgress(100, "Ошибка загрузки");
-    if (loaderTextEl) loaderTextEl.textContent = String(err.message || err);
-  }
-}
-
-geoBtn.onclick = () => {
-  if (!navigator.geolocation) return;
-  geoBtn.disabled = true;
-  geoBtn.textContent = "⏳";
-
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      userLocation = [pos.coords.longitude, pos.coords.latitude];
-
-      if (userMarker) userMarker.remove();
-      userMarker = new maplibregl.Marker({ color: "#f97316" }).setLngLat(userLocation).addTo(map);
-
-      renderStats();
-      renderListGrouped();
-
-      if (popupRef && lastPopupFeature) {
-        openPopup(lastPopupFeature, lastPopupFeature.geometry.coordinates);
-      }
-
-      geoBtn.disabled = false;
-      geoBtn.textContent = "📍 Гео";
-    },
-    () => {
-      geoBtn.disabled = false;
-      geoBtn.textContent = "📍 Гео";
-    },
-    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-  );
-};
 
 styleToggle.onclick = () => {
   currentStyle = currentStyle === "map" ? "sat" : "map";
-  styleToggle.textContent = currentStyle === "map" ? "🛰 Спутник" : "🗺 Карта";
-
-  const nextStyle = currentStyle === "map" ? STYLE_MAP : STYLE_SAT;
-  const state = {
-    center: map.getCenter(),
-    zoom: map.getZoom(),
-    bearing: map.getBearing(),
-    pitch: map.getPitch()
-  };
-
-  map.setStyle(nextStyle);
-
-  map.once("load", () => {
-    map.jumpTo(state);
-    ensureLayers();
-    updateSource();
-
-    if (userLocation) {
-      if (userMarker) userMarker.remove();
-      userMarker = new maplibregl.Marker({ color: "#f97316" }).setLngLat(userLocation).addTo(map);
-    }
-  });
+  map.setStyle(currentStyle === "map" ? STYLE_MAP : STYLE_SAT);
+  map.once("load", rebuildLayers);
 };
 
-searchEl.oninput = () => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(applyFilters, 250);
-};
-
+searchEl.oninput = applyFilters;
 typeEl.onchange = applyFilters;
 statusEl.onchange = applyFilters;
 
-mobileToggleEl.onclick = () => {
-  panelEl.classList.toggle("open");
-  setTimeout(() => map.resize(), 200);
-};
+async function init() {
+  try {
+    loaderTextEl.textContent = "Загрузка данных…";
+    await loadData();
+
+    buildLegend();
+    renderList();
+
+    map.once("load", () => {
+      rebuildLayers();
+      loaderEl.remove();
+    });
+  } catch (e) {
+    loaderTextEl.textContent = e.message;
+  }
+}
 
 init();

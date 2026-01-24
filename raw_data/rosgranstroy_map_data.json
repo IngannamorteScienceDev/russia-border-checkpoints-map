@@ -1,7 +1,7 @@
 {
   "meta": {
     "source": "https://rosgranstroy.ru/api/map_data",
-    "fetched_at_utc": "2026-01-18T14:32:35.368968",
+    "fetched_at_utc": "2026-01-24T10:59:39.434935",
     "description": "Официальный слепок данных Росгранстроя для карты пунктов пропуска"
   },
   "data": {
@@ -41733,47 +41733,45 @@
             {
               "id": 258,
               "title": {
-                "ru": "Пограничный",
-                "zh-CN": null
+                "ru": "Пограничный"
               },
               "seo_keywords": {
-                "zh-CN": null
+                "ru": null
               },
               "seo_title": {
-                "zh-CN": null
+                "ru": null
               },
               "seo_description": {
-                "zh-CN": null
+                "ru": null
               },
               "filial_id": 4,
               "latitude": "44.40663",
               "longitude": "131.37327",
               "condition": true,
               "working_time": {
-                "ru": "Грузовое направление -круглосуточно; пассажирское направление - с 08.00 до 21.00",
-                "zh-CN": null
+                "ru": "Круглосуточно"
               },
               "checkpoint_pattern_id": 3,
               "status_id": 1,
               "subject_id": 31,
               "foreign_checkpoint": {
-                "ru": "Суйфэньхэ",
-                "zh-CN": null
+                "ru": "Суйфэньхэ"
               },
               "foreign_country_id": 1,
               "checkpoint_type_id": 2,
               "address": {
-                "ru": "Приморский край, Пограничный район, пгт. Пограничный, ул. Вокзальная, д. 7; Приморский край, Пограничный район, ж/д станция «Сосновая падь»",
-                "zh-CN": null
+                "ru": "Приморский край, Пограничный район, пгт. Пограничный, ул. Вокзальная, д. 7; Приморский край, Пограничный район, ж/д станция «Сосновая падь»"
               },
               "slug": "257",
               "created_at": "18-01-2023 11:04",
-              "updated_at": "2023-02-28T08:19:05.000000Z",
+              "updated_at": "2026-01-19T09:56:39.000000Z",
               "checkpoint_working_mode_id": 3,
               "near_checkpoint_condition": 0,
               "checkpoint_direction_id": 3,
               "publish": true,
-              "note": null,
+              "note": {
+                "ru": null
+              },
               "icon": "#icon-train",
               "checkpoint_type": {
                 "id": 2,
