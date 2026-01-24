@@ -1,65 +1,82 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>КПП РФ — интерактивная карта</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>КПП РФ</title>
 
-  <link rel="preconnect" href="https://unpkg.com" crossorigin />
-  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
   <link rel="stylesheet" href="./style.css" />
 </head>
-
 <body>
-  <aside id="panel" class="panel">
-    <div class="panel__top">
-      <button id="mobileToggle" class="panel__burger" type="button" aria-label="Меню">☰</button>
-      <div class="panel__title">КПП РФ</div>
-      <div class="panel__subtitle">Интерактивная карта пунктов пропуска</div>
-    </div>
 
-    <input id="searchInput" class="control" type="text" placeholder="Поиск: название, регион, страна…" />
-
-    <div class="row">
-      <select id="typeFilter" class="control"></select>
-      <select id="statusFilter" class="control"></select>
-    </div>
-
-    <div class="row">
-      <button id="geoBtn" class="btn" type="button">📍 Гео</button>
-      <button id="styleToggle" class="btn" type="button">🛰 Спутник</button>
-    </div>
-
-    <div id="legend" class="legend"></div>
-
-    <div id="stats" class="stats"></div>
-
-    <div id="emptyState" class="empty" style="display:none;">КПП не найдены</div>
-
-    <div id="list" class="list"></div>
-  </aside>
-
-  <div id="map" class="map"></div>
-
-  <button
-    id="mobileToggleFloating"
-    class="mobile-fab"
-    type="button"
-    aria-label="Открыть меню"
-  >☰</button>
-
+  <!-- Loader -->
   <div id="loader" class="loader">
     <div class="loader__card">
       <div class="loader__title">КПП РФ</div>
-      <div id="loaderText" class="loader__text">Подготовка…</div>
-      <div class="loader__bar">
-        <div id="loaderProgress" class="loader__barFill"></div>
-      </div>
-      <div id="loaderHint" class="loader__hint">Подключаем карту и загружаем КПП…</div>
+      <div class="loader__bar"><div id="loaderProgress" class="loader__barFill"></div></div>
+      <div id="loaderText" class="loader__text">Подключаем карту и загружаем КПП…</div>
     </div>
   </div>
 
-  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+  <div class="app">
+
+    <!-- Panel -->
+    <aside id="panel" class="panel">
+      <div class="panel__top">
+        <button id="mobileToggle" class="panel__burger" aria-label="Открыть/закрыть панель">
+          ☰
+        </button>
+
+        <div class="panel__titleBlock">
+          <div class="panel__title">КПП РФ</div>
+          <div class="panel__subtitle">Интерактивная карта пунктов пропуска</div>
+        </div>
+      </div>
+
+      <div class="panel__controls">
+        <input id="searchInput" class="input" type="text" placeholder="Поиск: название, регион, страна..." />
+
+        <div class="row">
+          <select id="typeFilter" class="select">
+            <option value="all">Все типы</option>
+          </select>
+
+          <select id="statusFilter" class="select">
+            <option value="all">Все статусы</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <button id="geoBtn" class="btn">📍 Гео</button>
+          <button id="styleToggle" class="btn">🛰 Спутник</button>
+        </div>
+      </div>
+
+      <div id="legend" class="legend"></div>
+
+      <div id="stats" class="stats"></div>
+
+      <div id="list" class="list"></div>
+
+      <div id="emptyState" class="empty">
+        Ничего не найдено по вашему запросу.
+      </div>
+    </aside>
+
+    <!-- Floating burger for mobile when panel is closed -->
+    <button id="mobileToggleFloating" class="mobile-fab" aria-label="Открыть панель">
+      ☰
+    </button>
+
+    <!-- Map -->
+    <main class="mapWrap">
+      <div id="map" class="map"></div>
+    </main>
+
+  </div>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

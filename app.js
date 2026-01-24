@@ -30,6 +30,7 @@ const el = id => document.getElementById(id);
 
 const panelEl = el("panel");
 const mobileToggleEl = el("mobileToggle");
+const mobileToggleFloatingEl = el("mobileToggleFloating");
 const searchEl = el("searchInput");
 const typeEl = el("typeFilter");
 const statusEl = el("statusFilter");
@@ -587,17 +588,21 @@ function attachUi() {
       setTimeout(() => map.resize(), 200);
     };
   }
+
+  // ✅ ВАЖНО: когда панель закрыта на мобильных, кнопка бургер внутри панели недоступна.
+  // Поэтому есть плавающая кнопка (mobileToggleFloating), которая всегда открывает панель.
+  if (mobileToggleFloatingEl) {
+    mobileToggleFloatingEl.onclick = () => {
+      panelEl.classList.add("open");
+      setTimeout(() => map.resize(), 200);
+    };
+  }
 }
 
 async function init() {
   try {
     setProgress(10, "Подключаем карту…");
     await new Promise(resolve => (map.loaded() ? resolve() : map.once("load", resolve)));
-
-    // MOBILE FIX: панель видна по умолчанию на мобильных
-    if (window.innerWidth <= 900) {
-      panelEl.classList.add("open");
-    }
 
     /* === ДОБАВЛЕНИЕ СПУТНИКА КАК RASTER LAYER === */
     map.addSource("sat", {
@@ -608,19 +613,14 @@ async function init() {
       tileSize: 256
     });
 
-    const layers = map.getStyle().layers;
-    const bgIndex = layers.findIndex(l => l.type === "background");
-    const beforeId = layers[bgIndex + 1]?.id;
-
-    map.addLayer(
-      {
-        id: "sat-layer",
-        type: "raster",
-        source: "sat",
-        layout: { visibility: "none" }
-      },
-      beforeId
-    );
+    // ⚠️ Важно: слой спутника должен быть ВЫШЕ базовой карты, иначе его перекроют векторные слои стиля.
+    // Поэтому добавляем его «наверх» (в конец), а маркеры КПП будут добавлены позже и окажутся поверх.
+    map.addLayer({
+      id: "sat-layer",
+      type: "raster",
+      source: "sat",
+      layout: { visibility: "none" }
+    });
 
     setProgress(25, "Загружаем КПП…");
     await loadData();
@@ -631,6 +631,11 @@ async function init() {
     renderStats();
     renderList();
     attachUi();
+
+    // ✅ На мобилке открываем панель сразу, чтобы юзер видел меню.
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      panelEl.classList.add("open");
+    }
 
     setProgress(80, "Строим слои…");
     rebuildLayers();
