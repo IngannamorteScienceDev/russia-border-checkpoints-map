@@ -545,7 +545,6 @@ function attachUi() {
   typeEl.onchange = applyFilters;
   statusEl.onchange = applyFilters;
 
-  // ✅ ПЕРЕКЛЮЧЕНИЕ СПУТНИКА ЧЕРЕЗ VISIBILITY
   styleToggleEl.onclick = () => {
     const visible = map.getLayoutProperty("sat-layer", "visibility") === "visible";
 
@@ -589,8 +588,6 @@ function attachUi() {
     };
   }
 
-  // ✅ ВАЖНО: когда панель закрыта на мобильных, кнопка бургер внутри панели недоступна.
-  // Поэтому есть плавающая кнопка (mobileToggleFloating), которая всегда открывает панель.
   if (mobileToggleFloatingEl) {
     mobileToggleFloatingEl.onclick = () => {
       panelEl.classList.add("open");
@@ -613,8 +610,6 @@ async function init() {
       tileSize: 256
     });
 
-    // ⚠️ Важно: слой спутника должен быть ВЫШЕ базовой карты, иначе его перекроют векторные слои стиля.
-    // Поэтому добавляем его «наверх» (в конец), а маркеры КПП будут добавлены позже и окажутся поверх.
     map.addLayer({
       id: "sat-layer",
       type: "raster",
