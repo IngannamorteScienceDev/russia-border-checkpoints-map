@@ -308,3 +308,42 @@ html, body {
     display: none;
   }
 }
+
+/* ===== PATCH: mobile menu button + clickability fixes ===== */
+
+/* карта остаётся кликабельной, но панель и кнопки должны быть ВЫШЕ */
+.map {
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.panel {
+  z-index: 5;
+  pointer-events: auto;
+}
+
+/* иногда Android/Chrome/MapLibre "съедают" тапы — фиксируем */
+.panel__top,
+.panel__burger,
+.panel * {
+  pointer-events: auto;
+}
+
+.panel__burger {
+  position: relative;
+  z-index: 6;
+}
+
+/* floating burger всегда поверх карты */
+.mobile-fab {
+  z-index: 10;
+  pointer-events: auto;
+}
+
+/* на мобильных: если панель открыта — скрываем floating кнопку,
+   чтобы не было "кнопка на кнопке" */
+@media (max-width: 900px) {
+  .panel.open ~ .mobile-fab {
+    display: none !important;
+  }
+}
