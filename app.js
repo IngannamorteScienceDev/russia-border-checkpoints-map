@@ -32,9 +32,11 @@ const legendEl = document.getElementById("legend");
 const statsEl = document.getElementById("stats");
 const listEl = document.getElementById("list");
 const emptyEl = document.getElementById("emptyState");
+
 const loaderEl = document.getElementById("loader");
 const loaderTextEl = document.getElementById("loaderText");
 const loaderProgressEl = document.getElementById("loaderProgress");
+
 const geoBtn = document.getElementById("geoBtn");
 const styleToggle = document.getElementById("styleToggle");
 const mobileToggle = document.getElementById("mobileToggle");
@@ -44,9 +46,11 @@ const clearSelectionBtn = document.getElementById("clearSelection");
 let allFeatures = [];
 let viewFeatures = [];
 let selectedId = null;
+
 let userLocation = null;
 let userMarker = null;
 let popupRef = null;
+
 let currentStyle = "map";
 let debounceTimer = null;
 
@@ -68,11 +72,11 @@ function setProgress(pct, text) {
 function hideLoader() {
   if (!loaderEl) return;
   loaderEl.style.opacity = "0";
-  setTimeout(() => loaderEl.remove(), 300);
+  setTimeout(() => loaderEl.remove(), 250);
 }
 
-function normalizeType(v) {
-  v = String(v || "").toLowerCase();
+function normalizeType(raw) {
+  const v = String(raw || "").toLowerCase();
   if (v.includes("авто")) return "Автомобильный";
   if (v.includes("желез")) return "Железнодорожный";
   if (v.includes("воздуш")) return "Воздушный";
@@ -82,8 +86,8 @@ function normalizeType(v) {
   return "Другое";
 }
 
-function normalizeStatus(v) {
-  v = String(v || "").toLowerCase();
+function normalizeStatus(raw) {
+  const v = String(raw || "").toLowerCase();
   if (v.includes("действ")) return "Действует";
   if (v.includes("огран")) return "Ограничен";
   if (v.includes("врем")) return "Временно закрыт";
@@ -92,55 +96,82 @@ function normalizeStatus(v) {
 }
 
 function haversine(a, b) {
-  const R = 6371;
   const toRad = x => x * Math.PI / 180;
+  const R = 6371;
   const dLat = toRad(b[1] - a[1]);
   const dLon = toRad(b[0] - a[0]);
   const lat1 = toRad(a[1]);
   const lat2 = toRad(b[1]);
   const h =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    Math.cos(lat1) * Math.cos(lat2) *
+    Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-function routeUrl(from, to) {
+function buildRouteUrl(from, to) {
   return `https://yandex.ru/maps/?rtext=${from[1]},${from[0]}~${to[1]},${to[0]}&rtt=auto`;
 }
 
-function staticMap([lng, lat]) {
-  return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=8&size=320x180&markers=${lat},${lng},blue`;
+function osmStaticPreview([lng, lat]) {
+  return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=8&size=320x180&markers=${lat},${lng},lightblue1`;
+}
+
+function getDataUrl() {
+  return new URL("data/checkpoints.geojson", window.location.href).toString();
 }
 
 async function loadData() {
-  setProgress(25, "Загружаем данные КПП…");
-  const r = await fetch("data/checkpoints.geojson", { cache: "no-store" });
-  const d = await r.json();
+  setProgress(20, "Загружаем данные КПП…");
+  const resp = await fetch(getDataUrl(), { cache: "no-store" });
+  const data = await resp.json();
 
-  allFeatures = d.features.map(f => ({
-    ...f,
-    properties: {
-      ...f.properties,
-      __id: String(f.properties.checkpoint_id),
-      __name: f.properties.checkpoint_name || "Без названия",
-      __type: normalizeType(f.properties.checkpoint_type),
-      __status: normalizeStatus(f.properties.current_status),
-      __country: f.properties.neighbor_country || "Не указано",
-      __subject: f.properties.subject_name || "—"
-    }
-  }));
+  allFeatures = (data.features || [])
+    .filter(f => f && f.geometry && f.geometry.type === "Point")
+    .map(f => ({
+      ...f,
+      properties: {
+        ...f.properties,
+        __id: String(f.properties.checkpoint_id || ""),
+        __name: f.properties.checkpoint_name || "Без названия",
+        __type: normalizeType(f.properties.checkpoint_type),
+        __status: normalizeStatus(f.properties.current_status),
+        __subject: f.properties.subject_name || "—",
+        __country: f.properties.neighbor_country || "Не указано"
+      }
+    }));
 
   viewFeatures = allFeatures;
 }
 
 function buildLegend() {
-  legendEl.innerHTML = Object.entries(TYPE_COLORS).map(
-    ([k, c]) => `<div><span style="background:${c}"></span>${k}</div>`
-  ).join("");
+  legendEl.innerHTML = `
+    <div class="legend-title">Тип КПП</div>
+    <div class="legend-grid">
+      ${Object.entries(TYPE_COLORS).map(([k, c]) =>
+        `<div class="legend-item"><span class="dot" style="background:${c}"></span>${k}</div>`
+      ).join("")}
+    </div>
+  `;
+}
+
+function fillFilters() {
+  const types = [...new Set(allFeatures.map(f => f.properties.__type))].sort();
+  const statuses = [...new Set(allFeatures.map(f => f.properties.__status))].sort();
+
+  typeEl.innerHTML = `<option value="all">Все типы</option>` +
+    types.map(t => `<option value="${t}">${t}</option>`).join("");
+
+  statusEl.innerHTML = `<option value="all">Все статусы</option>` +
+    statuses.map(s => `<option value="${s}">${s}</option>`).join("");
+}
+
+function renderStats() {
+  statsEl.innerHTML = `Всего: <b>${allFeatures.length}</b><br>Показано: <b>${viewFeatures.length}</b>`;
 }
 
 function applyFilters() {
-  const q = searchEl.value.toLowerCase();
+  const q = (searchEl.value || "").toLowerCase().trim();
   const t = typeEl.value;
   const s = statusEl.value;
 
@@ -148,51 +179,75 @@ function applyFilters() {
     if (t !== "all" && f.properties.__type !== t) return false;
     if (s !== "all" && f.properties.__status !== s) return false;
     if (!q) return true;
+
     return (
       f.properties.__name.toLowerCase().includes(q) ||
+      f.properties.__subject.toLowerCase().includes(q) ||
       f.properties.__country.toLowerCase().includes(q)
     );
   });
 
   updateSource();
-  renderList();
+  renderStats();
+  renderListGrouped();
+
+  emptyEl.style.display = viewFeatures.length ? "none" : "block";
 }
 
-function renderList() {
-  const groups = {};
-  viewFeatures.forEach(f => {
-    const c = f.properties.__country;
-    groups[c] = groups[c] || [];
-    groups[c].push(f);
-  });
+function renderListGrouped() {
+  const groups = new Map();
 
-  listEl.innerHTML = Object.entries(groups).map(([c, items]) => {
-    return `<div class="group">${c}</div>` + items.map(f => {
-      const d = userLocation
-        ? ` • ${haversine(userLocation, f.geometry.coordinates).toFixed(1)} км`
-        : "";
-      return `
-        <div class="item" data-id="${f.properties.__id}">
-          <b>${f.properties.__name}</b><br>
-          <small>${f.properties.__type} • ${f.properties.__status}${d}</small>
-        </div>
-      `;
-    }).join("");
+  for (const f of viewFeatures) {
+    const c = f.properties.__country || "Не указано";
+    if (!groups.has(c)) groups.set(c, []);
+    groups.get(c).push(f);
+  }
+
+  const sorted = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0], "ru"));
+
+  listEl.innerHTML = sorted.map(([country, items]) => {
+    const itemsHtml = items
+      .sort((x, y) => x.properties.__name.localeCompare(y.properties.__name, "ru"))
+      .slice(0, 500)
+      .map(f => {
+        const dist = userLocation ? `${haversine(userLocation, f.geometry.coordinates).toFixed(1)} км` : null;
+        const distHtml = dist ? ` • 📏 ${dist}` : "";
+        const active = f.properties.__id === selectedId ? "active" : "";
+        return `
+          <div class="item ${active}" data-id="${f.properties.__id}">
+            <div>${f.properties.__name}</div>
+            <small>${f.properties.__subject} • ${country}<br>${f.properties.__type} • ${f.properties.__status}${distHtml}</small>
+          </div>
+        `;
+      })
+      .join("");
+
+    return `
+      <div class="group">🌍 ${country} (${items.length})</div>
+      ${itemsHtml}
+    `;
   }).join("");
 
   listEl.querySelectorAll(".item").forEach(el => {
-    el.onclick = () => focus(el.dataset.id);
+    el.onclick = () => focusFeature(el.dataset.id);
   });
 }
 
-function ensureLayers() {
+function updateSource() {
+  const src = map.getSource("checkpoints");
+  if (!src) return;
+  src.setData({ type: "FeatureCollection", features: viewFeatures });
+}
+
+function ensureSourcesAndLayers() {
   if (map.getSource("checkpoints")) return;
 
   map.addSource("checkpoints", {
     type: "geojson",
     data: { type: "FeatureCollection", features: viewFeatures },
     cluster: true,
-    clusterRadius: 48
+    clusterRadius: 48,
+    clusterMaxZoom: 10
   });
 
   map.addLayer({
@@ -200,7 +255,12 @@ function ensureLayers() {
     type: "circle",
     source: "checkpoints",
     filter: ["has", "point_count"],
-    paint: { "circle-color": "#2563eb", "circle-radius": 18 }
+    paint: {
+      "circle-color": "#3b82f6",
+      "circle-radius": ["step", ["get", "point_count"], 16, 30, 22, 80, 28],
+      "circle-stroke-width": 2,
+      "circle-stroke-color": "#020617"
+    }
   });
 
   map.addLayer({
@@ -218,98 +278,193 @@ function ensureLayers() {
     source: "checkpoints",
     filter: ["!", ["has", "point_count"]],
     paint: {
-      "circle-radius": 6,
-      "circle-color": ["match", ["get", "__type"],
-        "Автомобильный", TYPE_COLORS.Автомобильный,
-        "Железнодорожный", TYPE_COLORS.Железнодорожный,
-        "Воздушный", TYPE_COLORS.Воздушный,
-        "Морской", TYPE_COLORS.Морской,
-        "Речной", TYPE_COLORS.Речной,
-        "Пешеходный", TYPE_COLORS.Пешеходный,
-        TYPE_COLORS.Другое
-      ]
+      "circle-radius": ["case", ["==", ["get", "__id"], selectedId], 9, 6],
+      "circle-color": [
+        "match",
+        ["get", "__type"],
+        "Автомобильный", TYPE_COLORS["Автомобильный"],
+        "Железнодорожный", TYPE_COLORS["Железнодорожный"],
+        "Воздушный", TYPE_COLORS["Воздушный"],
+        "Морской", TYPE_COLORS["Морской"],
+        "Речной", TYPE_COLORS["Речной"],
+        "Пешеходный", TYPE_COLORS["Пешеходный"],
+        TYPE_COLORS["Другое"]
+      ],
+      "circle-opacity": [
+        "match",
+        ["get", "__status"],
+        "Действует", 0.95,
+        "Ограничен", 0.7,
+        "Временно закрыт", 0.45,
+        "Закрыт", 0.25,
+        0.6
+      ],
+      "circle-stroke-width": 2,
+      "circle-stroke-color": "#020617"
     }
   });
 
-  map.on("mouseenter", "points", () => {
+  map.addLayer({
+    id: "points-hit",
+    type: "circle",
+    source: "checkpoints",
+    filter: ["!", ["has", "point_count"]],
+    paint: {
+      "circle-radius": 16,
+      "circle-color": "#000000",
+      "circle-opacity": 0
+    }
+  });
+
+  map.on("click", "clusters", e => {
+    const f = e.features && e.features[0];
+    if (!f) return;
+    map.getSource("checkpoints").getClusterExpansionZoom(f.properties.cluster_id, (err, zoom) => {
+      if (!err) map.easeTo({ center: f.geometry.coordinates, zoom });
+    });
+  });
+
+  map.on("mouseenter", "points-hit", () => {
     map.getCanvas().style.cursor = "pointer";
     map.dragPan.disable();
   });
 
-  map.on("mouseleave", "points", () => {
+  map.on("mouseleave", "points-hit", () => {
     map.getCanvas().style.cursor = "";
     map.dragPan.enable();
   });
 
-  map.on("click", e => {
-    const feats = map.queryRenderedFeatures(e.point, { layers: ["points"] });
-    if (!feats.length) return;
-    focus(feats[0].properties.__id, e.lngLat);
+  map.on("click", "points-hit", e => {
+    const f = e.features && e.features[0];
+    if (!f) return;
+    focusFeature(f.properties.__id, e.lngLat);
   });
 }
 
-function updateSource() {
-  const s = map.getSource("checkpoints");
-  if (s) s.setData({ type: "FeatureCollection", features: viewFeatures });
-}
-
-function focus(id, lngLat) {
+function focusFeature(id, lngLatOverride = null) {
   const f = viewFeatures.find(x => x.properties.__id === id);
   if (!f) return;
 
-  const c = lngLat || f.geometry.coordinates;
-  map.easeTo({ center: c, zoom: 7 });
+  selectedId = id;
+  renderListGrouped();
+  updateSource();
+
+  const center = lngLatOverride || f.geometry.coordinates;
+  map.easeTo({ center, zoom: 7 });
 
   if (popupRef) popupRef.remove();
 
-  popupRef = new maplibregl.Popup({ maxWidth: "92vw" })
-    .setLngLat(c)
+  const previewUrl = osmStaticPreview(center);
+  const dist = userLocation ? haversine(userLocation, center).toFixed(1) : null;
+
+  const distHtml = dist
+    ? `📏 Расстояние: <b>${dist} км</b>`
+    : `📏 Расстояние: <b>включите геолокацию</b>`;
+
+  const actions = userLocation
+    ? `<div class="popup-actions">
+         <a class="popup-link" href="${buildRouteUrl(userLocation, center)}" target="_blank" rel="noreferrer">🛣 Маршрут</a>
+       </div>`
+    : "";
+
+  popupRef = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "92vw" })
+    .setLngLat(center)
     .setHTML(`
-      <b>${f.properties.__name}</b><br>
-      ${f.properties.__type} • ${f.properties.__status}<br>
-      ${userLocation ? `📏 ${haversine(userLocation, c).toFixed(1)} км` : ""}
-      <div style="margin-top:8px;background:url('${staticMap(c)}');height:180px;border-radius:8px"></div>
-      ${userLocation ? `<a href="${routeUrl(userLocation, c)}" target="_blank">🛣 Маршрут</a>` : ""}
+      <div class="popup-title">${f.properties.__name}</div>
+      <div class="popup-sub">
+        ${f.properties.__subject} • ${f.properties.__country}<br>
+        ${f.properties.__type} • ${f.properties.__status}<br>
+        ${distHtml}
+      </div>
+      <div class="popup-map" style="background-image:url('${previewUrl}')"></div>
+      ${actions}
     `)
     .addTo(map);
+
+  if (window.innerWidth <= 768 && panel) {
+    panel.classList.remove("open");
+    setTimeout(() => map.resize(), 300);
+  }
 }
 
 async function init() {
-  setProgress(10, "Подключаем карту…");
-  await loadData();
-  buildLegend();
-  renderList();
+  try {
+    setProgress(10, "Подключаем карту…");
 
-  map.on("load", () => {
-    ensureLayers();
+    const mapLoaded = new Promise(resolve => {
+      if (map.loaded()) resolve();
+      else map.once("load", resolve);
+    });
+
+    await loadData();
+
+    setProgress(55, "Готовим интерфейс…");
+    fillFilters();
+    buildLegend();
+    renderStats();
+    renderListGrouped();
+    emptyEl.style.display = viewFeatures.length ? "none" : "block";
+
+    await mapLoaded;
+
+    setProgress(80, "Строим слои…");
+    ensureSourcesAndLayers();
     updateSource();
-    hideLoader();
-  });
+
+    setProgress(100, "Готово");
+    setTimeout(hideLoader, 150);
+  } catch (e) {
+    console.error(e);
+    setProgress(100, "Ошибка");
+    if (loaderTextEl) loaderTextEl.textContent = "Ошибка загрузки данных или карты";
+  }
 }
 
 geoBtn.onclick = () => {
-  navigator.geolocation.getCurrentPosition(pos => {
-    userLocation = [pos.coords.longitude, pos.coords.latitude];
-    if (userMarker) userMarker.remove();
-    userMarker = new maplibregl.Marker({ color: "#f97316" }).setLngLat(userLocation).addTo(map);
-    map.easeTo({ center: userLocation, zoom: 8 });
-    renderList();
-  });
+  if (!navigator.geolocation) return;
+
+  geoBtn.textContent = "⏳";
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      userLocation = [pos.coords.longitude, pos.coords.latitude];
+
+      if (userMarker) userMarker.remove();
+      userMarker = new maplibregl.Marker({ color: "#f97316" })
+        .setLngLat(userLocation)
+        .addTo(map);
+
+      map.easeTo({ center: userLocation, zoom: 8 });
+      renderListGrouped();
+      geoBtn.textContent = "📍";
+    },
+    () => {
+      geoBtn.textContent = "📍";
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
 };
 
 styleToggle.onclick = () => {
   currentStyle = currentStyle === "map" ? "sat" : "map";
-  const next = currentStyle === "map" ? STYLE_MAP : STYLE_SAT;
-  const state = map.getCenter();
-  const zoom = map.getZoom();
+  const nextStyle = currentStyle === "map" ? STYLE_MAP : STYLE_SAT;
 
-  map.setStyle(next);
+  const center = map.getCenter();
+  const zoom = map.getZoom();
+  const bearing = map.getBearing();
+  const pitch = map.getPitch();
+
+  map.setStyle(nextStyle);
+
   map.once("styledata", () => {
-    map.jumpTo({ center: state, zoom });
-    ensureLayers();
+    map.jumpTo({ center, zoom, bearing, pitch });
+    ensureSourcesAndLayers();
     updateSource();
+
     if (userLocation) {
-      userMarker = new maplibregl.Marker({ color: "#f97316" }).setLngLat(userLocation).addTo(map);
+      if (userMarker) userMarker.remove();
+      userMarker = new maplibregl.Marker({ color: "#f97316" })
+        .setLngLat(userLocation)
+        .addTo(map);
     }
   });
 };
@@ -321,6 +476,17 @@ searchEl.oninput = () => {
 
 typeEl.onchange = applyFilters;
 statusEl.onchange = applyFilters;
-mobileToggle.onclick = () => panel.classList.toggle("open");
+
+clearSelectionBtn.onclick = () => {
+  selectedId = null;
+  if (popupRef) popupRef.remove();
+  updateSource();
+  renderListGrouped();
+};
+
+mobileToggle.onclick = () => {
+  panel.classList.toggle("open");
+  setTimeout(() => map.resize(), 300);
+};
 
 init();
