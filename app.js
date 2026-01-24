@@ -594,6 +594,11 @@ async function init() {
     setProgress(10, "Подключаем карту…");
     await new Promise(resolve => (map.loaded() ? resolve() : map.once("load", resolve)));
 
+    // MOBILE FIX: панель видна по умолчанию на мобильных
+    if (window.innerWidth <= 900) {
+      panelEl.classList.add("open");
+    }
+
     /* === ДОБАВЛЕНИЕ СПУТНИКА КАК RASTER LAYER === */
     map.addSource("sat", {
       type: "raster",
