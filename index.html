@@ -4,68 +4,63 @@
   <meta charset="UTF-8" />
   <title>КПП РФ — интерактивная карта</title>
 
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css"
+    rel="stylesheet"
+  />
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<div id="loader" class="loader">
-  <div class="loader-box">
-    <div class="loader-title">КПП РФ</div>
-    <div id="loaderText" class="loader-sub">Загружаем карту и данные…</div>
-    <div class="loader-bar">
-      <div id="loaderProgress" class="loader-progress"></div>
-    </div>
-  </div>
-</div>
-
-<button id="mobileToggle" class="mobile-toggle" aria-label="Открыть панель">☰</button>
-<button id="geoBtn" class="geo-btn" title="Моё местоположение">📍</button>
-<button id="styleToggle" class="style-toggle" title="Переключить подложку">🛰</button>
-
-<div class="app">
-  <aside class="panel" id="panel">
-    <div class="brand">
-      <h1>КПП РФ</h1>
-      <span>Интерактивная карта пунктов пропуска</span>
+  <!-- Панель -->
+  <aside id="panel">
+    <div class="panel-header">
+      <button id="mobileToggle" class="burger">☰</button>
+      <div class="title">КПП РФ</div>
+      <div class="subtitle">Интерактивная карта пунктов пропуска</div>
     </div>
 
-    <div class="controls">
-      <input id="searchInput" type="text"
-             placeholder="Поиск по названию, региону или стране" />
+    <input
+      id="searchInput"
+      type="text"
+      placeholder="Поиск по названию, региону или стране"
+    />
 
-      <div class="grid2">
-        <select id="typeFilter"></select>
-        <select id="statusFilter"></select>
-      </div>
+    <select id="typeFilter"></select>
+    <select id="statusFilter"></select>
 
-      <div class="btnrow">
-        <button id="clearSelection" class="btn ghost">✖ Сброс</button>
-      </div>
+    <div class="buttons">
+      <button id="geoBtn">📍</button>
+      <button id="styleToggle">🛰</button>
     </div>
 
-    <div id="legend" class="legend"></div>
-    <div id="stats" class="stats"></div>
-    <div id="emptyState" class="empty">КПП не найдены</div>
+    <div id="legend"></div>
 
-    <div class="showcase">
-      <div class="showcase-title">Список КПП (по странам)</div>
-      <div id="list" class="showcase-list"></div>
+    <div id="emptyState" class="empty">
+      КПП не найдены
     </div>
 
-    <footer>
-      Источник данных: Росгранстрой
-    </footer>
+    <div id="list"></div>
   </aside>
 
-  <main id="map"></main>
-</div>
+  <!-- Карта -->
+  <div id="map"></div>
 
-<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
-<script src="app.js"></script>
+  <!-- Лоадер -->
+  <div id="loader">
+    <div class="loader-box">
+      <div class="loader-title">КПП РФ</div>
+      <div class="loader-text" id="loaderText">Загрузка…</div>
+      <div class="loader-bar">
+        <div class="loader-progress" id="loaderProgress"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
