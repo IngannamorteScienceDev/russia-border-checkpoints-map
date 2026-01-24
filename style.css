@@ -302,3 +302,9 @@ html, body {
     place-items: center;
   }
 }
+
+@media (max-width: 900px) {
+  .panel.open ~ .mobile-fab {
+    display: none;
+  }
+}
