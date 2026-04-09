@@ -171,6 +171,10 @@ body{
 }
 .btn:hover{border-color:rgba(148,163,184,.26)}
 .btn:active{transform:scale(.99)}
+.btn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
 .btn--ghost{
   background: rgba(59,130,246,.12);
   border-color: rgba(59,130,246,.22);

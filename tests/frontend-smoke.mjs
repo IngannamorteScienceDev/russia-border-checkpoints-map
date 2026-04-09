@@ -17,8 +17,13 @@ function createElement() {
 }
 
 const elements = new Map();
+let lastDownload = null;
 
 globalThis.document = {
+  body: {
+    appendChild() {},
+    removeChild() {}
+  },
   getElementById(id) {
     if (!elements.has(id)) {
       const element = createElement();
@@ -27,6 +32,23 @@ globalThis.document = {
     }
 
     return elements.get(id);
+  },
+  createElement(tagName) {
+    if (tagName !== "a") {
+      return createElement();
+    }
+
+    return {
+      ...createElement(),
+      href: "",
+      download: "",
+      click() {
+        lastDownload = {
+          href: this.href,
+          download: this.download
+        };
+      }
+    };
   }
 };
 
@@ -210,6 +232,9 @@ globalThis.maplibregl = {
   NavigationControl: FakeNavigationControl
 };
 
+URL.createObjectURL = () => "blob:test-download";
+URL.revokeObjectURL = () => {};
+
 await import(new URL("../app.js", import.meta.url));
 await new Promise(resolve => setTimeout(resolve, 0));
 
@@ -218,6 +243,8 @@ const listHtml = elements.get("list")?.innerHTML || "";
 const countryFilterHtml = elements.get("countryFilter")?.innerHTML || "";
 const subjectFilterHtml = elements.get("subjectFilter")?.innerHTML || "";
 const typeFilterHtml = elements.get("typeFilter")?.innerHTML || "";
+const exportCsvButton = elements.get("exportCsv");
+const exportGeoJsonButton = elements.get("exportGeoJson");
 
 if (!statsHtml.includes("Всего КПП") || !statsHtml.includes("Обновлено")) {
   throw new Error("Stats block was not rendered.");
@@ -237,6 +264,20 @@ if (!subjectFilterHtml.includes("Приморский край")) {
 
 if (!typeFilterHtml.includes("Автомобильный") || !typeFilterHtml.includes("Воздушный")) {
   throw new Error("Type filter was not populated.");
+}
+
+if (typeof exportCsvButton?.onclick !== "function" || typeof exportGeoJsonButton?.onclick !== "function") {
+  throw new Error("Export buttons were not wired.");
+}
+
+exportCsvButton.onclick();
+if (!lastDownload?.download?.endsWith(".csv")) {
+  throw new Error("CSV export did not trigger download.");
+}
+
+exportGeoJsonButton.onclick();
+if (!lastDownload?.download?.endsWith(".geojson")) {
+  throw new Error("GeoJSON export did not trigger download.");
 }
 
 console.log("frontend smoke test passed");

@@ -4,6 +4,7 @@ import {
 } from "./js/config.js";
 import { buildDatasetMeta, loadFeatures, filterFeatures } from "./js/data.js";
 import { getDomElements } from "./js/dom.js";
+import { exportFeaturesAsCsv, exportFeaturesAsGeoJson } from "./js/export.js";
 import { createCheckpointsLayerController, ensureSatelliteLayer } from "./js/mapLayers.js";
 import { createPopupController } from "./js/popup.js";
 import { buildLegend, fillFilters, renderList, renderStats } from "./js/render.js";
@@ -73,6 +74,8 @@ function renderAll() {
     userLocation: state.userLocation,
     onItemClick: focusById
   });
+
+  syncExportButtons();
 }
 
 function getActiveFilterCount() {
@@ -109,6 +112,28 @@ function resetFilters() {
   applyFilters();
 }
 
+function syncExportButtons() {
+  const disabled = state.viewFeatures.length === 0;
+
+  dom.exportCsvEl.disabled = disabled;
+  dom.exportGeoJsonEl.disabled = disabled;
+}
+
+function exportCurrentView(format) {
+  if (!state.viewFeatures.length) return;
+
+  const options = {
+    hasFilters: getActiveFilterCount() > 0
+  };
+
+  if (format === "csv") {
+    exportFeaturesAsCsv(state.viewFeatures, options);
+    return;
+  }
+
+  exportFeaturesAsGeoJson(state.viewFeatures, options);
+}
+
 function focusById(id) {
   const feature = state.viewFeatures.find(item => item.properties.__id === id) ||
     state.allFeatures.find(item => item.properties.__id === id);
@@ -137,6 +162,8 @@ function attachUi() {
   dom.countryEl.onchange = applyFilters;
   dom.subjectEl.onchange = applyFilters;
   dom.resetFiltersEl.onclick = resetFilters;
+  dom.exportCsvEl.onclick = () => exportCurrentView("csv");
+  dom.exportGeoJsonEl.onclick = () => exportCurrentView("geojson");
 
   dom.styleToggleEl.onclick = () => {
     const visible = map.getLayoutProperty(SATELLITE_LAYER_ID, "visibility") === "visible";

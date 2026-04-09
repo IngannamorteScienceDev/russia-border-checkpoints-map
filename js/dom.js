@@ -11,6 +11,8 @@ export function getDomElements() {
     countryEl: el("countryFilter"),
     subjectEl: el("subjectFilter"),
     resetFiltersEl: el("resetFilters"),
+    exportCsvEl: el("exportCsv"),
+    exportGeoJsonEl: el("exportGeoJson"),
     legendEl: el("legend"),
     statsEl: el("stats"),
     listEl: el("list"),
