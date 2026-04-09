@@ -1,7 +1,14 @@
 import json
 import csv
 from pathlib import Path
-from tqdm import tqdm
+
+from pipeline_validation import (
+    ValidationError,
+    normalize_coordinate_text,
+    tqdm,
+    validate_raw_payload,
+    validate_rows,
+)
 
 INPUT_FILE = Path("raw_data/rosgranstroy_map_data.json")
 OUTPUT_FILE = Path("data/checkpoints_v1.csv")
@@ -39,16 +46,14 @@ def safe_get(obj, *keys):
 
 
 def main():
-    print("══════════════════════════════════════════════")
-    print("🧩 ШАГ 2. Разбор и нормализация данных Росгранстроя")
-    print("Источник:", INPUT_FILE.resolve())
-    print("══════════════════════════════════════════════\n")
+    print("=== STEP 2. Normalize checkpoint data ===")
+    print("Input file:", INPUT_FILE.resolve())
 
     raw = json.loads(INPUT_FILE.read_text(encoding="utf-8"))
-    data = raw.get("data", {})
-    federal_districts = data.get("federal_districts", {})
+    data = validate_raw_payload(raw)
+    federal_districts = data["federal_districts"]
 
-    print("📂 Обнаружено федеральных округов:", len(federal_districts))
+    print("Federal districts found:", len(federal_districts))
 
     rows = []
 
@@ -58,10 +63,10 @@ def main():
         if isinstance(subjects, list)
     )
 
-    print("🏘 Всего субъектов РФ в данных:", subjects_total)
-    print("\n⏳ Начинаем обработку субъектов и пунктов пропуска…\n")
+    print("Subjects found:", subjects_total)
+    print("\nProcessing subjects and checkpoints...\n")
 
-    with tqdm(total=subjects_total, desc="Обработка субъектов", unit="субъект") as pbar:
+    with tqdm(total=subjects_total, desc="Processing subjects", unit="subject") as pbar:
         for subjects in federal_districts.values():
             if not isinstance(subjects, list):
                 continue
@@ -71,7 +76,7 @@ def main():
                 federal_district = safe_get(subject, "federal_district", "title", "ru")
 
                 checkpoints = subject.get("checkpoints", [])
-                print(f"➡️  {subject_name}: найдено КПП — {len(checkpoints)}")
+                print(f"Processing {subject_name}: {len(checkpoints)} checkpoints")
 
                 for checkpoint in checkpoints:
                     rows.append({
@@ -85,8 +90,14 @@ def main():
                         "is_functional": checkpoint.get("condition", ""),
                         "is_published": checkpoint.get("publish", ""),
                         "working_time": safe_get(checkpoint, "working_time", "ru"),
-                        "latitude": checkpoint.get("latitude", ""),
-                        "longitude": checkpoint.get("longitude", ""),
+                        "latitude": normalize_coordinate_text(
+                            checkpoint.get("latitude", ""),
+                            field_name="latitude",
+                        ),
+                        "longitude": normalize_coordinate_text(
+                            checkpoint.get("longitude", ""),
+                            field_name="longitude",
+                        ),
                         "address": safe_get(checkpoint, "address", "ru"),
                         "subject_name": subject_name,
                         "federal_district": federal_district,
@@ -99,18 +110,24 @@ def main():
 
                 pbar.update(1)
 
+    validate_rows(rows)
+
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     with OUTPUT_FILE.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS)
         writer.writeheader()
         writer.writerows(rows)
 
-    print("\n💾 CSV успешно сформирован")
-    print("📄 Файл:", OUTPUT_FILE.resolve())
-    print("📊 Всего пунктов пропуска:", len(rows))
-    print("══════════════════════════════════════════════")
-    print("🏁 ШАГ 2 ЗАВЕРШЁН\n")
+    print("Validation passed for rows:", len(rows))
+    print("\nCSV created successfully.")
+    print("Output file:", OUTPUT_FILE.resolve())
+    print("Checkpoint rows:", len(rows))
+    print("=== STEP 2 completed ===\n")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ValidationError as exc:
+        print(f"Validation failed: {exc}")
+        raise SystemExit(1) from exc

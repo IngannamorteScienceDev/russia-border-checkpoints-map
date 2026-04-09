@@ -2,28 +2,27 @@ import json
 import requests
 from pathlib import Path
 from datetime import datetime
-from tqdm import tqdm
+
+from pipeline_validation import tqdm
 
 API_URL = "https://rosgranstroy.ru/api/map_data"
 OUT_FILE = Path("raw_data/rosgranstroy_map_data.json")
 
 
 def main():
-    print("══════════════════════════════════════════════")
-    print("📡 ШАГ 1. Загрузка данных из API Росгранстроя")
-    print("Источник:", API_URL)
-    print("══════════════════════════════════════════════\n")
+    print("=== STEP 1. Fetch Rosgranstroy data ===")
+    print("Source:", API_URL)
 
-    print("⏳ Отправляем HTTP-запрос к официальному API…")
+    print("Requesting data from the official API...")
 
-    with tqdm(total=1, desc="Загрузка JSON", unit="запрос") as pbar:
+    with tqdm(total=1, desc="Downloading JSON", unit="request") as pbar:
         response = requests.get(API_URL, timeout=30)
         response.raise_for_status()
         data = response.json()
         pbar.update(1)
 
-    print("✅ Ответ от API успешно получен")
-    print("📦 Тип полученных данных:", type(data).__name__)
+    print("API response received successfully.")
+    print("Payload type:", type(data).__name__)
 
     payload = {
         "meta": {
@@ -40,10 +39,9 @@ def main():
         encoding="utf-8",
     )
 
-    print("\n💾 Данные сохранены на диск")
-    print("📄 Файл:", OUT_FILE.resolve())
-    print("══════════════════════════════════════════════")
-    print("🏁 ШАГ 1 ЗАВЕРШЁН\n")
+    print("\nData saved to disk.")
+    print("Output file:", OUT_FILE.resolve())
+    print("=== STEP 1 completed ===\n")
 
 
 if __name__ == "__main__":

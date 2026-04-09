@@ -2,25 +2,16 @@ import csv
 import json
 from pathlib import Path
 
-try:
-    from tqdm import tqdm
-except ImportError:
-    def tqdm(iterable=None, total=None, **kwargs):
-        if iterable is None:
-            return range(total or 0)
-        return iterable
+from pipeline_validation import (
+    ValidationError,
+    parse_coordinate,
+    tqdm,
+    validate_geojson,
+    validate_rows,
+)
 
 INPUT_FILE = Path("data/checkpoints_v1.csv")
 OUTPUT_FILE = Path("data/checkpoints.geojson")
-
-
-def is_float(value):
-    try:
-        float(value)
-        return True
-    except Exception:
-        return False
-
 
 def main():
     print("=== STEP 3. Build final GeoJSON ===")
@@ -28,16 +19,14 @@ def main():
 
     rows = list(csv.DictReader(INPUT_FILE.open(encoding="utf-8")))
     print("Rows in CSV:", len(rows))
+    validate_rows(rows)
 
     features = []
-    skipped = 0
 
     for row in tqdm(rows, total=len(rows), desc="Building GeoJSON", unit="row"):
-        lat, lon = row.get("latitude"), row.get("longitude")
-
-        if not (is_float(lat) and is_float(lon)):
-            skipped += 1
-            continue
+        checkpoint_id = str(row["checkpoint_id"]).strip()
+        lat = parse_coordinate(row["latitude"], field_name="latitude", checkpoint_id=checkpoint_id)
+        lon = parse_coordinate(row["longitude"], field_name="longitude", checkpoint_id=checkpoint_id)
 
         props = dict(row)
         props.pop("latitude", None)
@@ -47,7 +36,7 @@ def main():
             "type": "Feature",
             "geometry": {
                 "type": "Point",
-                "coordinates": [float(lon), float(lat)],
+                "coordinates": [round(lon, 6), round(lat, 6)],
             },
             "properties": props,
         })
@@ -56,6 +45,7 @@ def main():
         "type": "FeatureCollection",
         "features": features,
     }
+    validate_geojson(geojson)
 
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_FILE.write_text(
@@ -65,9 +55,13 @@ def main():
 
     print("Final file:", OUTPUT_FILE.resolve())
     print("Features written:", len(features))
-    print("Skipped without coordinates:", skipped)
+    print("GeoJSON validation passed.")
     print("=== STEP 3 completed ===")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ValidationError as exc:
+        print(f"Validation failed: {exc}")
+        raise SystemExit(1) from exc
