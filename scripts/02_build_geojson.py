@@ -1,12 +1,17 @@
 import csv
 import json
-import shutil
 from pathlib import Path
-from tqdm import tqdm
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(iterable=None, total=None, **kwargs):
+        if iterable is None:
+            return range(total or 0)
+        return iterable
 
 INPUT_FILE = Path("data/checkpoints_v1.csv")
-OUTPUT_FILE = Path("data/checkpoints_v1.geojson")
-FRONTEND_COPY = Path("frontend/data/checkpoints.geojson")
+OUTPUT_FILE = Path("data/checkpoints.geojson")
 
 
 def is_float(value):
@@ -18,42 +23,34 @@ def is_float(value):
 
 
 def main():
-    print("══════════════════════════════════════════════")
-    print("🗺 ШАГ 3. Формирование GeoJSON для карты")
-    print("Источник CSV:", INPUT_FILE.resolve())
-    print("══════════════════════════════════════════════\n")
+    print("=== STEP 3. Build final GeoJSON ===")
+    print("CSV source:", INPUT_FILE.resolve())
 
     rows = list(csv.DictReader(INPUT_FILE.open(encoding="utf-8")))
-    print("📊 Записей в CSV:", len(rows))
+    print("Rows in CSV:", len(rows))
 
     features = []
     skipped = 0
 
-    print("\n⏳ Преобразование записей в GeoJSON…\n")
+    for row in tqdm(rows, total=len(rows), desc="Building GeoJSON", unit="row"):
+        lat, lon = row.get("latitude"), row.get("longitude")
 
-    with tqdm(total=len(rows), desc="Создание геообъектов", unit="КПП") as pbar:
-        for row in rows:
-            lat, lon = row.get("latitude"), row.get("longitude")
+        if not (is_float(lat) and is_float(lon)):
+            skipped += 1
+            continue
 
-            if not (is_float(lat) and is_float(lon)):
-                skipped += 1
-                pbar.update(1)
-                continue
+        props = dict(row)
+        props.pop("latitude", None)
+        props.pop("longitude", None)
 
-            props = dict(row)
-            props.pop("latitude", None)
-            props.pop("longitude", None)
-
-            features.append({
-                "type": "Feature",
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [float(lon), float(lat)],
-                },
-                "properties": props,
-            })
-
-            pbar.update(1)
+        features.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [float(lon), float(lat)],
+            },
+            "properties": props,
+        })
 
     geojson = {
         "type": "FeatureCollection",
@@ -66,16 +63,10 @@ def main():
         encoding="utf-8",
     )
 
-    FRONTEND_COPY.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(OUTPUT_FILE, FRONTEND_COPY)
-
-    print("\n💾 GeoJSON успешно создан")
-    print("📄 Основной файл:", OUTPUT_FILE.resolve())
-    print("🔁 Копия для frontend:", FRONTEND_COPY.resolve())
-    print("📍 Геообъектов создано:", len(features))
-    print("⚠️ Пропущено без координат:", skipped)
-    print("══════════════════════════════════════════════")
-    print("🏁 ШАГ 3 ЗАВЕРШЁН\n")
+    print("Final file:", OUTPUT_FILE.resolve())
+    print("Features written:", len(features))
+    print("Skipped without coordinates:", skipped)
+    print("=== STEP 3 completed ===")
 
 
 if __name__ == "__main__":
