@@ -48,8 +48,22 @@
         </div>
 
         <div class="row">
+          <select id="countryFilter" class="select">
+            <option value="all">Все страны</option>
+          </select>
+
+          <select id="subjectFilter" class="select">
+            <option value="all">Все субъекты</option>
+          </select>
+        </div>
+
+        <div class="row">
           <button id="geoBtn" class="btn">📍 Гео</button>
           <button id="styleToggle" class="btn">🛰 Спутник</button>
+        </div>
+
+        <div class="row row--single">
+          <button id="resetFilters" class="btn btn--ghost">Сбросить фильтры</button>
         </div>
       </div>
 
@@ -59,9 +73,7 @@
 
       <div id="list" class="list"></div>
 
-      <div id="emptyState" class="empty">
-        Ничего не найдено по вашему запросу.
-      </div>
+      <div id="emptyState" class="empty"></div>
     </aside>
 
     <!-- Floating burger for mobile when panel is closed -->

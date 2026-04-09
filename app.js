@@ -2,7 +2,7 @@ import {
   SATELLITE_LAYER_ID,
   STYLE_MAP
 } from "./js/config.js";
-import { loadFeatures, filterFeatures } from "./js/data.js";
+import { buildDatasetMeta, loadFeatures, filterFeatures } from "./js/data.js";
 import { getDomElements } from "./js/dom.js";
 import { createCheckpointsLayerController, ensureSatelliteLayer } from "./js/mapLayers.js";
 import { createPopupController } from "./js/popup.js";
@@ -13,6 +13,7 @@ const dom = getDomElements();
 const state = {
   allFeatures: [],
   viewFeatures: [],
+  datasetMeta: null,
   userLocation: null,
   userMarker: null,
   debounceTimer: null
@@ -60,7 +61,9 @@ function renderAll() {
   renderStats({
     statsEl: dom.statsEl,
     allFeatures: state.allFeatures,
-    viewFeatures: state.viewFeatures
+    viewFeatures: state.viewFeatures,
+    datasetMeta: state.datasetMeta,
+    activeFilterCount: getActiveFilterCount()
   });
 
   renderList({
@@ -72,15 +75,38 @@ function renderAll() {
   });
 }
 
+function getActiveFilterCount() {
+  const filterValues = [
+    dom.searchEl.value.trim(),
+    dom.typeEl.value !== "all" ? dom.typeEl.value : "",
+    dom.statusEl.value !== "all" ? dom.statusEl.value : "",
+    dom.countryEl.value !== "all" ? dom.countryEl.value : "",
+    dom.subjectEl.value !== "all" ? dom.subjectEl.value : ""
+  ].filter(Boolean);
+
+  return filterValues.length;
+}
+
 function applyFilters() {
   state.viewFeatures = filterFeatures(state.allFeatures, {
     query: dom.searchEl.value,
     type: dom.typeEl.value,
-    status: dom.statusEl.value
+    status: dom.statusEl.value,
+    country: dom.countryEl.value,
+    subject: dom.subjectEl.value
   });
 
   layerController.updateSourceData(state.viewFeatures);
   renderAll();
+}
+
+function resetFilters() {
+  dom.searchEl.value = "";
+  dom.typeEl.value = "all";
+  dom.statusEl.value = "all";
+  dom.countryEl.value = "all";
+  dom.subjectEl.value = "all";
+  applyFilters();
 }
 
 function focusById(id) {
@@ -108,6 +134,9 @@ function attachUi() {
 
   dom.typeEl.onchange = applyFilters;
   dom.statusEl.onchange = applyFilters;
+  dom.countryEl.onchange = applyFilters;
+  dom.subjectEl.onchange = applyFilters;
+  dom.resetFiltersEl.onclick = resetFilters;
 
   dom.styleToggleEl.onclick = () => {
     const visible = map.getLayoutProperty(SATELLITE_LAYER_ID, "visibility") === "visible";
@@ -161,21 +190,24 @@ function attachUi() {
 
 async function init() {
   try {
-    setProgress(10, "Подключаем карту…");
+    setProgress(10, "Подключаем карту...");
     await new Promise(resolve => (map.loaded() ? resolve() : map.once("load", resolve)));
 
     ensureSatelliteLayer(map);
 
-    setProgress(25, "Загружаем КПП…");
+    setProgress(25, "Загружаем КПП...");
     state.allFeatures = await loadFeatures({ setProgress });
     state.viewFeatures = state.allFeatures;
+    state.datasetMeta = buildDatasetMeta(state.allFeatures);
 
-    setProgress(55, "Настраиваем интерфейс…");
+    setProgress(55, "Настраиваем интерфейс...");
     buildLegend(dom.legendEl);
     fillFilters({
       allFeatures: state.allFeatures,
       typeEl: dom.typeEl,
-      statusEl: dom.statusEl
+      statusEl: dom.statusEl,
+      countryEl: dom.countryEl,
+      subjectEl: dom.subjectEl
     });
     renderAll();
     attachUi();
@@ -184,7 +216,7 @@ async function init() {
       dom.panelEl.classList.add("open");
     }
 
-    setProgress(80, "Строим слои…");
+    setProgress(80, "Строим слои...");
     layerController.rebuildLayers(state.viewFeatures);
 
     setProgress(100, "Готово");

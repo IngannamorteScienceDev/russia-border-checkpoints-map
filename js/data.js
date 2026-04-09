@@ -66,8 +66,8 @@ function extractSubject(props) {
     props.region ||
     props.rf_subject ||
     props.rf_subject_name ||
-    ""
-  ).trim();
+    "Не указано"
+  ).trim() || "Не указано";
 }
 
 function extractExtra(props) {
@@ -92,8 +92,59 @@ function extractExtra(props) {
   };
 }
 
+function createId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `feature-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function parseUpdatedAt(value) {
+  if (!value) return null;
+
+  const raw = String(value).trim();
+  const normalized = raw.replace(/\.(\d{3})\d+Z$/, ".$1Z");
+  const timestamp = Date.parse(normalized);
+
+  if (Number.isNaN(timestamp)) return null;
+  return new Date(timestamp);
+}
+
+function formatUpdatedAt(date) {
+  if (!date) return "Дата не указана";
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
+export function buildDatasetMeta(allFeatures) {
+  const countries = new Set();
+  const subjects = new Set();
+  let latestDate = null;
+
+  for (const feature of allFeatures) {
+    const props = feature.properties || {};
+
+    if (props.__country && props.__country !== "Не указано") countries.add(props.__country);
+    if (props.__subject && props.__subject !== "Не указано") subjects.add(props.__subject);
+
+    const parsedDate = parseUpdatedAt(props.__extra?.updatedAt);
+    if (parsedDate && (!latestDate || parsedDate > latestDate)) {
+      latestDate = parsedDate;
+    }
+  }
+
+  return {
+    latestUpdatedAt: latestDate ? latestDate.toISOString() : null,
+    latestUpdatedLabel: formatUpdatedAt(latestDate),
+    countryCount: countries.size,
+    subjectCount: subjects.size
+  };
+}
+
 export async function loadFeatures({ setProgress }) {
-  setProgress(20, "Загружаем данные КПП…");
+  setProgress(20, "Загружаем данные КПП...");
   const response = await fetch(dataUrl(), { cache: "no-store" });
 
   if (!response.ok) {
@@ -113,33 +164,38 @@ export async function loadFeatures({ setProgress }) {
     const status = normalizeStatus(props.current_status || props.status || props.state);
     const lng = Array.isArray(feature.geometry.coordinates) ? feature.geometry.coordinates[0] : null;
     const lat = Array.isArray(feature.geometry.coordinates) ? feature.geometry.coordinates[1] : null;
+    const hasCoordinates = Number.isFinite(lng) && Number.isFinite(lat);
 
     return {
       ...feature,
       properties: {
         ...props,
-        __id: String(extra.checkpointId || props.checkpoint_id || crypto.randomUUID()),
+        __id: String(extra.checkpointId || props.checkpoint_id || createId()),
         __name: name,
         __type: type,
         __status: status,
         __country: country,
         __subject: subject,
-        __coords: lng !== null && lat !== null ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : "—",
+        __coords: hasCoordinates ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : "—",
         __extra: extra,
-        __search: norm([name, subject, country, type, status].filter(Boolean).join(" | "))
+        __search: norm([name, subject, country, type, status, extra.category, extra.mode].filter(Boolean).join(" | "))
       }
     };
   });
 }
 
-export function filterFeatures(allFeatures, { query, type, status }) {
+export function filterFeatures(allFeatures, { query, type, status, country, subject }) {
   const normalizedQuery = norm(query);
 
   return allFeatures.filter(feature => {
     const props = feature.properties;
+
     if (type !== "all" && props.__type !== type) return false;
     if (status !== "all" && props.__status !== status) return false;
+    if (country !== "all" && props.__country !== country) return false;
+    if (subject !== "all" && props.__subject !== subject) return false;
     if (!normalizedQuery) return true;
+
     return props.__search.includes(normalizedQuery);
   });
 }

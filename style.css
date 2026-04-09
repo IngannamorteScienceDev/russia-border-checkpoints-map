@@ -144,6 +144,9 @@ body{
   gap:12px;
   margin-top:12px;
 }
+.row--single > *{
+  width:100%;
+}
 .input, .select{
   width:100%;
   border-radius:18px;
@@ -168,6 +171,15 @@ body{
 }
 .btn:hover{border-color:rgba(148,163,184,.26)}
 .btn:active{transform:scale(.99)}
+.btn--ghost{
+  background: rgba(59,130,246,.12);
+  border-color: rgba(59,130,246,.22);
+  color: rgba(229,231,235,.95);
+}
+.btn--ghost:hover{
+  border-color: rgba(59,130,246,.4);
+  background: rgba(59,130,246,.16);
+}
 
 .legend{
   margin-top:14px;
@@ -202,12 +214,43 @@ body{
 
 .stats{
   margin-top:14px;
-  padding:12px 14px;
+  padding:14px;
   border:1px solid var(--stroke2);
   border-radius:22px;
   background: rgba(15,23,42,.24);
   color: rgba(229,231,235,.9);
   font-size:15px;
+}
+.stats__grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:10px;
+}
+.stats__card{
+  padding:12px;
+  border:1px solid rgba(148,163,184,.12);
+  border-radius:18px;
+  background: rgba(2,6,23,.34);
+}
+.stats__label{
+  color: rgba(229,231,235,.62);
+  font-size:12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.stats__value{
+  margin-top:8px;
+  font-size:24px;
+  font-weight:900;
+  line-height:1;
+}
+.stats__meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 14px;
+  margin-top:12px;
+  color: rgba(229,231,235,.72);
+  font-size:13px;
 }
 
 .list{
@@ -280,6 +323,15 @@ body{
   color: rgba(229,231,235,.65);
   background: rgba(2,6,23,.35);
 }
+.empty__title{
+  font-size:16px;
+  font-weight:850;
+  color: rgba(229,231,235,.92);
+}
+.empty__text{
+  margin-top:6px;
+  line-height:1.45;
+}
 
 /* Maplibre tweaks */
 .maplibregl-ctrl-bottom-right .maplibregl-ctrl{
@@ -310,6 +362,7 @@ body{
 @media (max-width: 900px){
   body{overflow:auto}
   .app{height:100dvh}
+  .row{flex-direction:column}
   .panel{
     left:0;
     top:0;

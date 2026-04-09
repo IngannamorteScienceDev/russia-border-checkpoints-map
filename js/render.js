@@ -12,21 +12,63 @@ export function buildLegend(legendEl) {
   `;
 }
 
-export function fillFilters({ allFeatures, typeEl, statusEl }) {
+function fillSelect(el, defaultLabel, values) {
+  el.innerHTML = `<option value="all">${defaultLabel}</option>` +
+    values.map(value => `<option value="${value}">${value}</option>`).join("");
+}
+
+export function fillFilters({ allFeatures, typeEl, statusEl, countryEl, subjectEl }) {
   const types = [...new Set(allFeatures.map(feature => feature.properties.__type))]
     .sort((a, b) => a.localeCompare(b, "ru"));
   const statuses = [...new Set(allFeatures.map(feature => feature.properties.__status))]
     .sort((a, b) => a.localeCompare(b, "ru"));
+  const countries = [...new Set(allFeatures.map(feature => feature.properties.__country))]
+    .sort((a, b) => a.localeCompare(b, "ru"));
+  const subjects = [...new Set(allFeatures.map(feature => feature.properties.__subject))]
+    .sort((a, b) => a.localeCompare(b, "ru"));
 
-  typeEl.innerHTML = `<option value="all">Все типы</option>` +
-    types.map(type => `<option value="${type}">${type}</option>`).join("");
-
-  statusEl.innerHTML = `<option value="all">Все статусы</option>` +
-    statuses.map(status => `<option value="${status}">${status}</option>`).join("");
+  fillSelect(typeEl, "Все типы", types);
+  fillSelect(statusEl, "Все статусы", statuses);
+  fillSelect(countryEl, "Все страны", countries);
+  fillSelect(subjectEl, "Все субъекты", subjects);
 }
 
-export function renderStats({ statsEl, allFeatures, viewFeatures }) {
-  statsEl.innerHTML = `Всего: <b>${allFeatures.length}</b> · Показано: <b>${viewFeatures.length}</b>`;
+export function renderStats({
+  statsEl,
+  allFeatures,
+  viewFeatures,
+  datasetMeta,
+  activeFilterCount
+}) {
+  const hiddenCount = Math.max(allFeatures.length - viewFeatures.length, 0);
+  const latestUpdatedLabel = datasetMeta?.latestUpdatedLabel || "Дата не указана";
+  const filtersLabel = activeFilterCount ? `${activeFilterCount}` : "0";
+
+  statsEl.innerHTML = `
+    <div class="stats__grid">
+      <div class="stats__card">
+        <div class="stats__label">Всего КПП</div>
+        <div class="stats__value">${allFeatures.length}</div>
+      </div>
+      <div class="stats__card">
+        <div class="stats__label">Показано</div>
+        <div class="stats__value">${viewFeatures.length}</div>
+      </div>
+      <div class="stats__card">
+        <div class="stats__label">Стран</div>
+        <div class="stats__value">${datasetMeta?.countryCount || 0}</div>
+      </div>
+      <div class="stats__card">
+        <div class="stats__label">Субъектов РФ</div>
+        <div class="stats__value">${datasetMeta?.subjectCount || 0}</div>
+      </div>
+    </div>
+    <div class="stats__meta">
+      <span>Обновлено: <b>${latestUpdatedLabel}</b></span>
+      <span>Активных фильтров: <b>${filtersLabel}</b></span>
+      <span>Скрыто: <b>${hiddenCount}</b></span>
+    </div>
+  `;
 }
 
 function groupByCountry(features) {
@@ -47,6 +89,16 @@ function badgeHtml(type) {
 }
 
 export function renderList({ listEl, emptyEl, viewFeatures, userLocation, onItemClick }) {
+  if (!viewFeatures.length) {
+    listEl.innerHTML = "";
+    emptyEl.innerHTML = `
+      <div class="empty__title">Ничего не найдено</div>
+      <div class="empty__text">Попробуйте изменить поисковый запрос или сбросить фильтры, чтобы снова показать пункты пропуска.</div>
+    `;
+    emptyEl.style.display = "block";
+    return;
+  }
+
   const grouped = groupByCountry(viewFeatures);
 
   listEl.innerHTML = grouped.map(([country, items]) => {
@@ -81,5 +133,5 @@ export function renderList({ listEl, emptyEl, viewFeatures, userLocation, onItem
     node.onclick = () => onItemClick(node.dataset.id);
   });
 
-  emptyEl.style.display = viewFeatures.length ? "none" : "block";
+  emptyEl.style.display = "none";
 }
