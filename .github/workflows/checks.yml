@@ -30,3 +30,18 @@ jobs:
 
       - name: Rebuild GeoJSON
         run: python scripts/02_build_geojson.py
+
+  frontend-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Run frontend smoke test
+        run: node tests/frontend-smoke.mjs
