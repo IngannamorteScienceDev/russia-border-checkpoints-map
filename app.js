@@ -2,6 +2,7 @@ import {
   SATELLITE_LAYER_ID,
   STYLE_MAP
 } from "./js/config.js";
+import { toggleCompareId } from "./js/compare.js";
 import { buildDatasetMeta, loadFeatures, filterFeatures } from "./js/data.js";
 import { getDomElements } from "./js/dom.js";
 import { exportFeaturesAsCsv, exportFeaturesAsGeoJson } from "./js/export.js";
@@ -9,7 +10,7 @@ import { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } from "./js/favorit
 import { haversine } from "./js/geo.js";
 import { createCheckpointsLayerController, ensureSatelliteLayer } from "./js/mapLayers.js";
 import { createPopupController } from "./js/popup.js";
-import { buildLegend, fillFilters, renderList, renderNearestOpen, renderRecent, renderStats } from "./js/render.js";
+import { buildLegend, fillFilters, renderCompare, renderList, renderNearestOpen, renderRecent, renderStats } from "./js/render.js";
 import { loadRecentIds, prependRecentId, saveRecentIds } from "./js/recent.js";
 import { copyText } from "./js/share.js";
 import {
@@ -42,6 +43,7 @@ const state = {
   datasetMeta: null,
   favoriteIds: loadFavoriteIds(),
   recentIds: loadRecentIds(),
+  compareIds: [],
   showFavoritesOnly: false,
   showViewportOnly: false,
   userLocation: null,
@@ -109,11 +111,13 @@ function renderAll() {
     viewFeatures: state.viewFeatures,
     userLocation: state.userLocation,
     favoriteIds: state.favoriteIds,
+    compareIds: state.compareIds,
     nearestOpenId: nearestOpenFeature?.properties.__id || "",
     sortMode: dom.sortEl.value,
     onItemClick: focusById,
     onFavoriteToggle: toggleFavorite,
-    onCopyCoordinates: copyCheckpointCoordinates
+    onCopyCoordinates: copyCheckpointCoordinates,
+    onCompareToggle: toggleCompare
   });
 
   renderRecent({
@@ -127,6 +131,14 @@ function renderAll() {
     feature: nearestOpenFeature,
     userLocation: state.userLocation,
     onItemClick: focusById
+  });
+
+  renderCompare({
+    compareEl: dom.compareEl,
+    compareFeatures: getCompareFeatures(),
+    onItemClick: focusById,
+    onRemove: removeCompareItem,
+    onClear: clearCompare
   });
 
   syncFavoritesButton();
@@ -193,6 +205,16 @@ function getRecentFeatures() {
   );
 
   return state.recentIds
+    .map(id => featuresById.get(id))
+    .filter(Boolean);
+}
+
+function getCompareFeatures() {
+  const featuresById = new Map(
+    state.allFeatures.map(feature => [feature.properties.__id, feature])
+  );
+
+  return state.compareIds
     .map(id => featuresById.get(id))
     .filter(Boolean);
 }
@@ -459,6 +481,21 @@ async function copyCheckpointCoordinates(id) {
   if (!feature) return false;
 
   return copyText(feature.properties.__coords || "");
+}
+
+function toggleCompare(id) {
+  state.compareIds = toggleCompareId(state.compareIds, id);
+  renderAll();
+}
+
+function removeCompareItem(id) {
+  state.compareIds = state.compareIds.filter(item => item !== id);
+  renderAll();
+}
+
+function clearCompare() {
+  state.compareIds = [];
+  renderAll();
 }
 
 function toggleViewportOnly() {

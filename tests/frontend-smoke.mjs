@@ -355,6 +355,7 @@ const {
   saveFavoriteIds,
   toggleFavoriteId
 } = await import(new URL("../js/favorites.js", import.meta.url));
+const { toggleCompareId } = await import(new URL("../js/compare.js", import.meta.url));
 const {
   RECENT_STORAGE_KEY,
   loadRecentIds,
@@ -380,6 +381,17 @@ if (loadFavoriteIds().size !== 0) {
 }
 
 saveFavoriteIds(new Set(["100"]));
+
+let compareIds = toggleCompareId([], "100");
+compareIds = toggleCompareId(compareIds, "101");
+compareIds = toggleCompareId(compareIds, "102");
+if (compareIds.join(",") !== "101,102") {
+  throw new Error("Compare checkpoint IDs should keep only the two latest items.");
+}
+
+if (toggleCompareId(compareIds, "101").join(",") !== "102") {
+  throw new Error("Compare checkpoint IDs should toggle existing items off.");
+}
 
 let recentIds = prependRecentId([], "101");
 recentIds = prependRecentId(recentIds, "100");
@@ -407,6 +419,7 @@ await new Promise(resolve => setTimeout(resolve, 0));
 const statsHtml = elements.get("stats")?.innerHTML || "";
 const listHtml = elements.get("list")?.innerHTML || "";
 const recentHtml = elements.get("recent")?.innerHTML || "";
+const compareHtml = elements.get("compare")?.innerHTML || "";
 const countryFilterHtml = elements.get("countryFilter")?.innerHTML || "";
 const subjectFilterHtml = elements.get("subjectFilter")?.innerHTML || "";
 const typeFilterHtml = elements.get("typeFilter")?.innerHTML || "";
@@ -452,6 +465,14 @@ if (!listHtml.includes("item__favorite is-favorite") || !listHtml.includes('aria
 
 if (!listHtml.includes("item__copyCoords") || !listHtml.includes("Координаты") || !listHtml.includes("item__route") || !listHtml.includes("yandex.ru/maps")) {
   throw new Error("Checkpoint quick actions were not rendered.");
+}
+
+if (!listHtml.includes("item__compare") || !listHtml.includes("Сравнить")) {
+  throw new Error("Checkpoint compare action was not rendered.");
+}
+
+if (compareHtml !== "") {
+  throw new Error("Compare panel should be hidden until checkpoints are selected.");
 }
 
 if (!recentHtml.includes("Недавно открытые") || !recentHtml.includes("Тестовый КПП") || !recentHtml.includes("Воздушный тест")) {

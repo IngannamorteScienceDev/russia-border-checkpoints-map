@@ -140,6 +140,86 @@ export function renderNearestOpen({ nearestOpenEl, feature, userLocation, onItem
   nearestOpenEl.style.display = "block";
 }
 
+function compareValue(feature, key) {
+  const props = feature.properties;
+  const extra = props.__extra || {};
+
+  if (key === "country") return props.__country || "—";
+  if (key === "subject") return props.__subject || "—";
+  if (key === "type") return props.__type || "—";
+  if (key === "status") return props.__status || "—";
+  if (key === "coords") return props.__coords || "—";
+  if (key === "road") return extra.road || "—";
+  if (key === "updatedAt") return extra.updatedAt || "—";
+
+  return "—";
+}
+
+export function renderCompare({ compareEl, compareFeatures, onItemClick, onRemove, onClear }) {
+  if (!compareFeatures.length) {
+    compareEl.innerHTML = "";
+    compareEl.style.display = "none";
+    return;
+  }
+
+  const rows = [
+    ["Страна", "country"],
+    ["Субъект", "subject"],
+    ["Тип", "type"],
+    ["Статус", "status"],
+    ["Координаты", "coords"],
+    ["Дорога/маршрут", "road"],
+    ["Обновлено", "updatedAt"]
+  ];
+
+  compareEl.innerHTML = `
+    <div class="compare__header">
+      <div>
+        <div class="compare__title">Сравнение КПП</div>
+        <div class="compare__hint">${compareFeatures.length < 2 ? "Выберите второй пункт, чтобы увидеть различия." : "Два пункта рядом, без табличной акробатики."}</div>
+      </div>
+      <button class="compare__clear" type="button">Сбросить</button>
+    </div>
+    <div class="compare__items">
+      ${compareFeatures.map(feature => {
+        const props = feature.properties;
+        return `
+          <button class="compare__pill" type="button" data-id="${props.__id}">
+            <span>${props.__name}</span>
+            <small>${props.__country || "—"}</small>
+            <i data-remove-compare-id="${props.__id}" aria-label="Убрать из сравнения">×</i>
+          </button>
+        `;
+      }).join("")}
+    </div>
+    ${compareFeatures.length === 2 ? `
+      <div class="compare__table">
+        ${rows.map(([label, key]) => `
+          <div class="compare__row">
+            <b>${label}</b>
+            <span>${compareValue(compareFeatures[0], key)}</span>
+            <span>${compareValue(compareFeatures[1], key)}</span>
+          </div>
+        `).join("")}
+      </div>
+    ` : ""}
+  `;
+
+  compareEl.querySelectorAll(".compare__pill").forEach(node => {
+    node.onclick = () => onItemClick(node.dataset.id);
+  });
+
+  compareEl.querySelectorAll("[data-remove-compare-id]").forEach(node => {
+    node.onclick = event => {
+      event?.stopPropagation?.();
+      onRemove(node.dataset.removeCompareId);
+    };
+  });
+
+  compareEl.querySelector?.(".compare__clear")?.addEventListener?.("click", onClear);
+  compareEl.style.display = "block";
+}
+
 function groupByCountry(features) {
   const groups = new Map();
 
@@ -161,10 +241,11 @@ function compareByName(a, b) {
   return a.properties.__name.localeCompare(b.properties.__name, "ru");
 }
 
-function renderItems(features, userLocation, favoriteIds, nearestOpenId) {
+function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpenId) {
   return features.map(feature => {
     const props = feature.properties;
     const isFavorite = favoriteIds.has(String(props.__id));
+    const isComparing = compareIds.includes(String(props.__id));
     const isNearestOpen = nearestOpenId === props.__id;
     const favoriteLabel = isFavorite ? "Убрать из избранного" : "Добавить в избранное";
     const dist = userLocation
@@ -196,6 +277,7 @@ function renderItems(features, userLocation, favoriteIds, nearestOpenId) {
           ${isNearestOpen ? '<div class="item__note">Ближайший действующий пункт</div>' : ""}
         </div>
         <div class="item__actions">
+          <button class="item__action item__compare${isComparing ? " is-active" : ""}" type="button" data-compare-id="${props.__id}">Сравнить</button>
           <button class="item__action item__copyCoords" type="button" data-copy-coords-id="${props.__id}">Координаты</button>
           <a class="item__action item__route" href="${routeHref}" target="_blank" rel="noreferrer">Маршрут</a>
         </div>
@@ -220,11 +302,13 @@ export function renderList({
   viewFeatures,
   userLocation,
   favoriteIds = new Set(),
+  compareIds = [],
   nearestOpenId = "",
   sortMode,
   onItemClick,
   onFavoriteToggle,
-  onCopyCoordinates
+  onCopyCoordinates,
+  onCompareToggle
 }) {
   if (!viewFeatures.length) {
     listEl.innerHTML = "";
@@ -248,16 +332,16 @@ export function renderList({
 
   if (sortMode === "name") {
     const sorted = [...viewFeatures].sort(compareByName);
-    listEl.innerHTML = `<div class="group">🔤 По названию</div>${renderItems(sorted, userLocation, favoriteIds, nearestOpenId)}`;
+    listEl.innerHTML = `<div class="group">🔤 По названию</div>${renderItems(sorted, userLocation, favoriteIds, compareIds, nearestOpenId)}`;
   } else if (sortMode === "distance") {
     const sorted = sortByDistance(viewFeatures, userLocation);
-    listEl.innerHTML = `<div class="group">📍 Ближайшие КПП</div>${renderItems(sorted, userLocation, favoriteIds, nearestOpenId)}`;
+    listEl.innerHTML = `<div class="group">📍 Ближайшие КПП</div>${renderItems(sorted, userLocation, favoriteIds, compareIds, nearestOpenId)}`;
   } else {
     const grouped = groupByCountry(viewFeatures);
 
     listEl.innerHTML = grouped.map(([country, items]) => {
       const sorted = [...items].sort(compareByName);
-      return `<div class="group">🌍 ${country} (${items.length})</div>${renderItems(sorted, userLocation, favoriteIds, nearestOpenId)}`;
+      return `<div class="group">🌍 ${country} (${items.length})</div>${renderItems(sorted, userLocation, favoriteIds, compareIds, nearestOpenId)}`;
     }).join("");
   }
 
@@ -269,6 +353,13 @@ export function renderList({
     node.onclick = event => {
       event?.stopPropagation?.();
       onFavoriteToggle?.(node.dataset.favoriteId);
+    };
+  });
+
+  listEl.querySelectorAll(".item__compare").forEach(node => {
+    node.onclick = event => {
+      event?.stopPropagation?.();
+      onCompareToggle?.(node.dataset.compareId);
     };
   });
 

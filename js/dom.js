@@ -22,6 +22,7 @@ export function getDomElements() {
     shareLinkEl: el("shareLink"),
     recentEl: el("recent"),
     nearestOpenEl: el("nearestOpen"),
+    compareEl: el("compare"),
     legendEl: el("legend"),
     statsEl: el("stats"),
     listEl: el("list"),
