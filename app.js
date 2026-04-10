@@ -33,6 +33,7 @@ const state = {
   viewFeatures: [],
   datasetMeta: null,
   favoriteIds: loadFavoriteIds(),
+  showFavoritesOnly: false,
   userLocation: null,
   userMarker: null,
   debounceTimer: null,
@@ -86,7 +87,8 @@ function renderAll() {
     allFeatures: state.allFeatures,
     viewFeatures: state.viewFeatures,
     datasetMeta: state.datasetMeta,
-    activeFilterCount: getActiveFilterCount()
+    activeFilterCount: getActiveFilterCount(),
+    favoriteCount: getFavoriteCount()
   });
 
   renderList({
@@ -100,6 +102,7 @@ function renderAll() {
     onFavoriteToggle: toggleFavorite
   });
 
+  syncFavoritesButton();
   syncExportButtons();
 }
 
@@ -136,10 +139,26 @@ function getActiveFilterCount() {
     dom.typeEl.value !== "all" ? dom.typeEl.value : "",
     dom.statusEl.value !== "all" ? dom.statusEl.value : "",
     dom.countryEl.value !== "all" ? dom.countryEl.value : "",
-    dom.subjectEl.value !== "all" ? dom.subjectEl.value : ""
+    dom.subjectEl.value !== "all" ? dom.subjectEl.value : "",
+    state.showFavoritesOnly ? "favorites" : ""
   ].filter(Boolean);
 
   return filterValues.length;
+}
+
+function getFavoriteCount() {
+  return state.allFeatures.filter(feature =>
+    state.favoriteIds.has(feature.properties.__id)
+  ).length;
+}
+
+function syncFavoritesButton() {
+  const favoriteCount = getFavoriteCount();
+
+  dom.favoritesOnlyEl.textContent = `★ Избранные (${favoriteCount})`;
+  dom.favoritesOnlyEl.disabled = favoriteCount === 0 && !state.showFavoritesOnly;
+  dom.favoritesOnlyEl.classList.toggle("is-active", state.showFavoritesOnly);
+  dom.favoritesOnlyEl.setAttribute?.("aria-pressed", state.showFavoritesOnly ? "true" : "false");
 }
 
 function setSortMode(value) {
@@ -149,13 +168,17 @@ function setSortMode(value) {
 }
 
 function applyFilters() {
-  state.viewFeatures = filterFeatures(state.allFeatures, {
+  const filteredFeatures = filterFeatures(state.allFeatures, {
     query: dom.searchEl.value,
     type: dom.typeEl.value,
     status: dom.statusEl.value,
     country: dom.countryEl.value,
     subject: dom.subjectEl.value
   });
+
+  state.viewFeatures = state.showFavoritesOnly
+    ? filteredFeatures.filter(feature => state.favoriteIds.has(feature.properties.__id))
+    : filteredFeatures;
 
   layerController.updateSourceData(state.viewFeatures);
   closePopupIfHidden();
@@ -169,6 +192,7 @@ function resetFilters() {
   dom.statusEl.value = "all";
   dom.countryEl.value = "all";
   dom.subjectEl.value = "all";
+  state.showFavoritesOnly = false;
   applyFilters();
 }
 
@@ -248,7 +272,18 @@ function focusById(id) {
 function toggleFavorite(id) {
   state.favoriteIds = toggleFavoriteId(state.favoriteIds, id);
   saveFavoriteIds(state.favoriteIds);
+
+  if (state.showFavoritesOnly) {
+    applyFilters();
+    return;
+  }
+
   renderAll();
+}
+
+function toggleFavoritesOnly() {
+  state.showFavoritesOnly = !state.showFavoritesOnly;
+  applyFilters();
 }
 
 function updateUserMarker() {
@@ -315,6 +350,7 @@ function attachUi() {
   dom.exportGeoJsonEl.onclick = () => exportCurrentView("geojson");
   dom.shareLinkEl.onclick = shareCurrentView;
   dom.nearestBtnEl.onclick = () => requestUserLocation({ setDistanceSort: true });
+  dom.favoritesOnlyEl.onclick = toggleFavoritesOnly;
 
   dom.styleToggleEl.onclick = () => {
     setSatelliteMode(!isSatelliteVisible());

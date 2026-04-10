@@ -12,6 +12,7 @@ export function getDomElements() {
     subjectEl: el("subjectFilter"),
     sortEl: el("sortOrder"),
     nearestBtnEl: el("nearestBtn"),
+    favoritesOnlyEl: el("favoritesOnly"),
     resetFiltersEl: el("resetFilters"),
     exportCsvEl: el("exportCsv"),
     exportGeoJsonEl: el("exportGeoJson"),

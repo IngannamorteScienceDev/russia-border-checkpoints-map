@@ -184,6 +184,12 @@ body{
   border-color: rgba(59,130,246,.4);
   background: rgba(59,130,246,.16);
 }
+.btn.is-active{
+  border-color: rgba(251,191,36,.46);
+  background: rgba(251,191,36,.14);
+  color: rgba(254,240,138,.95);
+  box-shadow: 0 0 0 1px rgba(250,204,21,.08);
+}
 
 .legend{
   margin-top:14px;

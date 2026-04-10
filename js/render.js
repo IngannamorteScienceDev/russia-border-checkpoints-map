@@ -39,7 +39,8 @@ export function renderStats({
   allFeatures,
   viewFeatures,
   datasetMeta,
-  activeFilterCount
+  activeFilterCount,
+  favoriteCount = 0
 }) {
   const hiddenCount = Math.max(allFeatures.length - viewFeatures.length, 0);
   const latestUpdatedLabel = datasetMeta?.latestUpdatedLabel || "Дата не указана";
@@ -67,6 +68,7 @@ export function renderStats({
     <div class="stats__meta">
       <span>Обновлено: <b>${latestUpdatedLabel}</b></span>
       <span>Активных фильтров: <b>${filtersLabel}</b></span>
+      <span>Избранных: <b>${favoriteCount}</b></span>
       <span>Скрыто: <b>${hiddenCount}</b></span>
     </div>
   `;

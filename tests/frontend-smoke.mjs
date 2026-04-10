@@ -366,6 +366,7 @@ const exportCsvButton = elements.get("exportCsv");
 const exportGeoJsonButton = elements.get("exportGeoJson");
 const shareLinkButton = elements.get("shareLink");
 const nearestButton = elements.get("nearestBtn");
+const favoritesOnlyButton = elements.get("favoritesOnly");
 const searchInput = elements.get("searchInput");
 const statusFilter = elements.get("statusFilter");
 const resetFiltersButton = elements.get("resetFilters");
@@ -439,6 +440,14 @@ if (typeof shareLinkButton?.onclick !== "function") {
 
 if (typeof nearestButton?.onclick !== "function") {
   throw new Error("Nearest button was not wired.");
+}
+
+if (typeof favoritesOnlyButton?.onclick !== "function") {
+  throw new Error("Favorites-only button was not wired.");
+}
+
+if (favoritesOnlyButton?.textContent !== "★ Избранные (1)") {
+  throw new Error("Favorites counter was not rendered.");
 }
 
 exportCsvButton.onclick();
@@ -536,6 +545,17 @@ if (finalListHtml.indexOf("Воздушный тест") > finalListHtml.indexOf
 
 if (finalUrl.searchParams.get("sort") !== "distance") {
   throw new Error("Reset filters should preserve the current sort mode in URL.");
+}
+
+favoritesOnlyButton.onclick?.();
+
+const favoriteOnlyListHtml = elements.get("list")?.innerHTML || "";
+if (!favoriteOnlyListHtml.includes("Тестовый КПП") || favoriteOnlyListHtml.includes("Воздушный тест")) {
+  throw new Error("Favorites-only filter did not limit the rendered list.");
+}
+
+if (new URL(window.location.href).searchParams.get("favorites") !== null) {
+  throw new Error("Local favorites filter should not be synchronized to shared URL state.");
 }
 
 if (replaceStateCalls < 7) {
