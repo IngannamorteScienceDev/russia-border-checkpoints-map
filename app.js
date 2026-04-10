@@ -8,7 +8,8 @@ import { exportFeaturesAsCsv, exportFeaturesAsGeoJson } from "./js/export.js";
 import { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } from "./js/favorites.js";
 import { createCheckpointsLayerController, ensureSatelliteLayer } from "./js/mapLayers.js";
 import { createPopupController } from "./js/popup.js";
-import { buildLegend, fillFilters, renderList, renderStats } from "./js/render.js";
+import { buildLegend, fillFilters, renderList, renderRecent, renderStats } from "./js/render.js";
+import { loadRecentIds, prependRecentId, saveRecentIds } from "./js/recent.js";
 import { copyText } from "./js/share.js";
 import {
   applyFilterStateFromUrl,
@@ -33,6 +34,7 @@ const state = {
   viewFeatures: [],
   datasetMeta: null,
   favoriteIds: loadFavoriteIds(),
+  recentIds: loadRecentIds(),
   showFavoritesOnly: false,
   userLocation: null,
   userMarker: null,
@@ -60,7 +62,7 @@ const popupController = createPopupController({
 
 const layerController = createCheckpointsLayerController({
   map,
-  openPopup: popupController.openPopup
+  openPopup: openFeaturePopup
 });
 
 function setProgress(percent, text) {
@@ -100,6 +102,12 @@ function renderAll() {
     sortMode: dom.sortEl.value,
     onItemClick: focusById,
     onFavoriteToggle: toggleFavorite
+  });
+
+  renderRecent({
+    recentEl: dom.recentEl,
+    recentFeatures: getRecentFeatures(),
+    onItemClick: focusById
   });
 
   syncFavoritesButton();
@@ -150,6 +158,16 @@ function getFavoriteCount() {
   return state.allFeatures.filter(feature =>
     state.favoriteIds.has(feature.properties.__id)
   ).length;
+}
+
+function getRecentFeatures() {
+  const featuresById = new Map(
+    state.allFeatures.map(feature => [feature.properties.__id, feature])
+  );
+
+  return state.recentIds
+    .map(id => featuresById.get(id))
+    .filter(Boolean);
 }
 
 function syncFavoritesButton() {
@@ -246,7 +264,7 @@ function restoreSelectedCheckpointFromUrl() {
     return;
   }
 
-  popupController.openPopup(feature, feature.geometry.coordinates);
+  openFeaturePopup(feature, feature.geometry.coordinates);
 }
 
 function setShareButtonLabel(text) {
@@ -266,7 +284,20 @@ async function shareCurrentView() {
 function focusById(id) {
   const feature = getFeatureById(id, state.viewFeatures) || getFeatureById(id, state.allFeatures);
 
-  if (feature) popupController.openPopup(feature, feature.geometry.coordinates);
+  if (feature) openFeaturePopup(feature, feature.geometry.coordinates);
+}
+
+function trackRecentCheckpoint(id) {
+  state.recentIds = prependRecentId(state.recentIds, id);
+  saveRecentIds(state.recentIds);
+}
+
+function openFeaturePopup(feature, lngLat) {
+  if (!feature) return;
+
+  trackRecentCheckpoint(feature.properties.__id);
+  renderAll();
+  popupController.openPopup(feature, lngLat || feature.geometry.coordinates);
 }
 
 function toggleFavorite(id) {

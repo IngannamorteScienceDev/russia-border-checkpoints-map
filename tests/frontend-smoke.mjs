@@ -334,6 +334,12 @@ const {
   saveFavoriteIds,
   toggleFavoriteId
 } = await import(new URL("../js/favorites.js", import.meta.url));
+const {
+  RECENT_STORAGE_KEY,
+  loadRecentIds,
+  prependRecentId,
+  saveRecentIds
+} = await import(new URL("../js/recent.js", import.meta.url));
 
 let favoriteIds = loadFavoriteIds();
 favoriteIds = toggleFavoriteId(favoriteIds, "100");
@@ -354,11 +360,32 @@ if (loadFavoriteIds().size !== 0) {
 
 saveFavoriteIds(new Set(["100"]));
 
+let recentIds = prependRecentId([], "101");
+recentIds = prependRecentId(recentIds, "100");
+recentIds = prependRecentId(recentIds, "101");
+
+if (recentIds.join(",") !== "101,100") {
+  throw new Error("Recently viewed checkpoint IDs were not ordered correctly.");
+}
+
+saveRecentIds(recentIds);
+if (loadRecentIds().join(",") !== "101,100") {
+  throw new Error("Recently viewed checkpoint IDs were not persisted.");
+}
+
+storage.set(RECENT_STORAGE_KEY, "not-json");
+if (loadRecentIds().length !== 0) {
+  throw new Error("Malformed recent checkpoint storage should be ignored.");
+}
+
+saveRecentIds(["101"]);
+
 await import(new URL("../app.js", import.meta.url));
 await new Promise(resolve => setTimeout(resolve, 0));
 
 const statsHtml = elements.get("stats")?.innerHTML || "";
 const listHtml = elements.get("list")?.innerHTML || "";
+const recentHtml = elements.get("recent")?.innerHTML || "";
 const countryFilterHtml = elements.get("countryFilter")?.innerHTML || "";
 const subjectFilterHtml = elements.get("subjectFilter")?.innerHTML || "";
 const typeFilterHtml = elements.get("typeFilter")?.innerHTML || "";
@@ -396,6 +423,14 @@ if (!listHtml.includes("Тестовый КПП") || listHtml.includes("Возд
 
 if (!listHtml.includes("item__favorite is-favorite") || !listHtml.includes('aria-pressed="true"')) {
   throw new Error("Favorite checkpoint was not rendered as selected.");
+}
+
+if (!recentHtml.includes("Недавно открытые") || !recentHtml.includes("Тестовый КПП") || !recentHtml.includes("Воздушный тест")) {
+  throw new Error("Recently viewed checkpoints were not rendered.");
+}
+
+if (recentHtml.indexOf("Тестовый КПП") > recentHtml.indexOf("Воздушный тест")) {
+  throw new Error("Recently viewed checkpoints did not keep newest-first order.");
 }
 
 if (!countryFilterHtml.includes("Китай")) {

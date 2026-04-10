@@ -74,6 +74,35 @@ export function renderStats({
   `;
 }
 
+export function renderRecent({ recentEl, recentFeatures, onItemClick }) {
+  if (!recentFeatures.length) {
+    recentEl.innerHTML = "";
+    recentEl.style.display = "none";
+    return;
+  }
+
+  recentEl.innerHTML = `
+    <div class="recent__title">Недавно открытые</div>
+    <div class="recent__list">
+      ${recentFeatures.map(feature => {
+        const props = feature.properties;
+        return `
+          <button class="recent__item" type="button" data-id="${props.__id}">
+            <span>${props.__name}</span>
+            <small>${props.__country || "—"}</small>
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `;
+
+  recentEl.querySelectorAll(".recent__item").forEach(node => {
+    node.onclick = () => onItemClick(node.dataset.id);
+  });
+
+  recentEl.style.display = "block";
+}
+
 function groupByCountry(features) {
   const groups = new Map();
 
