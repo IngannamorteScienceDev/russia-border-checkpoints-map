@@ -1,8 +1,69 @@
-function createElement() {
+function toDatasetKey(name) {
+  return name.replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase());
+}
+
+function createNode(dataset = {}) {
   return {
+    dataset,
     style: {},
     textContent: "",
-    innerHTML: "",
+    onclick: null,
+    classList: { add() {}, toggle() {} },
+    addEventListener(eventName, handler) {
+      if (eventName === "click") this.onclick = handler;
+    }
+  };
+}
+
+function parseNodes(html, selector) {
+  const selectorMap = {
+    ".item": ["div", "item", "id"],
+    ".item__favorite": ["button", "item__favorite", "favorite-id"],
+    ".item__compare": ["button", "item__compare", "compare-id"],
+    ".item__copyCoords": ["button", "item__copyCoords", "copy-coords-id"],
+    ".item__route": ["a", "item__route", ""],
+    ".recent__item": ["button", "recent__item", "id"],
+    ".compare__pill": ["button", "compare__pill", "id"],
+    ".nearest-open__card": ["button", "nearest-open__card", "id"],
+    ".share-sheet__close": ["button", "share-sheet__close", ""]
+  };
+
+  const selectorConfig = selectorMap[selector];
+
+  if (selectorConfig) {
+    const [tagName, className, dataName] = selectorConfig;
+    const pattern = new RegExp(`<${tagName}[^>]*class="([^"]*)"[^>]*>`, "g");
+    return [...html.matchAll(pattern)]
+      .filter(match => match[1].split(/\s+/).includes(className))
+      .map(match => {
+        const dataset = {};
+        if (dataName) {
+          const dataMatch = match[0].match(new RegExp(`data-${dataName}="([^"]+)"`));
+          if (dataMatch) dataset[toDatasetKey(dataName)] = dataMatch[1];
+        }
+
+        return createNode(dataset);
+      });
+  }
+
+  const dataSelector = selector.match(/^\[data-([a-z-]+)\]$/);
+  if (dataSelector) {
+    const dataName = dataSelector[1];
+    const pattern = new RegExp(`<[^>]*data-${dataName}="([^"]+)"[^>]*>`, "g");
+    return [...html.matchAll(pattern)].map(match =>
+      createNode({ [toDatasetKey(dataName)]: match[1] })
+    );
+  }
+
+  return [];
+}
+
+function createElement() {
+  const element = {
+    style: {},
+    textContent: "",
+    __innerHTML: "",
+    __nodeCache: new Map(),
     value: "all",
     disabled: false,
     onclick: null,
@@ -10,10 +71,30 @@ function createElement() {
     oninput: null,
     classList: { add() {}, toggle() {} },
     parentNode: { removeChild() {} },
-    querySelectorAll() {
-      return [];
+    setAttribute() {},
+    querySelector(selector) {
+      return this.querySelectorAll(selector)[0] || null;
+    },
+    querySelectorAll(selector) {
+      if (!this.__nodeCache.has(selector)) {
+        this.__nodeCache.set(selector, parseNodes(this.__innerHTML, selector));
+      }
+
+      return this.__nodeCache.get(selector);
     }
   };
+
+  Object.defineProperty(element, "innerHTML", {
+    get() {
+      return this.__innerHTML;
+    },
+    set(value) {
+      this.__innerHTML = String(value);
+      this.__nodeCache.clear();
+    }
+  });
+
+  return element;
 }
 
 const elements = new Map();
@@ -520,6 +601,35 @@ if (!listHtml.includes("item__report") || !listHtml.includes("github.com/Inganna
 
 if (compareHtml !== "") {
   throw new Error("Compare panel should be hidden until checkpoints are selected.");
+}
+
+const stopPropagationEvent = { stopPropagation() {} };
+const firstFavoriteButton = elements.get("list")?.querySelectorAll(".item__favorite")[0];
+firstFavoriteButton?.onclick?.(stopPropagationEvent);
+
+if (loadFavoriteIds().has("100")) {
+  throw new Error("Favorite button click did not remove the checkpoint from localStorage.");
+}
+
+const secondFavoriteButton = elements.get("list")?.querySelectorAll(".item__favorite")[0];
+secondFavoriteButton?.onclick?.(stopPropagationEvent);
+
+if (!loadFavoriteIds().has("100")) {
+  throw new Error("Favorite button click did not restore the checkpoint in localStorage.");
+}
+
+const compareButton = elements.get("list")?.querySelectorAll(".item__compare")[0];
+compareButton?.onclick?.(stopPropagationEvent);
+
+if (!elements.get("compare")?.innerHTML?.includes("Сравнение КПП")) {
+  throw new Error("Compare button click did not render the compare panel.");
+}
+
+const copyCoordsButton = elements.get("list")?.querySelectorAll(".item__copyCoords")[0];
+await copyCoordsButton?.onclick?.(stopPropagationEvent);
+
+if (!lastClipboardText.includes("43.10000, 131.90000")) {
+  throw new Error("Copy coordinates action did not write checkpoint coordinates.");
 }
 
 if (!recentHtml.includes("Недавно открытые") || !recentHtml.includes("Тестовый КПП") || !recentHtml.includes("Воздушный тест")) {
