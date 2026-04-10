@@ -600,6 +600,48 @@ body{
   font-size:12px;
   line-height:1.35;
 }
+.dataset-changes{
+  display:none;
+  margin-top:14px;
+  padding:14px;
+  border:1px solid rgba(148,163,184,.14);
+  border-radius:22px;
+  background: rgba(15,23,42,.24);
+}
+.dataset-changes__title{
+  font-size:16px;
+  font-weight:850;
+  margin-bottom:10px;
+}
+.dataset-changes__grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:10px;
+}
+.dataset-changes__grid div{
+  padding:11px;
+  border:1px solid rgba(148,163,184,.10);
+  border-radius:16px;
+  background: rgba(2,6,23,.30);
+}
+.dataset-changes__grid span{
+  display:block;
+  color: rgba(229,231,235,.62);
+  font-size:12px;
+}
+.dataset-changes__grid b{
+  display:block;
+  margin-top:6px;
+  font-size:22px;
+}
+.dataset-changes__meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 12px;
+  margin-top:10px;
+  color: rgba(229,231,235,.68);
+  font-size:13px;
+}
 
 .list{
   margin-top:14px;

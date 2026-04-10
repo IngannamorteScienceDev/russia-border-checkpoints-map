@@ -353,6 +353,11 @@ const {
   toggleFavoriteId
 } = await import(new URL("../js/favorites.js", import.meta.url));
 const { toggleCompareId } = await import(new URL("../js/compare.js", import.meta.url));
+const {
+  buildDatasetSnapshot,
+  saveDatasetSnapshot,
+  summarizeDatasetChanges
+} = await import(new URL("../js/datasetChanges.js", import.meta.url));
 const { getFreshnessInfo } = await import(new URL("../js/freshness.js", import.meta.url));
 const { getQualityFlags } = await import(new URL("../js/quality.js", import.meta.url));
 const {
@@ -404,6 +409,19 @@ if (getQualityFlags({ properties: { __extra: {}, __status: "Неизвестно
   throw new Error("Quality helper did not flag incomplete records.");
 }
 
+const datasetSummary = summarizeDatasetChanges(
+  { total: 1, ids: ["100"], latestUpdatedAt: null },
+  { total: 2, ids: ["100", "101"], latestUpdatedAt: "2026-01-01T00:00:00.000Z" }
+);
+
+if (datasetSummary.totalDelta !== 1 || datasetSummary.addedIds[0] !== "101") {
+  throw new Error("Dataset change summary did not detect added checkpoints.");
+}
+
+saveDatasetSnapshot(buildDatasetSnapshot([{
+  properties: { __id: "100" }
+}]));
+
 let recentIds = prependRecentId([], "101");
 recentIds = prependRecentId(recentIds, "100");
 recentIds = prependRecentId(recentIds, "101");
@@ -431,6 +449,7 @@ const statsHtml = elements.get("stats")?.innerHTML || "";
 const listHtml = elements.get("list")?.innerHTML || "";
 const recentHtml = elements.get("recent")?.innerHTML || "";
 const compareHtml = elements.get("compare")?.innerHTML || "";
+const datasetChangesHtml = elements.get("datasetChanges")?.innerHTML || "";
 const countryFilterHtml = elements.get("countryFilter")?.innerHTML || "";
 const subjectFilterHtml = elements.get("subjectFilter")?.innerHTML || "";
 const typeFilterHtml = elements.get("typeFilter")?.innerHTML || "";
@@ -496,6 +515,10 @@ if (compareHtml !== "") {
 
 if (!recentHtml.includes("Недавно открытые") || !recentHtml.includes("Тестовый КПП") || !recentHtml.includes("Воздушный тест")) {
   throw new Error("Recently viewed checkpoints were not rendered.");
+}
+
+if (!datasetChangesHtml.includes("Изменения данных") || !datasetChangesHtml.includes("+1") || !datasetChangesHtml.includes("Добавлено: 1")) {
+  throw new Error("Dataset change summary was not rendered.");
 }
 
 if (recentHtml.indexOf("Тестовый КПП") > recentHtml.indexOf("Воздушный тест")) {

@@ -134,6 +134,40 @@ export function renderShareSheet({
   shareSheetEl.style.display = "block";
 }
 
+export function renderDatasetChanges({ changesEl, summary }) {
+  if (!summary) {
+    changesEl.innerHTML = "";
+    changesEl.style.display = "none";
+    return;
+  }
+
+  const deltaLabel = summary.totalDelta > 0
+    ? `+${summary.totalDelta}`
+    : String(summary.totalDelta);
+  const addedLabel = summary.addedIds.length ? `Добавлено: ${summary.addedIds.length}` : "Новых нет";
+  const removedLabel = summary.removedIds.length ? `Убрано: ${summary.removedIds.length}` : "Удаленных нет";
+
+  changesEl.innerHTML = `
+    <div class="dataset-changes__title">Изменения данных</div>
+    <div class="dataset-changes__grid">
+      <div>
+        <span>${summary.isFirstVisit ? "Первый просмотр" : "С прошлого визита"}</span>
+        <b>${summary.isFirstVisit ? summary.total : deltaLabel}</b>
+      </div>
+      <div>
+        <span>Всего КПП</span>
+        <b>${summary.total}</b>
+      </div>
+    </div>
+    <div class="dataset-changes__meta">
+      <span>${addedLabel}</span>
+      <span>${removedLabel}</span>
+    </div>
+  `;
+
+  changesEl.style.display = "block";
+}
+
 export function renderRecent({ recentEl, recentFeatures, onItemClick }) {
   if (!recentFeatures.length) {
     recentEl.innerHTML = "";

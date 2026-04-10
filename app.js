@@ -4,13 +4,19 @@ import {
 } from "./js/config.js";
 import { toggleCompareId } from "./js/compare.js";
 import { buildDatasetMeta, loadFeatures, filterFeatures } from "./js/data.js";
+import {
+  buildDatasetSnapshot,
+  loadDatasetSnapshot,
+  saveDatasetSnapshot,
+  summarizeDatasetChanges
+} from "./js/datasetChanges.js";
 import { getDomElements } from "./js/dom.js";
 import { exportFeaturesAsCsv, exportFeaturesAsGeoJson } from "./js/export.js";
 import { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } from "./js/favorites.js";
 import { haversine } from "./js/geo.js";
 import { createCheckpointsLayerController, ensureSatelliteLayer } from "./js/mapLayers.js";
 import { createPopupController } from "./js/popup.js";
-import { buildLegend, fillFilters, renderCompare, renderList, renderNearestOpen, renderRecent, renderShareSheet, renderStats } from "./js/render.js";
+import { buildLegend, fillFilters, renderCompare, renderDatasetChanges, renderList, renderNearestOpen, renderRecent, renderShareSheet, renderStats } from "./js/render.js";
 import { loadRecentIds, prependRecentId, saveRecentIds } from "./js/recent.js";
 import { copyText } from "./js/share.js";
 import {
@@ -41,6 +47,7 @@ const state = {
   allFeatures: [],
   viewFeatures: [],
   datasetMeta: null,
+  datasetChangeSummary: null,
   favoriteIds: loadFavoriteIds(),
   recentIds: loadRecentIds(),
   compareIds: [],
@@ -150,6 +157,11 @@ function renderAll() {
     onCopy: copyShareLink,
     onNativeShare: shareViaNavigator,
     onClose: closeShareSheet
+  });
+
+  renderDatasetChanges({
+    changesEl: dom.datasetChangesEl,
+    summary: state.datasetChangeSummary
   });
 
   syncFavoritesButton();
@@ -644,6 +656,12 @@ async function init() {
     state.allFeatures = await loadFeatures({ setProgress });
     state.viewFeatures = state.allFeatures;
     state.datasetMeta = buildDatasetMeta(state.allFeatures);
+    const currentSnapshot = buildDatasetSnapshot(state.allFeatures, state.datasetMeta);
+    state.datasetChangeSummary = summarizeDatasetChanges(
+      loadDatasetSnapshot(),
+      currentSnapshot
+    );
+    saveDatasetSnapshot(currentSnapshot);
 
     setProgress(55, "Настраиваем интерфейс...");
     buildLegend(dom.legendEl);
