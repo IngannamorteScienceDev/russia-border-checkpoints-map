@@ -93,9 +93,11 @@ function compareByName(a, b) {
   return a.properties.__name.localeCompare(b.properties.__name, "ru");
 }
 
-function renderItems(features, userLocation) {
+function renderItems(features, userLocation, favoriteIds) {
   return features.map(feature => {
     const props = feature.properties;
+    const isFavorite = favoriteIds.has(String(props.__id));
+    const favoriteLabel = isFavorite ? "Убрать из избранного" : "Добавить в избранное";
     const dist = userLocation
       ? ` · 📏 ${haversine(userLocation, feature.geometry.coordinates).toFixed(1)} км`
       : "";
@@ -103,8 +105,18 @@ function renderItems(features, userLocation) {
     return `
       <div class="item" data-id="${props.__id}">
         <div class="item__name">
-          ${badgeHtml(props.__type)}
-          <span>${props.__name}</span>
+          <span class="item__headline">
+            ${badgeHtml(props.__type)}
+            <span>${props.__name}</span>
+          </span>
+          <button
+            class="item__favorite${isFavorite ? " is-favorite" : ""}"
+            type="button"
+            data-favorite-id="${props.__id}"
+            aria-label="${favoriteLabel}"
+            aria-pressed="${isFavorite ? "true" : "false"}"
+            title="${favoriteLabel}"
+          >★</button>
         </div>
         <div class="item__meta">
           ${props.__subject || "—"} · ${props.__country || "—"}<br>
@@ -125,7 +137,16 @@ function sortByDistance(features, userLocation) {
   });
 }
 
-export function renderList({ listEl, emptyEl, viewFeatures, userLocation, sortMode, onItemClick }) {
+export function renderList({
+  listEl,
+  emptyEl,
+  viewFeatures,
+  userLocation,
+  favoriteIds = new Set(),
+  sortMode,
+  onItemClick,
+  onFavoriteToggle
+}) {
   if (!viewFeatures.length) {
     listEl.innerHTML = "";
     emptyEl.innerHTML = `
@@ -148,21 +169,28 @@ export function renderList({ listEl, emptyEl, viewFeatures, userLocation, sortMo
 
   if (sortMode === "name") {
     const sorted = [...viewFeatures].sort(compareByName);
-    listEl.innerHTML = `<div class="group">🔤 По названию</div>${renderItems(sorted, userLocation)}`;
+    listEl.innerHTML = `<div class="group">🔤 По названию</div>${renderItems(sorted, userLocation, favoriteIds)}`;
   } else if (sortMode === "distance") {
     const sorted = sortByDistance(viewFeatures, userLocation);
-    listEl.innerHTML = `<div class="group">📍 Ближайшие КПП</div>${renderItems(sorted, userLocation)}`;
+    listEl.innerHTML = `<div class="group">📍 Ближайшие КПП</div>${renderItems(sorted, userLocation, favoriteIds)}`;
   } else {
     const grouped = groupByCountry(viewFeatures);
 
     listEl.innerHTML = grouped.map(([country, items]) => {
       const sorted = [...items].sort(compareByName);
-      return `<div class="group">🌍 ${country} (${items.length})</div>${renderItems(sorted, userLocation)}`;
+      return `<div class="group">🌍 ${country} (${items.length})</div>${renderItems(sorted, userLocation, favoriteIds)}`;
     }).join("");
   }
 
   listEl.querySelectorAll(".item").forEach(node => {
     node.onclick = () => onItemClick(node.dataset.id);
+  });
+
+  listEl.querySelectorAll(".item__favorite").forEach(node => {
+    node.onclick = event => {
+      event?.stopPropagation?.();
+      onFavoriteToggle?.(node.dataset.favoriteId);
+    };
   });
 
   emptyEl.style.display = "none";

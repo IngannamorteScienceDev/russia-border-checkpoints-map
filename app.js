@@ -5,6 +5,7 @@ import {
 import { buildDatasetMeta, loadFeatures, filterFeatures } from "./js/data.js";
 import { getDomElements } from "./js/dom.js";
 import { exportFeaturesAsCsv, exportFeaturesAsGeoJson } from "./js/export.js";
+import { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } from "./js/favorites.js";
 import { createCheckpointsLayerController, ensureSatelliteLayer } from "./js/mapLayers.js";
 import { createPopupController } from "./js/popup.js";
 import { buildLegend, fillFilters, renderList, renderStats } from "./js/render.js";
@@ -31,6 +32,7 @@ const state = {
   allFeatures: [],
   viewFeatures: [],
   datasetMeta: null,
+  favoriteIds: loadFavoriteIds(),
   userLocation: null,
   userMarker: null,
   debounceTimer: null,
@@ -92,8 +94,10 @@ function renderAll() {
     emptyEl: dom.emptyEl,
     viewFeatures: state.viewFeatures,
     userLocation: state.userLocation,
+    favoriteIds: state.favoriteIds,
     sortMode: dom.sortEl.value,
-    onItemClick: focusById
+    onItemClick: focusById,
+    onFavoriteToggle: toggleFavorite
   });
 
   syncExportButtons();
@@ -239,6 +243,12 @@ function focusById(id) {
   const feature = getFeatureById(id, state.viewFeatures) || getFeatureById(id, state.allFeatures);
 
   if (feature) popupController.openPopup(feature, feature.geometry.coordinates);
+}
+
+function toggleFavorite(id) {
+  state.favoriteIds = toggleFavoriteId(state.favoriteIds, id);
+  saveFavoriteIds(state.favoriteIds);
+  renderAll();
 }
 
 function updateUserMarker() {

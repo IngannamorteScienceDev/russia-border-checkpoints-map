@@ -23,6 +23,19 @@ let lastMapInstance = null;
 let lastPopupRef = null;
 let initialMapOptions = null;
 let replaceStateCalls = 0;
+const storage = new Map();
+
+globalThis.localStorage = {
+  getItem(key) {
+    return storage.get(key) ?? null;
+  },
+  setItem(key, value) {
+    storage.set(key, String(value));
+  },
+  removeItem(key) {
+    storage.delete(key);
+  }
+};
 
 globalThis.document = {
   body: {
@@ -315,6 +328,32 @@ globalThis.maplibregl = {
 URL.createObjectURL = () => "blob:test-download";
 URL.revokeObjectURL = () => {};
 
+const {
+  FAVORITES_STORAGE_KEY,
+  loadFavoriteIds,
+  saveFavoriteIds,
+  toggleFavoriteId
+} = await import(new URL("../js/favorites.js", import.meta.url));
+
+let favoriteIds = loadFavoriteIds();
+favoriteIds = toggleFavoriteId(favoriteIds, "100");
+saveFavoriteIds(favoriteIds);
+
+if (!loadFavoriteIds().has("100")) {
+  throw new Error("Favorite checkpoint IDs were not persisted.");
+}
+
+if (toggleFavoriteId(loadFavoriteIds(), "100").has("100")) {
+  throw new Error("Favorite checkpoint ID was not toggled off.");
+}
+
+storage.set(FAVORITES_STORAGE_KEY, "not-json");
+if (loadFavoriteIds().size !== 0) {
+  throw new Error("Malformed favorite checkpoint storage should be ignored.");
+}
+
+saveFavoriteIds(new Set(["100"]));
+
 await import(new URL("../app.js", import.meta.url));
 await new Promise(resolve => setTimeout(resolve, 0));
 
@@ -352,6 +391,10 @@ if (styleToggleButton?.textContent !== "🗺 Карта") {
 
 if (!listHtml.includes("Тестовый КПП") || listHtml.includes("Воздушный тест")) {
   throw new Error("Checkpoint list did not respect URL filters.");
+}
+
+if (!listHtml.includes("item__favorite is-favorite") || !listHtml.includes('aria-pressed="true"')) {
+  throw new Error("Favorite checkpoint was not rendered as selected.");
 }
 
 if (!countryFilterHtml.includes("Китай")) {
