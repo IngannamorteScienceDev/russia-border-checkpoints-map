@@ -360,6 +360,7 @@ const {
 } = await import(new URL("../js/datasetChanges.js", import.meta.url));
 const { getFreshnessInfo } = await import(new URL("../js/freshness.js", import.meta.url));
 const { getQualityFlags } = await import(new URL("../js/quality.js", import.meta.url));
+const { buildReportUrl } = await import(new URL("../js/report.js", import.meta.url));
 const {
   RECENT_STORAGE_KEY,
   loadRecentIds,
@@ -407,6 +408,10 @@ if (getFreshnessInfo("2024-01-01T00:00:00Z", new Date("2026-04-01T00:00:00Z")).l
 
 if (getQualityFlags({ properties: { __extra: {}, __status: "Неизвестно", __coords: "—" } }).length < 4) {
   throw new Error("Quality helper did not flag incomplete records.");
+}
+
+if (!buildReportUrl({ properties: { __id: "100", __name: "Тест" } }, "https://example.test/map").includes("issues/new")) {
+  throw new Error("Report URL helper did not build a GitHub issue URL.");
 }
 
 const datasetSummary = summarizeDatasetChanges(
@@ -507,6 +512,10 @@ if (!listHtml.includes("freshness freshness--fresh") || !listHtml.includes("Св
 
 if (!listHtml.includes("Высокая достоверность") || !listHtml.includes("item__source") || !listHtml.includes("https://example.test/source")) {
   throw new Error("Source and confidence indicators were not rendered.");
+}
+
+if (!listHtml.includes("item__report") || !listHtml.includes("github.com/IngannamorteScienceDev/russia-border-checkpoints-map/issues/new")) {
+  throw new Error("Report issue action was not rendered.");
 }
 
 if (compareHtml !== "") {

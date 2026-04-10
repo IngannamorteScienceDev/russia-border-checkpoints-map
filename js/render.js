@@ -2,6 +2,7 @@ import { TYPE_COLORS } from "./config.js";
 import { getFreshnessInfo } from "./freshness.js";
 import { haversine, mapPointUrl, routeUrl } from "./geo.js";
 import { getQualityFlags } from "./quality.js";
+import { buildReportUrl } from "./report.js";
 
 export function buildLegend(legendEl) {
   legendEl.innerHTML = `
@@ -380,6 +381,7 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
     const routeHref = userLocation
       ? routeUrl(userLocation, feature.geometry.coordinates)
       : mapPointUrl(feature.geometry.coordinates);
+    const reportHref = buildReportUrl(feature);
 
     return `
       <div class="item${isNearestOpen ? " item--nearest-open" : ""}${hasQualityFlags ? " item--quality-warning" : ""}" data-id="${props.__id}">
@@ -412,6 +414,7 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
           <button class="item__action item__copyCoords" type="button" data-copy-coords-id="${props.__id}">Координаты</button>
           <a class="item__action item__route" href="${routeHref}" target="_blank" rel="noreferrer">Маршрут</a>
           ${sourceUrl ? `<a class="item__action item__source" href="${sourceUrl}" target="_blank" rel="noreferrer">Источник</a>` : ""}
+          <a class="item__action item__report" href="${reportHref}" target="_blank" rel="noreferrer">Сообщить</a>
         </div>
       </div>
     `;
