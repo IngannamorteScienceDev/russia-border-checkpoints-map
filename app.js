@@ -8,6 +8,7 @@ import { exportFeaturesAsCsv, exportFeaturesAsGeoJson } from "./js/export.js";
 import { createCheckpointsLayerController, ensureSatelliteLayer } from "./js/mapLayers.js";
 import { createPopupController } from "./js/popup.js";
 import { buildLegend, fillFilters, renderList, renderStats } from "./js/render.js";
+import { applyFilterStateFromUrl, syncFilterStateToUrl } from "./js/urlState.js";
 
 const dom = getDomElements();
 
@@ -100,6 +101,7 @@ function applyFilters() {
   });
 
   layerController.updateSourceData(state.viewFeatures);
+  syncFilterStateToUrl(dom);
   renderAll();
 }
 
@@ -236,7 +238,8 @@ async function init() {
       countryEl: dom.countryEl,
       subjectEl: dom.subjectEl
     });
-    renderAll();
+    applyFilterStateFromUrl(dom);
+    applyFilters();
     attachUi();
 
     if (window.matchMedia("(max-width: 900px)").matches) {

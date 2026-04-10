@@ -13,6 +13,7 @@ export function buildLegend(legendEl) {
 }
 
 function fillSelect(el, defaultLabel, values) {
+  el.__options = ["all", ...values];
   el.innerHTML = `<option value="all">${defaultLabel}</option>` +
     values.map(value => `<option value="${value}">${value}</option>`).join("");
 }

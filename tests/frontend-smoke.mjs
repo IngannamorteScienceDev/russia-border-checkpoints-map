@@ -18,6 +18,7 @@ function createElement() {
 
 const elements = new Map();
 let lastDownload = null;
+let replaceStateCalls = 0;
 
 globalThis.document = {
   body: {
@@ -53,7 +54,13 @@ globalThis.document = {
 };
 
 globalThis.window = {
-  location: { href: "http://localhost:8000/" },
+  location: { href: "http://localhost:8000/?country=%D0%9A%D0%B8%D1%82%D0%B0%D0%B9&status=%D0%94%D0%B5%D0%B9%D1%81%D1%82%D0%B2%D1%83%D0%B5%D1%82&q=%D1%82%D0%B5%D1%81%D1%82" },
+  history: {
+    replaceState(_state, _title, nextUrl) {
+      replaceStateCalls += 1;
+      window.location.href = String(nextUrl);
+    }
+  },
   matchMedia() {
     return { matches: false };
   }
@@ -245,13 +252,16 @@ const subjectFilterHtml = elements.get("subjectFilter")?.innerHTML || "";
 const typeFilterHtml = elements.get("typeFilter")?.innerHTML || "";
 const exportCsvButton = elements.get("exportCsv");
 const exportGeoJsonButton = elements.get("exportGeoJson");
+const searchInput = elements.get("searchInput");
+const statusFilter = elements.get("statusFilter");
+const resetFiltersButton = elements.get("resetFilters");
 
 if (!statsHtml.includes("Всего КПП") || !statsHtml.includes("Обновлено")) {
   throw new Error("Stats block was not rendered.");
 }
 
-if (!listHtml.includes("Тестовый КПП") || !listHtml.includes("Китай")) {
-  throw new Error("Checkpoint list was not rendered.");
+if (!listHtml.includes("Тестовый КПП") || listHtml.includes("Воздушный тест")) {
+  throw new Error("Checkpoint list did not respect URL filters.");
 }
 
 if (!countryFilterHtml.includes("Китай")) {
@@ -266,6 +276,14 @@ if (!typeFilterHtml.includes("Автомобильный") || !typeFilterHtml.in
   throw new Error("Type filter was not populated.");
 }
 
+if (searchInput?.value !== "тест") {
+  throw new Error("Search query was not restored from URL.");
+}
+
+if (statusFilter?.value !== "Действует") {
+  throw new Error("Status filter was not restored from URL.");
+}
+
 if (typeof exportCsvButton?.onclick !== "function" || typeof exportGeoJsonButton?.onclick !== "function") {
   throw new Error("Export buttons were not wired.");
 }
@@ -278,6 +296,23 @@ if (!lastDownload?.download?.endsWith(".csv")) {
 exportGeoJsonButton.onclick();
 if (!lastDownload?.download?.endsWith(".geojson")) {
   throw new Error("GeoJSON export did not trigger download.");
+}
+
+statusFilter.value = "all";
+statusFilter.onchange?.();
+
+if (new URL(window.location.href).searchParams.get("status") !== null) {
+  throw new Error("URL was not updated after filter change.");
+}
+
+resetFiltersButton.onclick?.();
+
+if (new URL(window.location.href).search) {
+  throw new Error("Reset filters did not clear URL state.");
+}
+
+if (replaceStateCalls < 2) {
+  throw new Error("URL state was not synchronized via history.replaceState.");
 }
 
 console.log("frontend smoke test passed");
