@@ -162,6 +162,7 @@ class FakeMap {
       center: [...this.center],
       zoom: this.zoom
     };
+    this.boundsContains = () => true;
     lastMapInstance = this;
   }
 
@@ -274,6 +275,12 @@ class FakeMap {
     return {
       lng: this.center[0],
       lat: this.center[1]
+    };
+  }
+
+  getBounds() {
+    return {
+      contains: coordinates => this.boundsContains(coordinates)
     };
   }
 
@@ -409,6 +416,7 @@ const shareLinkButton = elements.get("shareLink");
 const nearestButton = elements.get("nearestBtn");
 const favoritesOnlyButton = elements.get("favoritesOnly");
 const fitResultsButton = elements.get("fitResults");
+const viewportOnlyButton = elements.get("viewportOnly");
 const quickPresets = elements.get("quickPresets");
 const searchInput = elements.get("searchInput");
 const typeFilter = elements.get("typeFilter");
@@ -500,6 +508,10 @@ if (typeof favoritesOnlyButton?.onclick !== "function") {
 
 if (typeof fitResultsButton?.onclick !== "function") {
   throw new Error("Fit-results button was not wired.");
+}
+
+if (typeof viewportOnlyButton?.onclick !== "function") {
+  throw new Error("Viewport-only button was not wired.");
 }
 
 if (typeof quickPresets?.onclick !== "function") {
@@ -616,6 +628,21 @@ if (finalListHtml.indexOf("Воздушный тест") > finalListHtml.indexOf
 if (finalUrl.searchParams.get("sort") !== "distance") {
   throw new Error("Reset filters should preserve the current sort mode in URL.");
 }
+
+lastMapInstance.boundsContains = coordinates => coordinates[0] < 100;
+viewportOnlyButton.onclick?.();
+
+const viewportOnlyListHtml = elements.get("list")?.innerHTML || "";
+if (!viewportOnlyListHtml.includes("Воздушный тест") || viewportOnlyListHtml.includes("Тестовый КПП")) {
+  throw new Error("Viewport-only filter did not limit the rendered list to visible checkpoints.");
+}
+
+if (new URL(window.location.href).searchParams.get("viewport") !== null) {
+  throw new Error("Viewport-only filter should not be synchronized to shared URL state.");
+}
+
+viewportOnlyButton.onclick?.();
+lastMapInstance.boundsContains = () => true;
 
 fitResultsButton.onclick?.();
 

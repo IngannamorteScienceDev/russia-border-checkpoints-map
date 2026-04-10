@@ -43,6 +43,7 @@ const state = {
   favoriteIds: loadFavoriteIds(),
   recentIds: loadRecentIds(),
   showFavoritesOnly: false,
+  showViewportOnly: false,
   userLocation: null,
   userMarker: null,
   debounceTimer: null,
@@ -130,6 +131,7 @@ function renderAll() {
   syncFavoritesButton();
   syncPresetButtons();
   syncFitResultsButton();
+  syncViewportOnlyButton();
   syncExportButtons();
 }
 
@@ -143,6 +145,10 @@ function syncCurrentMapView() {
     center,
     zoom: map.getZoom()
   });
+
+  if (state.showViewportOnly) {
+    applyFilters();
+  }
 }
 
 function isSatelliteVisible() {
@@ -167,7 +173,8 @@ function getActiveFilterCount() {
     dom.statusEl.value !== "all" ? dom.statusEl.value : "",
     dom.countryEl.value !== "all" ? dom.countryEl.value : "",
     dom.subjectEl.value !== "all" ? dom.subjectEl.value : "",
-    state.showFavoritesOnly ? "favorites" : ""
+    state.showFavoritesOnly ? "favorites" : "",
+    state.showViewportOnly ? "viewport" : ""
   ].filter(Boolean);
 
   return filterValues.length;
@@ -262,6 +269,11 @@ function syncFitResultsButton() {
   dom.fitResultsEl.disabled = state.viewFeatures.length === 0;
 }
 
+function syncViewportOnlyButton() {
+  dom.viewportOnlyEl.classList.toggle("is-active", state.showViewportOnly);
+  dom.viewportOnlyEl.setAttribute?.("aria-pressed", state.showViewportOnly ? "true" : "false");
+}
+
 function setSelectIfAllowed(el, value) {
   if (!value) return;
   if (Array.isArray(el.__options) && !el.__options.includes(value)) return;
@@ -307,6 +319,10 @@ function applyFilters() {
     ? filteredFeatures.filter(feature => state.favoriteIds.has(feature.properties.__id))
     : filteredFeatures;
 
+  if (state.showViewportOnly) {
+    state.viewFeatures = filterFeaturesToViewport(state.viewFeatures);
+  }
+
   layerController.updateSourceData(state.viewFeatures);
   closePopupIfHidden();
   syncFilterStateToUrl(dom);
@@ -320,7 +336,18 @@ function resetFilters() {
   dom.countryEl.value = "all";
   dom.subjectEl.value = "all";
   state.showFavoritesOnly = false;
+  state.showViewportOnly = false;
   applyFilters();
+}
+
+function filterFeaturesToViewport(features) {
+  const bounds = map.getBounds?.();
+  if (!bounds?.contains) return features;
+
+  return features.filter(feature => {
+    const coordinates = feature.geometry?.coordinates;
+    return Array.isArray(coordinates) && bounds.contains(coordinates);
+  });
 }
 
 function syncExportButtons() {
@@ -426,6 +453,11 @@ function toggleFavoritesOnly() {
   applyFilters();
 }
 
+function toggleViewportOnly() {
+  state.showViewportOnly = !state.showViewportOnly;
+  applyFilters();
+}
+
 function updateUserMarker() {
   if (!state.userLocation) return;
 
@@ -495,6 +527,7 @@ function attachUi() {
   dom.nearestBtnEl.onclick = () => requestUserLocation({ setDistanceSort: true });
   dom.favoritesOnlyEl.onclick = toggleFavoritesOnly;
   dom.fitResultsEl.onclick = () => fitMapToFeatures();
+  dom.viewportOnlyEl.onclick = toggleViewportOnly;
 
   dom.styleToggleEl.onclick = () => {
     setSatelliteMode(!isSatelliteVisible());
