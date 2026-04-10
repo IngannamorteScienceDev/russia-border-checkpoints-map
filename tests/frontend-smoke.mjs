@@ -58,7 +58,7 @@ globalThis.document = {
 };
 
 globalThis.window = {
-  location: { href: "http://localhost:8000/?country=%D0%9A%D0%B8%D1%82%D0%B0%D0%B9&status=%D0%94%D0%B5%D0%B9%D1%81%D1%82%D0%B2%D1%83%D0%B5%D1%82&q=%D1%82%D0%B5%D1%81%D1%82&checkpoint=100&lng=120.50000&lat=50.25000&zoom=5.50" },
+  location: { href: "http://localhost:8000/?country=%D0%9A%D0%B8%D1%82%D0%B0%D0%B9&status=%D0%94%D0%B5%D0%B9%D1%81%D1%82%D0%B2%D1%83%D0%B5%D1%82&q=%D1%82%D0%B5%D1%81%D1%82&checkpoint=100&lng=120.50000&lat=50.25000&zoom=5.50&sat=1" },
   history: {
     replaceState(_state, _title, nextUrl) {
       replaceStateCalls += 1;
@@ -322,6 +322,7 @@ const shareLinkButton = elements.get("shareLink");
 const searchInput = elements.get("searchInput");
 const statusFilter = elements.get("statusFilter");
 const resetFiltersButton = elements.get("resetFilters");
+const styleToggleButton = elements.get("styleToggle");
 const url = new URL(window.location.href);
 
 if (!statsHtml.includes("Всего КПП") || !statsHtml.includes("Обновлено")) {
@@ -330,6 +331,14 @@ if (!statsHtml.includes("Всего КПП") || !statsHtml.includes("Обнов�
 
 if (!initialMapOptions || initialMapOptions.center[0] !== 120.5 || initialMapOptions.center[1] !== 50.25 || initialMapOptions.zoom !== 5.5) {
   throw new Error("Map view was not restored from URL.");
+}
+
+if (lastMapInstance?.getLayoutProperty("sat-layer", "visibility") !== "visible") {
+  throw new Error("Satellite mode was not restored from URL.");
+}
+
+if (styleToggleButton?.textContent !== "🗺 Карта") {
+  throw new Error("Satellite toggle label was not updated after restoring URL state.");
 }
 
 if (!listHtml.includes("Тестовый КПП") || listHtml.includes("Воздушный тест")) {
@@ -383,8 +392,26 @@ if (!lastDownload?.download?.endsWith(".geojson")) {
 }
 
 await shareLinkButton.onclick();
-if (!lastClipboardText.includes("checkpoint=100") || !lastClipboardText.includes("country=") || !lastClipboardText.includes("zoom=7.00")) {
+if (!lastClipboardText.includes("checkpoint=100") || !lastClipboardText.includes("country=") || !lastClipboardText.includes("zoom=7.00") || !lastClipboardText.includes("sat=1")) {
   throw new Error("Share link did not copy current URL state.");
+}
+
+styleToggleButton.onclick?.();
+if (new URL(window.location.href).searchParams.get("sat") !== null) {
+  throw new Error("Satellite mode was not cleared from URL after toggling off.");
+}
+
+if (lastMapInstance?.getLayoutProperty("sat-layer", "visibility") !== "none") {
+  throw new Error("Satellite layer was not hidden after toggling off.");
+}
+
+if (styleToggleButton?.textContent !== "🛰 Спутник") {
+  throw new Error("Satellite toggle label was not restored after turning the layer off.");
+}
+
+styleToggleButton.onclick?.();
+if (new URL(window.location.href).searchParams.get("sat") !== "1") {
+  throw new Error("Satellite mode was not restored in URL after toggling on.");
 }
 
 lastPopupRef?.remove();
@@ -424,7 +451,11 @@ if (finalUrl.searchParams.get("lng") !== "37.61760" || finalUrl.searchParams.get
   throw new Error("Reset filters should preserve the current map view in URL.");
 }
 
-if (replaceStateCalls < 4) {
+if (finalUrl.searchParams.get("sat") !== "1") {
+  throw new Error("Reset filters should preserve satellite mode in URL.");
+}
+
+if (replaceStateCalls < 6) {
   throw new Error("URL state was not synchronized via history.replaceState.");
 }
 

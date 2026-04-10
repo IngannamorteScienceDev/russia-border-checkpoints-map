@@ -15,7 +15,9 @@ import {
   getSelectedCheckpointIdFromUrl,
   syncFilterStateToUrl,
   syncMapViewToUrl,
-  syncSelectedCheckpointToUrl
+  syncSelectedCheckpointToUrl,
+  getSatelliteModeFromUrl,
+  syncSatelliteModeToUrl
 } from "./js/urlState.js";
 
 const dom = getDomElements();
@@ -106,6 +108,21 @@ function syncCurrentMapView() {
     center,
     zoom: map.getZoom()
   });
+}
+
+function isSatelliteVisible() {
+  return map.getLayoutProperty(SATELLITE_LAYER_ID, "visibility") === "visible";
+}
+
+function setSatelliteMode(enabled) {
+  map.setLayoutProperty(
+    SATELLITE_LAYER_ID,
+    "visibility",
+    enabled ? "visible" : "none"
+  );
+
+  dom.styleToggleEl.textContent = enabled ? "🗺 Карта" : "🛰 Спутник";
+  syncSatelliteModeToUrl(enabled);
 }
 
 function getActiveFilterCount() {
@@ -245,15 +262,7 @@ function attachUi() {
   dom.shareLinkEl.onclick = shareCurrentView;
 
   dom.styleToggleEl.onclick = () => {
-    const visible = map.getLayoutProperty(SATELLITE_LAYER_ID, "visibility") === "visible";
-
-    map.setLayoutProperty(
-      SATELLITE_LAYER_ID,
-      "visibility",
-      visible ? "none" : "visible"
-    );
-
-    dom.styleToggleEl.textContent = visible ? "🛰 Спутник" : "🗺 Карта";
+    setSatelliteMode(!isSatelliteVisible());
   };
 
   dom.geoBtnEl.onclick = () => {
@@ -300,6 +309,7 @@ async function init() {
     await new Promise(resolve => (map.loaded() ? resolve() : map.once("load", resolve)));
 
     ensureSatelliteLayer(map);
+    setSatelliteMode(getSatelliteModeFromUrl());
 
     setProgress(25, "Загружаем КПП...");
     state.allFeatures = await loadFeatures({ setProgress });

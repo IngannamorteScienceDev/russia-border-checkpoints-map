@@ -6,6 +6,7 @@ const FILTER_PARAM_MAP = {
   subject: "subject"
 };
 const CHECKPOINT_PARAM = "checkpoint";
+const SATELLITE_PARAM = "sat";
 const MAP_PARAM_MAP = {
   lng: "lng",
   lat: "lat",
@@ -34,6 +35,11 @@ function parseFiniteNumber(value) {
 
   const number = Number.parseFloat(value);
   return Number.isFinite(number) ? number : null;
+}
+
+function parseBooleanParam(value) {
+  if (value === null || value === undefined) return false;
+  return ["1", "true", "yes", "on"].includes(String(value).toLowerCase());
 }
 
 function clamp(value, min, max) {
@@ -90,6 +96,17 @@ export function getSelectedCheckpointIdFromUrl() {
 export function syncSelectedCheckpointToUrl(checkpointId) {
   updateUrl(url => {
     setParam(url, CHECKPOINT_PARAM, checkpointId);
+  });
+}
+
+export function getSatelliteModeFromUrl() {
+  const url = new URL(window.location.href);
+  return parseBooleanParam(url.searchParams.get(SATELLITE_PARAM));
+}
+
+export function syncSatelliteModeToUrl(isEnabled) {
+  updateUrl(url => {
+    setParam(url, SATELLITE_PARAM, isEnabled ? "1" : null);
   });
 }
 
