@@ -28,6 +28,12 @@ const DEFAULT_MAP_VIEW = {
   center: [90, 61],
   zoom: 4
 };
+const QUICK_FILTER_PRESETS = {
+  open: { status: "Действует" },
+  auto: { type: "Автомобильный" },
+  rail: { type: "Железнодорожный" },
+  air: { type: "Воздушный" }
+};
 const initialMapView = getMapViewStateFromUrl(DEFAULT_MAP_VIEW);
 
 const state = {
@@ -122,6 +128,7 @@ function renderAll() {
   });
 
   syncFavoritesButton();
+  syncPresetButtons();
   syncExportButtons();
 }
 
@@ -205,6 +212,38 @@ function setSortMode(value) {
   dom.sortEl.value = value;
   syncFilterStateToUrl(dom);
   renderAll();
+}
+
+function setSelectIfAllowed(el, value) {
+  if (!value) return;
+  if (Array.isArray(el.__options) && !el.__options.includes(value)) return;
+  el.value = value;
+}
+
+function matchesQuickPreset(presetName) {
+  const preset = QUICK_FILTER_PRESETS[presetName];
+  if (!preset) return false;
+
+  return Object.entries(preset).every(([key, value]) => {
+    if (key === "type") return dom.typeEl.value === value;
+    if (key === "status") return dom.statusEl.value === value;
+    return false;
+  });
+}
+
+function syncPresetButtons() {
+  dom.presetsEl.querySelectorAll("[data-preset]").forEach(button => {
+    button.classList.toggle("is-active", matchesQuickPreset(button.dataset.preset));
+  });
+}
+
+function applyQuickPreset(presetName) {
+  const preset = QUICK_FILTER_PRESETS[presetName];
+  if (!preset) return;
+
+  setSelectIfAllowed(dom.typeEl, preset.type);
+  setSelectIfAllowed(dom.statusEl, preset.status);
+  applyFilters();
 }
 
 function applyFilters() {
@@ -394,6 +433,9 @@ function attachUi() {
   dom.statusEl.onchange = applyFilters;
   dom.countryEl.onchange = applyFilters;
   dom.subjectEl.onchange = applyFilters;
+  dom.presetsEl.onclick = event => {
+    applyQuickPreset(event.target?.dataset?.preset);
+  };
   dom.sortEl.onchange = () => {
     syncFilterStateToUrl(dom);
     renderAll();

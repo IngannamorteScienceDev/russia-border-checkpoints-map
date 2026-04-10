@@ -394,7 +394,9 @@ const exportGeoJsonButton = elements.get("exportGeoJson");
 const shareLinkButton = elements.get("shareLink");
 const nearestButton = elements.get("nearestBtn");
 const favoritesOnlyButton = elements.get("favoritesOnly");
+const quickPresets = elements.get("quickPresets");
 const searchInput = elements.get("searchInput");
+const typeFilter = elements.get("typeFilter");
 const statusFilter = elements.get("statusFilter");
 const resetFiltersButton = elements.get("resetFilters");
 const styleToggleButton = elements.get("styleToggle");
@@ -479,6 +481,10 @@ if (typeof nearestButton?.onclick !== "function") {
 
 if (typeof favoritesOnlyButton?.onclick !== "function") {
   throw new Error("Favorites-only button was not wired.");
+}
+
+if (typeof quickPresets?.onclick !== "function") {
+  throw new Error("Quick presets were not wired.");
 }
 
 if (favoritesOnlyButton?.textContent !== "★ Избранные (1)") {
@@ -601,6 +607,22 @@ if (!favoriteOnlyListHtml.includes("Тестовый КПП") || favoriteOnlyLis
 
 if (new URL(window.location.href).searchParams.get("favorites") !== null) {
   throw new Error("Local favorites filter should not be synchronized to shared URL state.");
+}
+
+favoritesOnlyButton.onclick?.();
+quickPresets.onclick?.({ target: { dataset: { preset: "air" } } });
+
+if (typeFilter?.value !== "Воздушный") {
+  throw new Error("Quick preset did not update the type filter.");
+}
+
+if (new URL(window.location.href).searchParams.get("type") !== "Воздушный") {
+  throw new Error("Quick preset was not synchronized to URL filters.");
+}
+
+const presetListHtml = elements.get("list")?.innerHTML || "";
+if (!presetListHtml.includes("Воздушный тест") || presetListHtml.includes("Тестовый КПП")) {
+  throw new Error("Quick preset did not filter the rendered list.");
 }
 
 if (replaceStateCalls < 7) {

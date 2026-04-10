@@ -10,6 +10,7 @@ export function getDomElements() {
     statusEl: el("statusFilter"),
     countryEl: el("countryFilter"),
     subjectEl: el("subjectFilter"),
+    presetsEl: el("quickPresets"),
     sortEl: el("sortOrder"),
     nearestBtnEl: el("nearestBtn"),
     favoritesOnlyEl: el("favoritesOnly"),

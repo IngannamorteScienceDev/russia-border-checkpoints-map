@@ -190,6 +190,33 @@ body{
   color: rgba(254,240,138,.95);
   box-shadow: 0 0 0 1px rgba(250,204,21,.08);
 }
+.presets{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+.preset{
+  flex:1 1 calc(50% - 8px);
+  min-width:92px;
+  border:1px solid rgba(148,163,184,.14);
+  border-radius:999px;
+  background: rgba(2,6,23,.36);
+  color: rgba(229,231,235,.78);
+  padding:9px 10px;
+  cursor:pointer;
+  font-weight:750;
+}
+.preset:hover{
+  border-color: rgba(59,130,246,.34);
+  background: rgba(59,130,246,.10);
+  color: rgba(229,231,235,.94);
+}
+.preset.is-active{
+  border-color: rgba(59,130,246,.48);
+  background: rgba(59,130,246,.18);
+  color: rgba(191,219,254,.98);
+}
 
 .legend{
   margin-top:14px;
