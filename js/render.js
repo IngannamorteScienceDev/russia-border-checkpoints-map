@@ -1,6 +1,7 @@
 import { TYPE_COLORS } from "./config.js";
 import { getFreshnessInfo } from "./freshness.js";
 import { haversine, mapPointUrl, routeUrl } from "./geo.js";
+import { getQualityFlags } from "./quality.js";
 
 export function buildLegend(legendEl) {
   legendEl.innerHTML = `
@@ -332,6 +333,8 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
     const props = feature.properties;
     const freshness = getFreshnessInfo(props.__extra?.updatedAt);
     const confidence = confidenceInfo(props.__extra?.confidence);
+    const qualityFlags = getQualityFlags(feature);
+    const hasQualityFlags = qualityFlags.length > 0;
     const sourceUrl = safeExternalUrl(props.__extra?.source);
     const isFavorite = favoriteIds.has(String(props.__id));
     const isComparing = compareIds.includes(String(props.__id));
@@ -345,7 +348,7 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
       : mapPointUrl(feature.geometry.coordinates);
 
     return `
-      <div class="item${isNearestOpen ? " item--nearest-open" : ""}" data-id="${props.__id}">
+      <div class="item${isNearestOpen ? " item--nearest-open" : ""}${hasQualityFlags ? " item--quality-warning" : ""}" data-id="${props.__id}">
         <div class="item__name">
           <span class="item__headline">
             ${badgeHtml(props.__type)}
@@ -366,6 +369,7 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
           <div class="item__badges">
             <span class="freshness freshness--${freshness.level}" title="${freshness.details}">${freshness.label}</span>
             <span class="confidence confidence--${confidence.level}">${confidence.label}</span>
+            ${qualityFlags.map(flag => `<span class="quality-flag quality-flag--${flag.level}">${flag.label}</span>`).join("")}
           </div>
           ${isNearestOpen ? '<div class="item__note">Ближайший действующий пункт</div>' : ""}
         </div>

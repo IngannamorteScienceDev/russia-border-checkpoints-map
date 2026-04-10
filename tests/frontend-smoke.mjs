@@ -140,10 +140,7 @@ globalThis.fetch = async () => ({
             checkpoint_type: "воздушный",
             status: "временно закрыт",
             subject_name: "Кемеровская область",
-            foreign_country: "Не указано",
-            source: "https://example.test/source",
-            confidence_level: "high",
-            last_updated: "2025-12-01T00:00:00.000000Z"
+            foreign_country: "Не указано"
           }
         }
       ]
@@ -357,6 +354,7 @@ const {
 } = await import(new URL("../js/favorites.js", import.meta.url));
 const { toggleCompareId } = await import(new URL("../js/compare.js", import.meta.url));
 const { getFreshnessInfo } = await import(new URL("../js/freshness.js", import.meta.url));
+const { getQualityFlags } = await import(new URL("../js/quality.js", import.meta.url));
 const {
   RECENT_STORAGE_KEY,
   loadRecentIds,
@@ -400,6 +398,10 @@ if (getFreshnessInfo("2026-01-01T00:00:00Z", new Date("2026-04-01T00:00:00Z")).l
 
 if (getFreshnessInfo("2024-01-01T00:00:00Z", new Date("2026-04-01T00:00:00Z")).level !== "stale") {
   throw new Error("Freshness helper did not classify stale records.");
+}
+
+if (getQualityFlags({ properties: { __extra: {}, __status: "Неизвестно", __coords: "—" } }).length < 4) {
+  throw new Error("Quality helper did not flag incomplete records.");
 }
 
 let recentIds = prependRecentId([], "101");
@@ -666,6 +668,10 @@ if (finalUrl.searchParams.get("sat") !== "1") {
 const finalListHtml = elements.get("list")?.innerHTML || "";
 if (finalListHtml.indexOf("Воздушный тест") === -1 || finalListHtml.indexOf("Тестовый КПП") === -1) {
   throw new Error("Rendered list is missing expected checkpoints after resetting filters.");
+}
+
+if (!finalListHtml.includes("item--quality-warning") || !finalListHtml.includes("Нет источника") || !finalListHtml.includes("Нет даты обновления")) {
+  throw new Error("Incomplete checkpoint markers were not rendered.");
 }
 
 if (finalListHtml.indexOf("Воздушный тест") > finalListHtml.indexOf("Тестовый КПП")) {

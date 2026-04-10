@@ -631,6 +631,9 @@ body{
   border-color: rgba(34,197,94,.38);
   background: linear-gradient(135deg, rgba(34,197,94,.12), rgba(15,23,42,.26));
 }
+.item--quality-warning{
+  border-color: rgba(251,191,36,.20);
+}
 .item:active{transform:scale(.99)}
 .item__name{
   display:flex;
@@ -751,6 +754,21 @@ body{
   border-color: rgba(148,163,184,.16);
   background: rgba(148,163,184,.08);
   color: rgba(229,231,235,.68);
+}
+.quality-flag{
+  display:inline-flex;
+  align-items:center;
+  padding:5px 8px;
+  border-radius:999px;
+  border:1px solid rgba(251,191,36,.28);
+  background: rgba(251,191,36,.12);
+  color:#fde68a;
+  font-weight:750;
+}
+.quality-flag--critical{
+  border-color: rgba(248,113,113,.30);
+  background: rgba(248,113,113,.12);
+  color:#fecaca;
 }
 .item__actions{
   display:flex;
