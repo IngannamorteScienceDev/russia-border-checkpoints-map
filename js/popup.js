@@ -53,21 +53,57 @@ function buildPopupHtml(feature, userLocation) {
   `;
 }
 
-export function createPopupController({ map, getUserLocation }) {
+export function createPopupController({ map, getUserLocation, onPopupChange }) {
   let popupRef = null;
   let lastPopupFeature = null;
+  let suppressCloseNotify = false;
+
+  function notifyPopupChange(feature) {
+    if (typeof onPopupChange === "function") {
+      onPopupChange(feature);
+    }
+  }
+
+  function clearPopup({ notify = true } = {}) {
+    if (popupRef) {
+      const popup = popupRef;
+      popupRef = null;
+      lastPopupFeature = null;
+      suppressCloseNotify = !notify;
+      popup.remove();
+      suppressCloseNotify = false;
+      if (typeof popup.on !== "function" && notify) notifyPopupChange(null);
+      return;
+    }
+
+    lastPopupFeature = null;
+    if (notify) notifyPopupChange(null);
+  }
 
   function openPopup(feature, lngLat) {
     if (!feature) return;
 
-    lastPopupFeature = feature;
+    if (popupRef) {
+      clearPopup({ notify: false });
+    }
 
-    if (popupRef) popupRef.remove();
+    lastPopupFeature = feature;
 
     popupRef = new maplibregl.Popup({ maxWidth: "380px", closeButton: true, closeOnClick: true })
       .setLngLat(lngLat || feature.geometry.coordinates)
       .setHTML(buildPopupHtml(feature, getUserLocation()))
       .addTo(map);
+
+    if (typeof popupRef.on === "function") {
+      popupRef.on("close", () => {
+        popupRef = null;
+        lastPopupFeature = null;
+        if (suppressCloseNotify) return;
+        notifyPopupChange(null);
+      });
+    }
+
+    notifyPopupChange(feature);
 
     map.easeTo({ center: feature.geometry.coordinates, zoom: Math.max(map.getZoom(), 7) });
   }
@@ -82,6 +118,7 @@ export function createPopupController({ map, getUserLocation }) {
   }
 
   return {
+    closePopup: () => clearPopup({ notify: true }),
     openPopup,
     refreshPopup,
     getLastPopupFeature

@@ -8,7 +8,13 @@ import { exportFeaturesAsCsv, exportFeaturesAsGeoJson } from "./js/export.js";
 import { createCheckpointsLayerController, ensureSatelliteLayer } from "./js/mapLayers.js";
 import { createPopupController } from "./js/popup.js";
 import { buildLegend, fillFilters, renderList, renderStats } from "./js/render.js";
-import { applyFilterStateFromUrl, syncFilterStateToUrl } from "./js/urlState.js";
+import { copyText } from "./js/share.js";
+import {
+  applyFilterStateFromUrl,
+  getSelectedCheckpointIdFromUrl,
+  syncFilterStateToUrl,
+  syncSelectedCheckpointToUrl
+} from "./js/urlState.js";
 
 const dom = getDomElements();
 
@@ -18,7 +24,8 @@ const state = {
   datasetMeta: null,
   userLocation: null,
   userMarker: null,
-  debounceTimer: null
+  debounceTimer: null,
+  shareFeedbackTimer: null
 };
 
 const map = new maplibregl.Map({
@@ -33,7 +40,10 @@ map.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
 const popupController = createPopupController({
   map,
-  getUserLocation: () => state.userLocation
+  getUserLocation: () => state.userLocation,
+  onPopupChange: feature => {
+    syncSelectedCheckpointToUrl(feature?.properties?.__id || "");
+  }
 });
 
 const layerController = createCheckpointsLayerController({
@@ -101,6 +111,7 @@ function applyFilters() {
   });
 
   layerController.updateSourceData(state.viewFeatures);
+  closePopupIfHidden();
   syncFilterStateToUrl(dom);
   renderAll();
 }
@@ -136,9 +147,53 @@ function exportCurrentView(format) {
   exportFeaturesAsGeoJson(state.viewFeatures, options);
 }
 
+function getFeatureById(id, features = state.allFeatures) {
+  return features.find(item => item.properties.__id === id) || null;
+}
+
+function closePopupIfHidden() {
+  const selectedFeature = popupController.getLastPopupFeature();
+  if (!selectedFeature) return;
+
+  const isVisible = state.viewFeatures.some(
+    item => item.properties.__id === selectedFeature.properties.__id
+  );
+
+  if (!isVisible) {
+    popupController.closePopup();
+  }
+}
+
+function restoreSelectedCheckpointFromUrl() {
+  const selectedId = getSelectedCheckpointIdFromUrl();
+  if (!selectedId) return;
+
+  const feature = getFeatureById(selectedId, state.viewFeatures);
+
+  if (!feature) {
+    syncSelectedCheckpointToUrl("");
+    return;
+  }
+
+  popupController.openPopup(feature, feature.geometry.coordinates);
+}
+
+function setShareButtonLabel(text) {
+  dom.shareLinkEl.textContent = text;
+
+  clearTimeout(state.shareFeedbackTimer);
+  state.shareFeedbackTimer = setTimeout(() => {
+    dom.shareLinkEl.textContent = "Поделиться ссылкой";
+  }, 1800);
+}
+
+async function shareCurrentView() {
+  const copied = await copyText(window.location.href);
+  setShareButtonLabel(copied ? "Ссылка скопирована" : "Скопируйте ссылку вручную");
+}
+
 function focusById(id) {
-  const feature = state.viewFeatures.find(item => item.properties.__id === id) ||
-    state.allFeatures.find(item => item.properties.__id === id);
+  const feature = getFeatureById(id, state.viewFeatures) || getFeatureById(id, state.allFeatures);
 
   if (feature) popupController.openPopup(feature, feature.geometry.coordinates);
 }
@@ -166,6 +221,7 @@ function attachUi() {
   dom.resetFiltersEl.onclick = resetFilters;
   dom.exportCsvEl.onclick = () => exportCurrentView("csv");
   dom.exportGeoJsonEl.onclick = () => exportCurrentView("geojson");
+  dom.shareLinkEl.onclick = shareCurrentView;
 
   dom.styleToggleEl.onclick = () => {
     const visible = map.getLayoutProperty(SATELLITE_LAYER_ID, "visibility") === "visible";
@@ -239,8 +295,8 @@ async function init() {
       subjectEl: dom.subjectEl
     });
     applyFilterStateFromUrl(dom);
-    applyFilters();
     attachUi();
+    applyFilters();
 
     if (window.matchMedia("(max-width: 900px)").matches) {
       dom.panelEl.classList.add("open");
@@ -248,6 +304,7 @@ async function init() {
 
     setProgress(80, "Строим слои...");
     layerController.rebuildLayers(state.viewFeatures);
+    restoreSelectedCheckpointFromUrl();
 
     setProgress(100, "Готово");
     setTimeout(hideLoaderOnce, 150);

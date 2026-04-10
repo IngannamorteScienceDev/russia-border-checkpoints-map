@@ -5,6 +5,7 @@ const FILTER_PARAM_MAP = {
   country: "country",
   subject: "subject"
 };
+const CHECKPOINT_PARAM = "checkpoint";
 
 function hasAllowedValue(el, value) {
   if (!value) return false;
@@ -54,6 +55,24 @@ export function syncFilterStateToUrl(dom) {
     }
 
     url.searchParams.set(param, value);
+  }
+
+  window.history.replaceState({}, "", url);
+}
+
+export function getSelectedCheckpointIdFromUrl() {
+  return new URL(window.location.href).searchParams.get(CHECKPOINT_PARAM) || "";
+}
+
+export function syncSelectedCheckpointToUrl(checkpointId) {
+  if (!window.history?.replaceState) return;
+
+  const url = new URL(window.location.href);
+
+  if (!checkpointId) {
+    url.searchParams.delete(CHECKPOINT_PARAM);
+  } else {
+    url.searchParams.set(CHECKPOINT_PARAM, checkpointId);
   }
 
   window.history.replaceState({}, "", url);

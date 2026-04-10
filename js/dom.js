@@ -13,6 +13,7 @@ export function getDomElements() {
     resetFiltersEl: el("resetFilters"),
     exportCsvEl: el("exportCsv"),
     exportGeoJsonEl: el("exportGeoJson"),
+    shareLinkEl: el("shareLink"),
     legendEl: el("legend"),
     statsEl: el("stats"),
     listEl: el("list"),

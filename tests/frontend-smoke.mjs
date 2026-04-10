@@ -18,6 +18,8 @@ function createElement() {
 
 const elements = new Map();
 let lastDownload = null;
+let lastClipboardText = "";
+let lastPopupRef = null;
 let replaceStateCalls = 0;
 
 globalThis.document = {
@@ -54,7 +56,7 @@ globalThis.document = {
 };
 
 globalThis.window = {
-  location: { href: "http://localhost:8000/?country=%D0%9A%D0%B8%D1%82%D0%B0%D0%B9&status=%D0%94%D0%B5%D0%B9%D1%81%D1%82%D0%B2%D1%83%D0%B5%D1%82&q=%D1%82%D0%B5%D1%81%D1%82" },
+  location: { href: "http://localhost:8000/?country=%D0%9A%D0%B8%D1%82%D0%B0%D0%B9&status=%D0%94%D0%B5%D0%B9%D1%81%D1%82%D0%B2%D1%83%D0%B5%D1%82&q=%D1%82%D0%B5%D1%81%D1%82&checkpoint=100" },
   history: {
     replaceState(_state, _title, nextUrl) {
       replaceStateCalls += 1;
@@ -69,6 +71,11 @@ globalThis.window = {
 Object.defineProperty(globalThis, "navigator", {
   configurable: true,
   value: {
+    clipboard: {
+      async writeText(text) {
+        lastClipboardText = text;
+      }
+    },
     geolocation: {
       getCurrentPosition() {}
     }
@@ -215,6 +222,11 @@ class FakeMarker {
 }
 
 class FakePopup {
+  constructor() {
+    this.listeners = new Map();
+    lastPopupRef = this;
+  }
+
   setLngLat() {
     return this;
   }
@@ -227,7 +239,14 @@ class FakePopup {
     return this;
   }
 
-  remove() {}
+  on(eventName, handler) {
+    this.listeners.set(eventName, handler);
+    return this;
+  }
+
+  remove() {
+    this.listeners.get("close")?.();
+  }
 }
 
 class FakeNavigationControl {}
@@ -252,6 +271,7 @@ const subjectFilterHtml = elements.get("subjectFilter")?.innerHTML || "";
 const typeFilterHtml = elements.get("typeFilter")?.innerHTML || "";
 const exportCsvButton = elements.get("exportCsv");
 const exportGeoJsonButton = elements.get("exportGeoJson");
+const shareLinkButton = elements.get("shareLink");
 const searchInput = elements.get("searchInput");
 const statusFilter = elements.get("statusFilter");
 const resetFiltersButton = elements.get("resetFilters");
@@ -284,8 +304,16 @@ if (statusFilter?.value !== "Действует") {
   throw new Error("Status filter was not restored from URL.");
 }
 
+if (new URL(window.location.href).searchParams.get("checkpoint") !== "100") {
+  throw new Error("Selected checkpoint was not preserved in URL.");
+}
+
 if (typeof exportCsvButton?.onclick !== "function" || typeof exportGeoJsonButton?.onclick !== "function") {
   throw new Error("Export buttons were not wired.");
+}
+
+if (typeof shareLinkButton?.onclick !== "function") {
+  throw new Error("Share button was not wired.");
 }
 
 exportCsvButton.onclick();
@@ -296,6 +324,16 @@ if (!lastDownload?.download?.endsWith(".csv")) {
 exportGeoJsonButton.onclick();
 if (!lastDownload?.download?.endsWith(".geojson")) {
   throw new Error("GeoJSON export did not trigger download.");
+}
+
+await shareLinkButton.onclick();
+if (!lastClipboardText.includes("checkpoint=100") || !lastClipboardText.includes("country=")) {
+  throw new Error("Share link did not copy current URL state.");
+}
+
+lastPopupRef?.remove();
+if (new URL(window.location.href).searchParams.get("checkpoint") !== null) {
+  throw new Error("Closing popup did not clear checkpoint from URL.");
 }
 
 statusFilter.value = "all";
