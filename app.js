@@ -129,6 +129,7 @@ function renderAll() {
 
   syncFavoritesButton();
   syncPresetButtons();
+  syncFitResultsButton();
   syncExportButtons();
 }
 
@@ -212,6 +213,53 @@ function setSortMode(value) {
   dom.sortEl.value = value;
   syncFilterStateToUrl(dom);
   renderAll();
+}
+
+function getFeatureBounds(features) {
+  const coordinates = features
+    .map(feature => feature.geometry?.coordinates)
+    .filter(coords =>
+      Array.isArray(coords) &&
+      Number.isFinite(coords[0]) &&
+      Number.isFinite(coords[1])
+    );
+
+  if (!coordinates.length) return null;
+
+  const lngs = coordinates.map(coords => coords[0]);
+  const lats = coordinates.map(coords => coords[1]);
+
+  return {
+    coordinates,
+    bounds: [
+      [Math.min(...lngs), Math.min(...lats)],
+      [Math.max(...lngs), Math.max(...lats)]
+    ]
+  };
+}
+
+function fitMapToFeatures(features = state.viewFeatures) {
+  const featureBounds = getFeatureBounds(features);
+  if (!featureBounds) return;
+
+  if (featureBounds.coordinates.length === 1) {
+    map.easeTo({
+      center: featureBounds.coordinates[0],
+      zoom: Math.max(map.getZoom(), 8)
+    });
+    return;
+  }
+
+  map.fitBounds(featureBounds.bounds, {
+    padding: window.matchMedia("(max-width: 900px)").matches
+      ? 56
+      : { top: 80, right: 80, bottom: 80, left: 460 },
+    maxZoom: 8
+  });
+}
+
+function syncFitResultsButton() {
+  dom.fitResultsEl.disabled = state.viewFeatures.length === 0;
 }
 
 function setSelectIfAllowed(el, value) {
@@ -446,6 +494,7 @@ function attachUi() {
   dom.shareLinkEl.onclick = shareCurrentView;
   dom.nearestBtnEl.onclick = () => requestUserLocation({ setDistanceSort: true });
   dom.favoritesOnlyEl.onclick = toggleFavoritesOnly;
+  dom.fitResultsEl.onclick = () => fitMapToFeatures();
 
   dom.styleToggleEl.onclick = () => {
     setSatelliteMode(!isSatelliteVisible());

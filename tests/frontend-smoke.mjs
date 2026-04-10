@@ -246,6 +246,20 @@ class FakeMap {
     this.emit("moveend");
   }
 
+  fitBounds(bounds, options = {}) {
+    const [southWest, northEast] = bounds;
+    this.center = [
+      (southWest[0] + northEast[0]) / 2,
+      (southWest[1] + northEast[1]) / 2
+    ];
+
+    if (typeof options.maxZoom === "number") {
+      this.zoom = Math.min(Math.max(this.zoom, 5), options.maxZoom);
+    }
+
+    this.emit("moveend");
+  }
+
   resize() {}
 
   getCanvas() {
@@ -394,6 +408,7 @@ const exportGeoJsonButton = elements.get("exportGeoJson");
 const shareLinkButton = elements.get("shareLink");
 const nearestButton = elements.get("nearestBtn");
 const favoritesOnlyButton = elements.get("favoritesOnly");
+const fitResultsButton = elements.get("fitResults");
 const quickPresets = elements.get("quickPresets");
 const searchInput = elements.get("searchInput");
 const typeFilter = elements.get("typeFilter");
@@ -481,6 +496,10 @@ if (typeof nearestButton?.onclick !== "function") {
 
 if (typeof favoritesOnlyButton?.onclick !== "function") {
   throw new Error("Favorites-only button was not wired.");
+}
+
+if (typeof fitResultsButton?.onclick !== "function") {
+  throw new Error("Fit-results button was not wired.");
 }
 
 if (typeof quickPresets?.onclick !== "function") {
@@ -596,6 +615,13 @@ if (finalListHtml.indexOf("Воздушный тест") > finalListHtml.indexOf
 
 if (finalUrl.searchParams.get("sort") !== "distance") {
   throw new Error("Reset filters should preserve the current sort mode in URL.");
+}
+
+fitResultsButton.onclick?.();
+
+const fitUrl = new URL(window.location.href);
+if (fitUrl.searchParams.get("lng") !== "109.42500" || fitUrl.searchParams.get("lat") !== "48.42500") {
+  throw new Error("Fit-results action did not center the map on rendered checkpoints.");
 }
 
 favoritesOnlyButton.onclick?.();

@@ -14,6 +14,7 @@ export function getDomElements() {
     sortEl: el("sortOrder"),
     nearestBtnEl: el("nearestBtn"),
     favoritesOnlyEl: el("favoritesOnly"),
+    fitResultsEl: el("fitResults"),
     resetFiltersEl: el("resetFilters"),
     exportCsvEl: el("exportCsv"),
     exportGeoJsonEl: el("exportGeoJson"),
