@@ -20,6 +20,7 @@ export function getDomElements() {
     exportCsvEl: el("exportCsv"),
     exportGeoJsonEl: el("exportGeoJson"),
     shareLinkEl: el("shareLink"),
+    shareSheetEl: el("shareSheet"),
     recentEl: el("recent"),
     nearestOpenEl: el("nearestOpen"),
     compareEl: el("compare"),

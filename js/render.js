@@ -74,6 +74,64 @@ export function renderStats({
   `;
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+export function renderShareSheet({
+  shareSheetEl,
+  shareUrl,
+  isOpen,
+  canNativeShare,
+  onCopy,
+  onNativeShare,
+  onClose
+}) {
+  if (!isOpen) {
+    shareSheetEl.innerHTML = "";
+    shareSheetEl.style.display = "none";
+    return;
+  }
+
+  const safeShareUrl = escapeHtml(shareUrl);
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=${encodeURIComponent(shareUrl)}`;
+
+  shareSheetEl.innerHTML = `
+    <div class="share-sheet__header">
+      <div>
+        <div class="share-sheet__title">Поделиться картой</div>
+        <div class="share-sheet__hint">Ссылка сохраняет фильтры, выбранный КПП, ракурс карты и спутниковый слой.</div>
+      </div>
+      <button class="share-sheet__close" type="button" aria-label="Закрыть">×</button>
+    </div>
+    <div class="share-sheet__body">
+      <img class="share-sheet__qr" src="${qrUrl}" alt="QR-код текущей ссылки" loading="lazy">
+      <div class="share-sheet__content">
+        <input class="share-sheet__url" type="text" readonly value="${safeShareUrl}">
+        <div class="share-sheet__actions">
+          <button class="share-sheet__button" type="button" data-share-action="copy">Копировать</button>
+          ${canNativeShare ? '<button class="share-sheet__button" type="button" data-share-action="native">Системное меню</button>' : ""}
+        </div>
+        <div class="share-sheet__note">QR формируется внешним сервисом, поэтому для него нужен доступ к сети.</div>
+      </div>
+    </div>
+  `;
+
+  shareSheetEl.querySelector?.(".share-sheet__close")?.addEventListener?.("click", onClose);
+  shareSheetEl.querySelectorAll("[data-share-action]").forEach(node => {
+    node.onclick = () => {
+      if (node.dataset.shareAction === "copy") onCopy();
+      if (node.dataset.shareAction === "native") onNativeShare();
+    };
+  });
+
+  shareSheetEl.style.display = "block";
+}
+
 export function renderRecent({ recentEl, recentFeatures, onItemClick }) {
   if (!recentFeatures.length) {
     recentEl.innerHTML = "";

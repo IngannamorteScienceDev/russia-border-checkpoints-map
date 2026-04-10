@@ -562,6 +562,11 @@ if (!lastClipboardText.includes("checkpoint=100") || !lastClipboardText.includes
   throw new Error("Share link did not copy current URL state.");
 }
 
+const shareSheetHtml = elements.get("shareSheet")?.innerHTML || "";
+if (!shareSheetHtml.includes("Поделиться картой") || !shareSheetHtml.includes("api.qrserver.com") || !shareSheetHtml.includes("share-sheet__url")) {
+  throw new Error("Share sheet with QR code was not rendered.");
+}
+
 styleToggleButton.onclick?.();
 if (new URL(window.location.href).searchParams.get("sat") !== null) {
   throw new Error("Satellite mode was not cleared from URL after toggling off.");

@@ -10,7 +10,7 @@ import { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } from "./js/favorit
 import { haversine } from "./js/geo.js";
 import { createCheckpointsLayerController, ensureSatelliteLayer } from "./js/mapLayers.js";
 import { createPopupController } from "./js/popup.js";
-import { buildLegend, fillFilters, renderCompare, renderList, renderNearestOpen, renderRecent, renderStats } from "./js/render.js";
+import { buildLegend, fillFilters, renderCompare, renderList, renderNearestOpen, renderRecent, renderShareSheet, renderStats } from "./js/render.js";
 import { loadRecentIds, prependRecentId, saveRecentIds } from "./js/recent.js";
 import { copyText } from "./js/share.js";
 import {
@@ -46,6 +46,7 @@ const state = {
   compareIds: [],
   showFavoritesOnly: false,
   showViewportOnly: false,
+  shareSheetOpen: false,
   userLocation: null,
   userMarker: null,
   debounceTimer: null,
@@ -139,6 +140,16 @@ function renderAll() {
     onItemClick: focusById,
     onRemove: removeCompareItem,
     onClear: clearCompare
+  });
+
+  renderShareSheet({
+    shareSheetEl: dom.shareSheetEl,
+    shareUrl: window.location.href,
+    isOpen: state.shareSheetOpen,
+    canNativeShare: typeof navigator.share === "function",
+    onCopy: copyShareLink,
+    onNativeShare: shareViaNavigator,
+    onClose: closeShareSheet
   });
 
   syncFavoritesButton();
@@ -436,8 +447,32 @@ function setShareButtonLabel(text) {
 }
 
 async function shareCurrentView() {
+  state.shareSheetOpen = true;
+  await copyShareLink();
+  renderAll();
+}
+
+async function copyShareLink() {
   const copied = await copyText(window.location.href);
   setShareButtonLabel(copied ? "Ссылка скопирована" : "Скопируйте ссылку вручную");
+}
+
+async function shareViaNavigator() {
+  if (typeof navigator.share !== "function") return;
+
+  try {
+    await navigator.share({
+      title: document.title || "КПП РФ",
+      url: window.location.href
+    });
+  } catch (_error) {
+    // User cancellation is a normal share-sheet outcome.
+  }
+}
+
+function closeShareSheet() {
+  state.shareSheetOpen = false;
+  renderAll();
 }
 
 function focusById(id) {
