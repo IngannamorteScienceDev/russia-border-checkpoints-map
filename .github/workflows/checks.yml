@@ -43,5 +43,7 @@ jobs:
         with:
           node-version: "24"
 
-      - name: Run frontend smoke test
-        run: node tests/frontend-smoke.mjs
+      - name: Run frontend tests
+        run: |
+          node tests/frontend-smoke.mjs
+          node tests/frontend-modules.mjs
