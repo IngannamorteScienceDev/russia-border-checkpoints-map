@@ -6,9 +6,10 @@ import { buildDatasetMeta, loadFeatures, filterFeatures } from "./js/data.js";
 import { getDomElements } from "./js/dom.js";
 import { exportFeaturesAsCsv, exportFeaturesAsGeoJson } from "./js/export.js";
 import { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } from "./js/favorites.js";
+import { haversine } from "./js/geo.js";
 import { createCheckpointsLayerController, ensureSatelliteLayer } from "./js/mapLayers.js";
 import { createPopupController } from "./js/popup.js";
-import { buildLegend, fillFilters, renderList, renderRecent, renderStats } from "./js/render.js";
+import { buildLegend, fillFilters, renderList, renderNearestOpen, renderRecent, renderStats } from "./js/render.js";
 import { loadRecentIds, prependRecentId, saveRecentIds } from "./js/recent.js";
 import { copyText } from "./js/share.js";
 import {
@@ -84,6 +85,8 @@ function hideLoaderOnce() {
 }
 
 function renderAll() {
+  const nearestOpenFeature = getNearestOpenFeature();
+
   renderStats({
     statsEl: dom.statsEl,
     allFeatures: state.allFeatures,
@@ -99,6 +102,7 @@ function renderAll() {
     viewFeatures: state.viewFeatures,
     userLocation: state.userLocation,
     favoriteIds: state.favoriteIds,
+    nearestOpenId: nearestOpenFeature?.properties.__id || "",
     sortMode: dom.sortEl.value,
     onItemClick: focusById,
     onFavoriteToggle: toggleFavorite
@@ -107,6 +111,13 @@ function renderAll() {
   renderRecent({
     recentEl: dom.recentEl,
     recentFeatures: getRecentFeatures(),
+    onItemClick: focusById
+  });
+
+  renderNearestOpen({
+    nearestOpenEl: dom.nearestOpenEl,
+    feature: nearestOpenFeature,
+    userLocation: state.userLocation,
     onItemClick: focusById
   });
 
@@ -168,6 +179,17 @@ function getRecentFeatures() {
   return state.recentIds
     .map(id => featuresById.get(id))
     .filter(Boolean);
+}
+
+function getNearestOpenFeature() {
+  if (!state.userLocation) return null;
+
+  return state.viewFeatures
+    .filter(feature => feature.properties.__status === "Действует")
+    .sort((a, b) =>
+      haversine(state.userLocation, a.geometry.coordinates) -
+      haversine(state.userLocation, b.geometry.coordinates)
+    )[0] || null;
 }
 
 function syncFavoritesButton() {

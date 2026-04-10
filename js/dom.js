@@ -18,6 +18,7 @@ export function getDomElements() {
     exportGeoJsonEl: el("exportGeoJson"),
     shareLinkEl: el("shareLink"),
     recentEl: el("recent"),
+    nearestOpenEl: el("nearestOpen"),
     legendEl: el("legend"),
     statsEl: el("stats"),
     listEl: el("list"),

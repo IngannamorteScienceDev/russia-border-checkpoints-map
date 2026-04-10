@@ -542,6 +542,16 @@ if (sortOrder?.value !== "distance") {
   throw new Error("Nearest action did not switch sorting to distance.");
 }
 
+const nearestOpenHtml = elements.get("nearestOpen")?.innerHTML || "";
+if (!nearestOpenHtml.includes("Ближайший действующий") || !nearestOpenHtml.includes("Тестовый КПП")) {
+  throw new Error("Nearest open checkpoint summary was not rendered.");
+}
+
+const nearestListHtml = elements.get("list")?.innerHTML || "";
+if (!nearestListHtml.includes("item--nearest-open") || !nearestListHtml.includes("Ближайший действующий пункт")) {
+  throw new Error("Nearest open checkpoint was not highlighted in the list.");
+}
+
 if (new URL(window.location.href).searchParams.get("sort") !== "distance") {
   throw new Error("Distance sorting was not synchronized to URL.");
 }
