@@ -1,0 +1,16 @@
+{
+  "name": "russia-border-checkpoints-map",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{js,mjs,css,html,json,yml,md}\"",
+    "test:frontend": "node tests/frontend-smoke.mjs && node tests/frontend-modules.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "prettier": "^3.0.0"
+  }
+}

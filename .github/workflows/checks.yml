@@ -43,7 +43,11 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run frontend lint
+        run: npm run lint
+
       - name: Run frontend tests
-        run: |
-          node tests/frontend-smoke.mjs
-          node tests/frontend-modules.mjs
+        run: npm run test:frontend
