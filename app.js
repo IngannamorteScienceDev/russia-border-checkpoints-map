@@ -11,12 +11,19 @@ import { buildLegend, fillFilters, renderList, renderStats } from "./js/render.j
 import { copyText } from "./js/share.js";
 import {
   applyFilterStateFromUrl,
+  getMapViewStateFromUrl,
   getSelectedCheckpointIdFromUrl,
   syncFilterStateToUrl,
+  syncMapViewToUrl,
   syncSelectedCheckpointToUrl
 } from "./js/urlState.js";
 
 const dom = getDomElements();
+const DEFAULT_MAP_VIEW = {
+  center: [90, 61],
+  zoom: 4
+};
+const initialMapView = getMapViewStateFromUrl(DEFAULT_MAP_VIEW);
 
 const state = {
   allFeatures: [],
@@ -31,8 +38,8 @@ const state = {
 const map = new maplibregl.Map({
   container: "map",
   style: STYLE_MAP,
-  center: [90, 61],
-  zoom: 4,
+  center: initialMapView.center,
+  zoom: initialMapView.zoom,
   antialias: true
 });
 
@@ -87,6 +94,18 @@ function renderAll() {
   });
 
   syncExportButtons();
+}
+
+function syncCurrentMapView() {
+  const mapCenter = map.getCenter();
+  const center = Array.isArray(mapCenter)
+    ? mapCenter
+    : [mapCenter?.lng, mapCenter?.lat];
+
+  syncMapViewToUrl({
+    center,
+    zoom: map.getZoom()
+  });
 }
 
 function getActiveFilterCount() {
@@ -209,6 +228,8 @@ function updateUserMarker() {
 }
 
 function attachUi() {
+  map.on("moveend", syncCurrentMapView);
+
   dom.searchEl.oninput = () => {
     clearTimeout(state.debounceTimer);
     state.debounceTimer = setTimeout(applyFilters, 200);
@@ -296,6 +317,7 @@ async function init() {
     });
     applyFilterStateFromUrl(dom);
     attachUi();
+    syncCurrentMapView();
     applyFilters();
 
     if (window.matchMedia("(max-width: 900px)").matches) {

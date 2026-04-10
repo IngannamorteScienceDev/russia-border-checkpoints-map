@@ -19,7 +19,9 @@ function createElement() {
 const elements = new Map();
 let lastDownload = null;
 let lastClipboardText = "";
+let lastMapInstance = null;
 let lastPopupRef = null;
+let initialMapOptions = null;
 let replaceStateCalls = 0;
 
 globalThis.document = {
@@ -56,7 +58,7 @@ globalThis.document = {
 };
 
 globalThis.window = {
-  location: { href: "http://localhost:8000/?country=%D0%9A%D0%B8%D1%82%D0%B0%D0%B9&status=%D0%94%D0%B5%D0%B9%D1%81%D1%82%D0%B2%D1%83%D0%B5%D1%82&q=%D1%82%D0%B5%D1%81%D1%82&checkpoint=100" },
+  location: { href: "http://localhost:8000/?country=%D0%9A%D0%B8%D1%82%D0%B0%D0%B9&status=%D0%94%D0%B5%D0%B9%D1%81%D1%82%D0%B2%D1%83%D0%B5%D1%82&q=%D1%82%D0%B5%D1%81%D1%82&checkpoint=100&lng=120.50000&lat=50.25000&zoom=5.50" },
   history: {
     replaceState(_state, _title, nextUrl) {
       replaceStateCalls += 1;
@@ -130,9 +132,17 @@ globalThis.fetch = async () => ({
 });
 
 class FakeMap {
-  constructor() {
+  constructor(options = {}) {
     this.sources = new Map();
     this.layers = new Map();
+    this.listeners = new Map();
+    this.center = Array.isArray(options.center) ? [...options.center] : [0, 0];
+    this.zoom = typeof options.zoom === "number" ? options.zoom : 0;
+    initialMapOptions = {
+      center: [...this.center],
+      zoom: this.zoom
+    };
+    lastMapInstance = this;
   }
 
   loaded() {
@@ -180,11 +190,41 @@ class FakeMap {
     this.layers.delete(id);
   }
 
-  on() {}
+  on(eventName, maybeLayer, maybeHandler) {
+    const handler = typeof maybeLayer === "function" ? maybeLayer : maybeHandler;
+    if (typeof handler !== "function") return;
 
-  off() {}
+    if (!this.listeners.has(eventName)) {
+      this.listeners.set(eventName, new Set());
+    }
 
-  easeTo() {}
+    this.listeners.get(eventName).add(handler);
+  }
+
+  off(eventName, maybeLayer, maybeHandler) {
+    const handler = typeof maybeLayer === "function" ? maybeLayer : maybeHandler;
+    if (typeof handler !== "function") return;
+
+    this.listeners.get(eventName)?.delete(handler);
+  }
+
+  emit(eventName) {
+    for (const handler of this.listeners.get(eventName) || []) {
+      handler();
+    }
+  }
+
+  easeTo(options = {}) {
+    if (Array.isArray(options.center)) {
+      this.center = [...options.center];
+    }
+
+    if (typeof options.zoom === "number") {
+      this.zoom = options.zoom;
+    }
+
+    this.emit("moveend");
+  }
 
   resize() {}
 
@@ -193,7 +233,14 @@ class FakeMap {
   }
 
   getZoom() {
-    return 4;
+    return this.zoom;
+  }
+
+  getCenter() {
+    return {
+      lng: this.center[0],
+      lat: this.center[1]
+    };
   }
 
   setLayoutProperty(id, prop, value) {
@@ -275,9 +322,14 @@ const shareLinkButton = elements.get("shareLink");
 const searchInput = elements.get("searchInput");
 const statusFilter = elements.get("statusFilter");
 const resetFiltersButton = elements.get("resetFilters");
+const url = new URL(window.location.href);
 
 if (!statsHtml.includes("Всего КПП") || !statsHtml.includes("Обновлено")) {
   throw new Error("Stats block was not rendered.");
+}
+
+if (!initialMapOptions || initialMapOptions.center[0] !== 120.5 || initialMapOptions.center[1] !== 50.25 || initialMapOptions.zoom !== 5.5) {
+  throw new Error("Map view was not restored from URL.");
 }
 
 if (!listHtml.includes("Тестовый КПП") || listHtml.includes("Воздушный тест")) {
@@ -304,8 +356,12 @@ if (statusFilter?.value !== "Действует") {
   throw new Error("Status filter was not restored from URL.");
 }
 
-if (new URL(window.location.href).searchParams.get("checkpoint") !== "100") {
+if (url.searchParams.get("checkpoint") !== "100") {
   throw new Error("Selected checkpoint was not preserved in URL.");
+}
+
+if (url.searchParams.get("lng") !== "131.90000" || url.searchParams.get("lat") !== "43.10000" || url.searchParams.get("zoom") !== "7.00") {
+  throw new Error("Map view was not synchronized after restoring the checkpoint popup.");
 }
 
 if (typeof exportCsvButton?.onclick !== "function" || typeof exportGeoJsonButton?.onclick !== "function") {
@@ -327,13 +383,26 @@ if (!lastDownload?.download?.endsWith(".geojson")) {
 }
 
 await shareLinkButton.onclick();
-if (!lastClipboardText.includes("checkpoint=100") || !lastClipboardText.includes("country=")) {
+if (!lastClipboardText.includes("checkpoint=100") || !lastClipboardText.includes("country=") || !lastClipboardText.includes("zoom=7.00")) {
   throw new Error("Share link did not copy current URL state.");
 }
 
 lastPopupRef?.remove();
 if (new URL(window.location.href).searchParams.get("checkpoint") !== null) {
   throw new Error("Closing popup did not clear checkpoint from URL.");
+}
+
+lastMapInstance?.easeTo({ center: [37.6176, 55.7558], zoom: 6.5 });
+if (new URL(window.location.href).searchParams.get("lng") !== "37.61760") {
+  throw new Error("Map longitude was not synchronized after moving the map.");
+}
+
+if (new URL(window.location.href).searchParams.get("lat") !== "55.75580") {
+  throw new Error("Map latitude was not synchronized after moving the map.");
+}
+
+if (new URL(window.location.href).searchParams.get("zoom") !== "6.50") {
+  throw new Error("Map zoom was not synchronized after moving the map.");
 }
 
 statusFilter.value = "all";
@@ -345,11 +414,17 @@ if (new URL(window.location.href).searchParams.get("status") !== null) {
 
 resetFiltersButton.onclick?.();
 
-if (new URL(window.location.href).search) {
-  throw new Error("Reset filters did not clear URL state.");
+const finalUrl = new URL(window.location.href);
+
+if (finalUrl.searchParams.get("q") !== null || finalUrl.searchParams.get("country") !== null || finalUrl.searchParams.get("status") !== null || finalUrl.searchParams.get("checkpoint") !== null) {
+  throw new Error("Reset filters did not clear filter state from URL.");
 }
 
-if (replaceStateCalls < 2) {
+if (finalUrl.searchParams.get("lng") !== "37.61760" || finalUrl.searchParams.get("lat") !== "55.75580" || finalUrl.searchParams.get("zoom") !== "6.50") {
+  throw new Error("Reset filters should preserve the current map view in URL.");
+}
+
+if (replaceStateCalls < 4) {
   throw new Error("URL state was not synchronized via history.replaceState.");
 }
 

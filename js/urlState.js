@@ -6,6 +6,39 @@ const FILTER_PARAM_MAP = {
   subject: "subject"
 };
 const CHECKPOINT_PARAM = "checkpoint";
+const MAP_PARAM_MAP = {
+  lng: "lng",
+  lat: "lat",
+  zoom: "zoom"
+};
+
+function updateUrl(mutator) {
+  if (!window.history?.replaceState) return;
+
+  const url = new URL(window.location.href);
+  mutator(url);
+  window.history.replaceState({}, "", url);
+}
+
+function setParam(url, name, value) {
+  if (value === null || value === undefined || value === "" || value === "all") {
+    url.searchParams.delete(name);
+    return;
+  }
+
+  url.searchParams.set(name, String(value));
+}
+
+function parseFiniteNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+
+  const number = Number.parseFloat(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function hasAllowedValue(el, value) {
   if (!value) return false;
@@ -35,29 +68,19 @@ export function applyFilterStateFromUrl(dom) {
 }
 
 export function syncFilterStateToUrl(dom) {
-  if (!window.history?.replaceState) return;
+  updateUrl(url => {
+    const state = {
+      query: dom.searchEl.value.trim(),
+      type: dom.typeEl.value,
+      status: dom.statusEl.value,
+      country: dom.countryEl.value,
+      subject: dom.subjectEl.value
+    };
 
-  const url = new URL(window.location.href);
-  const state = {
-    query: dom.searchEl.value.trim(),
-    type: dom.typeEl.value,
-    status: dom.statusEl.value,
-    country: dom.countryEl.value,
-    subject: dom.subjectEl.value
-  };
-
-  for (const [key, param] of Object.entries(FILTER_PARAM_MAP)) {
-    const value = state[key];
-
-    if (!value || value === "all") {
-      url.searchParams.delete(param);
-      continue;
+    for (const [key, param] of Object.entries(FILTER_PARAM_MAP)) {
+      setParam(url, param, state[key]);
     }
-
-    url.searchParams.set(param, value);
-  }
-
-  window.history.replaceState({}, "", url);
+  });
 }
 
 export function getSelectedCheckpointIdFromUrl() {
@@ -65,15 +88,33 @@ export function getSelectedCheckpointIdFromUrl() {
 }
 
 export function syncSelectedCheckpointToUrl(checkpointId) {
-  if (!window.history?.replaceState) return;
+  updateUrl(url => {
+    setParam(url, CHECKPOINT_PARAM, checkpointId);
+  });
+}
 
+export function getMapViewStateFromUrl(defaultView) {
   const url = new URL(window.location.href);
+  const lng = parseFiniteNumber(url.searchParams.get(MAP_PARAM_MAP.lng));
+  const lat = parseFiniteNumber(url.searchParams.get(MAP_PARAM_MAP.lat));
+  const zoom = parseFiniteNumber(url.searchParams.get(MAP_PARAM_MAP.zoom));
 
-  if (!checkpointId) {
-    url.searchParams.delete(CHECKPOINT_PARAM);
-  } else {
-    url.searchParams.set(CHECKPOINT_PARAM, checkpointId);
-  }
+  return {
+    center: Number.isFinite(lng) && Number.isFinite(lat)
+      ? [clamp(lng, -180, 180), clamp(lat, -90, 90)]
+      : [...defaultView.center],
+    zoom: Number.isFinite(zoom)
+      ? clamp(zoom, 0, 22)
+      : defaultView.zoom
+  };
+}
 
-  window.history.replaceState({}, "", url);
+export function syncMapViewToUrl({ center, zoom }) {
+  updateUrl(url => {
+    const [lng, lat] = Array.isArray(center) ? center : [null, null];
+
+    setParam(url, MAP_PARAM_MAP.lng, Number.isFinite(lng) ? lng.toFixed(5) : null);
+    setParam(url, MAP_PARAM_MAP.lat, Number.isFinite(lat) ? lat.toFixed(5) : null);
+    setParam(url, MAP_PARAM_MAP.zoom, Number.isFinite(zoom) ? zoom.toFixed(2) : null);
+  });
 }
