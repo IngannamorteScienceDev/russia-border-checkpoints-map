@@ -88,7 +88,7 @@ function extractExtra(props) {
     road: pick("road_name", "route", "road", "highway"),
     neighborPoint: pick("neighbor_checkpoint", "neighbor_checkpoint_name", "sopredelnyi_kpp"),
     operator: pick("operator", "agency", "department", "vedomstvo"),
-    updatedAt: pick("updated_at", "last_update", "status_updated_at", "date_updated")
+    updatedAt: pick("updated_at", "last_updated", "last_update", "status_updated_at", "date_updated")
   };
 }
 

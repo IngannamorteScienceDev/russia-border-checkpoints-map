@@ -356,6 +356,7 @@ const {
   toggleFavoriteId
 } = await import(new URL("../js/favorites.js", import.meta.url));
 const { toggleCompareId } = await import(new URL("../js/compare.js", import.meta.url));
+const { getFreshnessInfo } = await import(new URL("../js/freshness.js", import.meta.url));
 const {
   RECENT_STORAGE_KEY,
   loadRecentIds,
@@ -391,6 +392,14 @@ if (compareIds.join(",") !== "101,102") {
 
 if (toggleCompareId(compareIds, "101").join(",") !== "102") {
   throw new Error("Compare checkpoint IDs should toggle existing items off.");
+}
+
+if (getFreshnessInfo("2026-01-01T00:00:00Z", new Date("2026-04-01T00:00:00Z")).level !== "fresh") {
+  throw new Error("Freshness helper did not classify recent records.");
+}
+
+if (getFreshnessInfo("2024-01-01T00:00:00Z", new Date("2026-04-01T00:00:00Z")).level !== "stale") {
+  throw new Error("Freshness helper did not classify stale records.");
 }
 
 let recentIds = prependRecentId([], "101");
@@ -469,6 +478,10 @@ if (!listHtml.includes("item__copyCoords") || !listHtml.includes("Координ
 
 if (!listHtml.includes("item__compare") || !listHtml.includes("Сравнить")) {
   throw new Error("Checkpoint compare action was not rendered.");
+}
+
+if (!listHtml.includes("freshness freshness--fresh") || !listHtml.includes("Свежие данные")) {
+  throw new Error("Freshness badge was not rendered.");
 }
 
 if (compareHtml !== "") {

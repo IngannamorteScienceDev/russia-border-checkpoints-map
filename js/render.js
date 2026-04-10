@@ -1,4 +1,5 @@
 import { TYPE_COLORS } from "./config.js";
+import { getFreshnessInfo } from "./freshness.js";
 import { haversine, mapPointUrl, routeUrl } from "./geo.js";
 
 export function buildLegend(legendEl) {
@@ -302,6 +303,7 @@ function compareByName(a, b) {
 function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpenId) {
   return features.map(feature => {
     const props = feature.properties;
+    const freshness = getFreshnessInfo(props.__extra?.updatedAt);
     const isFavorite = favoriteIds.has(String(props.__id));
     const isComparing = compareIds.includes(String(props.__id));
     const isNearestOpen = nearestOpenId === props.__id;
@@ -332,6 +334,9 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
         <div class="item__meta">
           ${props.__subject || "—"} · ${props.__country || "—"}<br>
           ${props.__type} · ${props.__status}${dist}
+          <div class="item__badges">
+            <span class="freshness freshness--${freshness.level}" title="${freshness.details}">${freshness.label}</span>
+          </div>
           ${isNearestOpen ? '<div class="item__note">Ближайший действующий пункт</div>' : ""}
         </div>
         <div class="item__actions">

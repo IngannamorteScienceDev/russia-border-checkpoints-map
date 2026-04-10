@@ -686,6 +686,42 @@ body{
   color: #bbf7d0;
   font-weight:750;
 }
+.item__badges{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+}
+.freshness{
+  display:inline-flex;
+  align-items:center;
+  padding:5px 8px;
+  border-radius:999px;
+  border:1px solid rgba(148,163,184,.14);
+  background: rgba(2,6,23,.30);
+  color: rgba(229,231,235,.72);
+  font-weight:750;
+}
+.freshness--fresh{
+  border-color: rgba(34,197,94,.26);
+  background: rgba(34,197,94,.12);
+  color:#bbf7d0;
+}
+.freshness--aging{
+  border-color: rgba(251,191,36,.28);
+  background: rgba(251,191,36,.12);
+  color:#fde68a;
+}
+.freshness--stale{
+  border-color: rgba(248,113,113,.30);
+  background: rgba(248,113,113,.12);
+  color:#fecaca;
+}
+.freshness--unknown{
+  border-color: rgba(148,163,184,.16);
+  background: rgba(148,163,184,.08);
+  color: rgba(229,231,235,.68);
+}
 .item__actions{
   display:flex;
   flex-wrap:wrap;
