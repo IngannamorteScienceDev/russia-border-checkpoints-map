@@ -15,3 +15,7 @@ export function haversine(a, b) {
 export function routeUrl(from, to) {
   return `https://yandex.ru/maps/?rtext=${from[1]},${from[0]}~${to[1]},${to[0]}&rtt=auto`;
 }
+
+export function mapPointUrl(to) {
+  return `https://yandex.ru/maps/?ll=${to[0]},${to[1]}&z=12&pt=${to[0]},${to[1]},pm2rdm`;
+}

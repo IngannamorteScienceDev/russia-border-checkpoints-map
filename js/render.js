@@ -1,5 +1,5 @@
 import { TYPE_COLORS } from "./config.js";
-import { haversine } from "./geo.js";
+import { haversine, mapPointUrl, routeUrl } from "./geo.js";
 
 export function buildLegend(legendEl) {
   legendEl.innerHTML = `
@@ -170,6 +170,9 @@ function renderItems(features, userLocation, favoriteIds, nearestOpenId) {
     const dist = userLocation
       ? ` · 📏 ${haversine(userLocation, feature.geometry.coordinates).toFixed(1)} км`
       : "";
+    const routeHref = userLocation
+      ? routeUrl(userLocation, feature.geometry.coordinates)
+      : mapPointUrl(feature.geometry.coordinates);
 
     return `
       <div class="item${isNearestOpen ? " item--nearest-open" : ""}" data-id="${props.__id}">
@@ -191,6 +194,10 @@ function renderItems(features, userLocation, favoriteIds, nearestOpenId) {
           ${props.__subject || "—"} · ${props.__country || "—"}<br>
           ${props.__type} · ${props.__status}${dist}
           ${isNearestOpen ? '<div class="item__note">Ближайший действующий пункт</div>' : ""}
+        </div>
+        <div class="item__actions">
+          <button class="item__action item__copyCoords" type="button" data-copy-coords-id="${props.__id}">Координаты</button>
+          <a class="item__action item__route" href="${routeHref}" target="_blank" rel="noreferrer">Маршрут</a>
         </div>
       </div>
     `;
@@ -216,7 +223,8 @@ export function renderList({
   nearestOpenId = "",
   sortMode,
   onItemClick,
-  onFavoriteToggle
+  onFavoriteToggle,
+  onCopyCoordinates
 }) {
   if (!viewFeatures.length) {
     listEl.innerHTML = "";
@@ -261,6 +269,25 @@ export function renderList({
     node.onclick = event => {
       event?.stopPropagation?.();
       onFavoriteToggle?.(node.dataset.favoriteId);
+    };
+  });
+
+  listEl.querySelectorAll(".item__copyCoords").forEach(node => {
+    node.onclick = async event => {
+      event?.stopPropagation?.();
+      const copied = await onCopyCoordinates?.(node.dataset.copyCoordsId);
+      if (!copied) return;
+
+      node.textContent = "Скопировано";
+      setTimeout(() => {
+        node.textContent = "Координаты";
+      }, 1400);
+    };
+  });
+
+  listEl.querySelectorAll(".item__route").forEach(node => {
+    node.onclick = event => {
+      event?.stopPropagation?.();
     };
   });
 

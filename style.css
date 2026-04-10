@@ -510,6 +510,28 @@ body{
   color: #bbf7d0;
   font-weight:750;
 }
+.item__actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+.item__action{
+  border:1px solid rgba(148,163,184,.14);
+  border-radius:999px;
+  background: rgba(2,6,23,.34);
+  color: rgba(229,231,235,.76);
+  padding:7px 10px;
+  cursor:pointer;
+  font-size:12.5px;
+  font-weight:750;
+  text-decoration:none;
+}
+.item__action:hover{
+  border-color: rgba(59,130,246,.34);
+  background: rgba(59,130,246,.12);
+  color: rgba(229,231,235,.94);
+}
 
 .badge{
   display:inline-flex;

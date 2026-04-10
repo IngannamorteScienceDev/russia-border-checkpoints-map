@@ -450,6 +450,10 @@ if (!listHtml.includes("item__favorite is-favorite") || !listHtml.includes('aria
   throw new Error("Favorite checkpoint was not rendered as selected.");
 }
 
+if (!listHtml.includes("item__copyCoords") || !listHtml.includes("Координаты") || !listHtml.includes("item__route") || !listHtml.includes("yandex.ru/maps")) {
+  throw new Error("Checkpoint quick actions were not rendered.");
+}
+
 if (!recentHtml.includes("Недавно открытые") || !recentHtml.includes("Тестовый КПП") || !recentHtml.includes("Воздушный тест")) {
   throw new Error("Recently viewed checkpoints were not rendered.");
 }

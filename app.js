@@ -112,7 +112,8 @@ function renderAll() {
     nearestOpenId: nearestOpenFeature?.properties.__id || "",
     sortMode: dom.sortEl.value,
     onItemClick: focusById,
-    onFavoriteToggle: toggleFavorite
+    onFavoriteToggle: toggleFavorite,
+    onCopyCoordinates: copyCheckpointCoordinates
   });
 
   renderRecent({
@@ -451,6 +452,13 @@ function toggleFavorite(id) {
 function toggleFavoritesOnly() {
   state.showFavoritesOnly = !state.showFavoritesOnly;
   applyFilters();
+}
+
+async function copyCheckpointCoordinates(id) {
+  const feature = getFeatureById(id, state.allFeatures);
+  if (!feature) return false;
+
+  return copyText(feature.properties.__coords || "");
 }
 
 function toggleViewportOnly() {
