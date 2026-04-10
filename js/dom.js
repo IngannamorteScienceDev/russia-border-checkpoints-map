@@ -10,6 +10,8 @@ export function getDomElements() {
     statusEl: el("statusFilter"),
     countryEl: el("countryFilter"),
     subjectEl: el("subjectFilter"),
+    sortEl: el("sortOrder"),
+    nearestBtnEl: el("nearestBtn"),
     resetFiltersEl: el("resetFilters"),
     exportCsvEl: el("exportCsv"),
     exportGeoJsonEl: el("exportGeoJson"),

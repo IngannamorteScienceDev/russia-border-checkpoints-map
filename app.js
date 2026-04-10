@@ -92,6 +92,7 @@ function renderAll() {
     emptyEl: dom.emptyEl,
     viewFeatures: state.viewFeatures,
     userLocation: state.userLocation,
+    sortMode: dom.sortEl.value,
     onItemClick: focusById
   });
 
@@ -135,6 +136,12 @@ function getActiveFilterCount() {
   ].filter(Boolean);
 
   return filterValues.length;
+}
+
+function setSortMode(value) {
+  dom.sortEl.value = value;
+  syncFilterStateToUrl(dom);
+  renderAll();
 }
 
 function applyFilters() {
@@ -244,6 +251,39 @@ function updateUserMarker() {
     .addTo(map);
 }
 
+function setGeoButtonLoading(isLoading) {
+  dom.geoBtnEl.disabled = isLoading;
+  dom.nearestBtnEl.disabled = isLoading;
+  dom.geoBtnEl.textContent = isLoading ? "⏳" : "📍 Гео";
+  dom.nearestBtnEl.textContent = isLoading ? "Ищем..." : "Ближайшие";
+}
+
+function requestUserLocation({ setDistanceSort = false } = {}) {
+  if (!navigator.geolocation) return;
+
+  setGeoButtonLoading(true);
+
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      state.userLocation = [position.coords.longitude, position.coords.latitude];
+      updateUserMarker();
+
+      if (setDistanceSort) {
+        setSortMode("distance");
+      } else {
+        renderAll();
+      }
+
+      popupController.refreshPopup();
+      setGeoButtonLoading(false);
+    },
+    () => {
+      setGeoButtonLoading(false);
+    },
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+  );
+}
+
 function attachUi() {
   map.on("moveend", syncCurrentMapView);
 
@@ -256,36 +296,22 @@ function attachUi() {
   dom.statusEl.onchange = applyFilters;
   dom.countryEl.onchange = applyFilters;
   dom.subjectEl.onchange = applyFilters;
+  dom.sortEl.onchange = () => {
+    syncFilterStateToUrl(dom);
+    renderAll();
+  };
   dom.resetFiltersEl.onclick = resetFilters;
   dom.exportCsvEl.onclick = () => exportCurrentView("csv");
   dom.exportGeoJsonEl.onclick = () => exportCurrentView("geojson");
   dom.shareLinkEl.onclick = shareCurrentView;
+  dom.nearestBtnEl.onclick = () => requestUserLocation({ setDistanceSort: true });
 
   dom.styleToggleEl.onclick = () => {
     setSatelliteMode(!isSatelliteVisible());
   };
 
   dom.geoBtnEl.onclick = () => {
-    if (!navigator.geolocation) return;
-
-    dom.geoBtnEl.disabled = true;
-    dom.geoBtnEl.textContent = "⏳";
-
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        state.userLocation = [position.coords.longitude, position.coords.latitude];
-        updateUserMarker();
-        renderAll();
-        popupController.refreshPopup();
-        dom.geoBtnEl.disabled = false;
-        dom.geoBtnEl.textContent = "📍 Гео";
-      },
-      () => {
-        dom.geoBtnEl.disabled = false;
-        dom.geoBtnEl.textContent = "📍 Гео";
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-    );
+    requestUserLocation();
   };
 
   if (dom.mobileToggleEl) {

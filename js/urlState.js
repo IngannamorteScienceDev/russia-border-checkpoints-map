@@ -3,7 +3,8 @@ const FILTER_PARAM_MAP = {
   type: "type",
   status: "status",
   country: "country",
-  subject: "subject"
+  subject: "subject",
+  sort: "sort"
 };
 const CHECKPOINT_PARAM = "checkpoint";
 const SATELLITE_PARAM = "sat";
@@ -52,9 +53,9 @@ function hasAllowedValue(el, value) {
   return el.__options.includes(value);
 }
 
-function setSelectValue(el, value) {
-  if (!value || value === "all") {
-    el.value = "all";
+function setSelectValue(el, value, emptyValue = "all") {
+  if (!value || value === emptyValue) {
+    el.value = emptyValue;
     return;
   }
 
@@ -71,6 +72,7 @@ export function applyFilterStateFromUrl(dom) {
   setSelectValue(dom.statusEl, url.searchParams.get(FILTER_PARAM_MAP.status));
   setSelectValue(dom.countryEl, url.searchParams.get(FILTER_PARAM_MAP.country));
   setSelectValue(dom.subjectEl, url.searchParams.get(FILTER_PARAM_MAP.subject));
+  setSelectValue(dom.sortEl, url.searchParams.get(FILTER_PARAM_MAP.sort), "country");
 }
 
 export function syncFilterStateToUrl(dom) {
@@ -80,7 +82,8 @@ export function syncFilterStateToUrl(dom) {
       type: dom.typeEl.value,
       status: dom.statusEl.value,
       country: dom.countryEl.value,
-      subject: dom.subjectEl.value
+      subject: dom.subjectEl.value,
+      sort: dom.sortEl.value === "country" ? "" : dom.sortEl.value
     };
 
     for (const [key, param] of Object.entries(FILTER_PARAM_MAP)) {

@@ -79,7 +79,14 @@ Object.defineProperty(globalThis, "navigator", {
       }
     },
     geolocation: {
-      getCurrentPosition() {}
+      getCurrentPosition(success) {
+        success({
+          coords: {
+            longitude: 87,
+            latitude: 53.8
+          }
+        });
+      }
     }
   }
 });
@@ -319,10 +326,12 @@ const typeFilterHtml = elements.get("typeFilter")?.innerHTML || "";
 const exportCsvButton = elements.get("exportCsv");
 const exportGeoJsonButton = elements.get("exportGeoJson");
 const shareLinkButton = elements.get("shareLink");
+const nearestButton = elements.get("nearestBtn");
 const searchInput = elements.get("searchInput");
 const statusFilter = elements.get("statusFilter");
 const resetFiltersButton = elements.get("resetFilters");
 const styleToggleButton = elements.get("styleToggle");
+const sortOrder = elements.get("sortOrder");
 const url = new URL(window.location.href);
 
 if (!statsHtml.includes("Всего КПП") || !statsHtml.includes("Обновлено")) {
@@ -365,6 +374,10 @@ if (statusFilter?.value !== "Действует") {
   throw new Error("Status filter was not restored from URL.");
 }
 
+if (sortOrder?.value !== "country") {
+  throw new Error("Default sort order was not preserved.");
+}
+
 if (url.searchParams.get("checkpoint") !== "100") {
   throw new Error("Selected checkpoint was not preserved in URL.");
 }
@@ -379,6 +392,10 @@ if (typeof exportCsvButton?.onclick !== "function" || typeof exportGeoJsonButton
 
 if (typeof shareLinkButton?.onclick !== "function") {
   throw new Error("Share button was not wired.");
+}
+
+if (typeof nearestButton?.onclick !== "function") {
+  throw new Error("Nearest button was not wired.");
 }
 
 exportCsvButton.onclick();
@@ -432,6 +449,16 @@ if (new URL(window.location.href).searchParams.get("zoom") !== "6.50") {
   throw new Error("Map zoom was not synchronized after moving the map.");
 }
 
+nearestButton.onclick?.();
+
+if (sortOrder?.value !== "distance") {
+  throw new Error("Nearest action did not switch sorting to distance.");
+}
+
+if (new URL(window.location.href).searchParams.get("sort") !== "distance") {
+  throw new Error("Distance sorting was not synchronized to URL.");
+}
+
 statusFilter.value = "all";
 statusFilter.onchange?.();
 
@@ -455,7 +482,20 @@ if (finalUrl.searchParams.get("sat") !== "1") {
   throw new Error("Reset filters should preserve satellite mode in URL.");
 }
 
-if (replaceStateCalls < 6) {
+const finalListHtml = elements.get("list")?.innerHTML || "";
+if (finalListHtml.indexOf("Воздушный тест") === -1 || finalListHtml.indexOf("Тестовый КПП") === -1) {
+  throw new Error("Rendered list is missing expected checkpoints after resetting filters.");
+}
+
+if (finalListHtml.indexOf("Воздушный тест") > finalListHtml.indexOf("Тестовый КПП")) {
+  throw new Error("Distance sorting did not place the closest checkpoint first.");
+}
+
+if (finalUrl.searchParams.get("sort") !== "distance") {
+  throw new Error("Reset filters should preserve the current sort mode in URL.");
+}
+
+if (replaceStateCalls < 7) {
   throw new Error("URL state was not synchronized via history.replaceState.");
 }
 

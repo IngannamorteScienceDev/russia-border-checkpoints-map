@@ -89,7 +89,43 @@ function badgeHtml(type) {
   return `<span class="badge"><span class="badge__dot" style="background:${color}"></span>${type}</span>`;
 }
 
-export function renderList({ listEl, emptyEl, viewFeatures, userLocation, onItemClick }) {
+function compareByName(a, b) {
+  return a.properties.__name.localeCompare(b.properties.__name, "ru");
+}
+
+function renderItems(features, userLocation) {
+  return features.map(feature => {
+    const props = feature.properties;
+    const dist = userLocation
+      ? ` · 📏 ${haversine(userLocation, feature.geometry.coordinates).toFixed(1)} км`
+      : "";
+
+    return `
+      <div class="item" data-id="${props.__id}">
+        <div class="item__name">
+          ${badgeHtml(props.__type)}
+          <span>${props.__name}</span>
+        </div>
+        <div class="item__meta">
+          ${props.__subject || "—"} · ${props.__country || "—"}<br>
+          ${props.__type} · ${props.__status}${dist}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function sortByDistance(features, userLocation) {
+  return [...features].sort((a, b) => {
+    const distanceA = haversine(userLocation, a.geometry.coordinates);
+    const distanceB = haversine(userLocation, b.geometry.coordinates);
+
+    if (distanceA !== distanceB) return distanceA - distanceB;
+    return compareByName(a, b);
+  });
+}
+
+export function renderList({ listEl, emptyEl, viewFeatures, userLocation, sortMode, onItemClick }) {
   if (!viewFeatures.length) {
     listEl.innerHTML = "";
     emptyEl.innerHTML = `
@@ -100,35 +136,30 @@ export function renderList({ listEl, emptyEl, viewFeatures, userLocation, onItem
     return;
   }
 
-  const grouped = groupByCountry(viewFeatures);
+  if (sortMode === "distance" && !userLocation) {
+    listEl.innerHTML = "";
+    emptyEl.innerHTML = `
+      <div class="empty__title">Нужна геолокация</div>
+      <div class="empty__text">Нажмите «Ближайшие» или кнопку «Гео», чтобы отсортировать пункты пропуска по расстоянию.</div>
+    `;
+    emptyEl.style.display = "block";
+    return;
+  }
 
-  listEl.innerHTML = grouped.map(([country, items]) => {
-    const sorted = [...items].sort((a, b) =>
-      a.properties.__name.localeCompare(b.properties.__name, "ru")
-    );
+  if (sortMode === "name") {
+    const sorted = [...viewFeatures].sort(compareByName);
+    listEl.innerHTML = `<div class="group">🔤 По названию</div>${renderItems(sorted, userLocation)}`;
+  } else if (sortMode === "distance") {
+    const sorted = sortByDistance(viewFeatures, userLocation);
+    listEl.innerHTML = `<div class="group">📍 Ближайшие КПП</div>${renderItems(sorted, userLocation)}`;
+  } else {
+    const grouped = groupByCountry(viewFeatures);
 
-    const block = sorted.map(feature => {
-      const props = feature.properties;
-      const dist = userLocation
-        ? ` · 📏 ${haversine(userLocation, feature.geometry.coordinates).toFixed(1)} км`
-        : "";
-
-      return `
-        <div class="item" data-id="${props.__id}">
-          <div class="item__name">
-            ${badgeHtml(props.__type)}
-            <span>${props.__name}</span>
-          </div>
-          <div class="item__meta">
-            ${props.__subject || "—"} · ${props.__country || "—"}<br>
-            ${props.__type} · ${props.__status}${dist}
-          </div>
-        </div>
-      `;
+    listEl.innerHTML = grouped.map(([country, items]) => {
+      const sorted = [...items].sort(compareByName);
+      return `<div class="group">🌍 ${country} (${items.length})</div>${renderItems(sorted, userLocation)}`;
     }).join("");
-
-    return `<div class="group">🌍 ${country} (${items.length})</div>${block}`;
-  }).join("");
+  }
 
   listEl.querySelectorAll(".item").forEach(node => {
     node.onclick = () => onItemClick(node.dataset.id);
