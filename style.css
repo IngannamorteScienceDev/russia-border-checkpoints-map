@@ -168,6 +168,8 @@ body{
   cursor:pointer;
   font-weight:650;
   font-size:16px;
+  text-align:center;
+  text-decoration:none;
 }
 .btn:hover{border-color:rgba(148,163,184,.26)}
 .btn:active{transform:scale(.99)}
@@ -965,4 +967,125 @@ body{
 
   /* Карта всегда на фоне */
   .mapWrap{z-index:1}
+}
+
+body.versions-body{
+  min-height:100%;
+  overflow:auto;
+}
+.versions-page{
+  width:min(1080px, calc(100% - 32px));
+  margin:0 auto;
+  padding:34px 0 48px;
+}
+.versions-hero,
+.versions-note,
+.versions-summary{
+  border:1px solid var(--stroke);
+  border-radius:28px;
+  background: rgba(2,6,23,.58);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 55px rgba(0,0,0,.28);
+}
+.versions-hero{
+  padding:28px;
+}
+.versions-back{
+  display:inline-flex;
+  color: rgba(191,219,254,.95);
+  text-decoration:none;
+  font-weight:800;
+  margin-bottom:22px;
+}
+.versions-kicker{
+  color: rgba(125,211,252,.90);
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  font-size:12px;
+}
+.versions-hero h1{
+  margin:8px 0 10px;
+  font-size:clamp(34px, 7vw, 72px);
+  line-height:.95;
+}
+.versions-hero p,
+.versions-note p{
+  max-width:760px;
+  color: rgba(229,231,235,.72);
+  line-height:1.6;
+}
+.versions-summary{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap:14px;
+  margin-top:16px;
+  padding:16px;
+}
+.versions-loading,
+.versions-error{
+  grid-column:1 / -1;
+  padding:18px;
+  color: rgba(229,231,235,.75);
+}
+.versions-card,
+.versions-breakdown{
+  border:1px solid rgba(148,163,184,.12);
+  border-radius:22px;
+  background: rgba(15,23,42,.34);
+  padding:16px;
+}
+.versions-card--wide{
+  grid-column: span 2;
+}
+.versions-card span{
+  color: rgba(229,231,235,.62);
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.versions-card b{
+  display:block;
+  margin-top:10px;
+  font-size:26px;
+  overflow-wrap:anywhere;
+}
+.versions-card small{
+  display:block;
+  margin-top:8px;
+  color: rgba(229,231,235,.60);
+}
+.versions-breakdown{
+  grid-column: span 2;
+}
+.versions-breakdown h2,
+.versions-note h2{
+  margin:0 0 12px;
+}
+.versions-count{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 0;
+  border-top:1px solid rgba(148,163,184,.10);
+}
+.versions-count span{
+  color: rgba(229,231,235,.78);
+}
+.versions-count b{
+  color: rgba(191,219,254,.96);
+}
+.versions-note{
+  margin-top:16px;
+  padding:24px;
+}
+@media (max-width: 820px){
+  .versions-summary{
+    grid-template-columns: 1fr;
+  }
+  .versions-card--wide,
+  .versions-breakdown{
+    grid-column: auto;
+  }
 }

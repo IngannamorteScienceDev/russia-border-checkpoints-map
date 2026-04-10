@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Версии данных КПП РФ</title>
+
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body class="versions-body">
+  <main class="versions-page">
+    <section class="versions-hero">
+      <a class="versions-back" href="./index.html">← Назад к карте</a>
+      <div class="versions-kicker">Датасет</div>
+      <h1>Версии и сводка данных</h1>
+      <p>Страница собирается прямо в браузере из текущего GeoJSON, поэтому работает на GitHub Pages без сервера.</p>
+    </section>
+
+    <section id="versionsSummary" class="versions-summary">
+      <div class="versions-loading">Загружаем data/checkpoints.geojson…</div>
+    </section>
+
+    <section class="versions-note">
+      <h2>Как обновляется датасет</h2>
+      <p>Scheduled workflow раз в неделю запускает pipeline, валидирует результат и открывает pull request, если CSV или GeoJSON изменились.</p>
+      <p>Версия ниже строится из даты последнего обновления записей и количества КПП: так ее легко сверять между деплоями.</p>
+    </section>
+  </main>
+
+  <script type="module" src="./js/versions.js"></script>
+</body>
+</html>
