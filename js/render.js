@@ -296,6 +296,33 @@ function badgeHtml(type) {
   return `<span class="badge"><span class="badge__dot" style="background:${color}"></span>${type}</span>`;
 }
 
+function safeExternalUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return ["http:", "https:"].includes(url.protocol) ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+function confidenceInfo(value) {
+  const normalized = String(value || "").toLowerCase();
+
+  if (normalized.includes("high") || normalized.includes("выс")) {
+    return { level: "high", label: "Высокая достоверность" };
+  }
+
+  if (normalized.includes("medium") || normalized.includes("сред")) {
+    return { level: "medium", label: "Средняя достоверность" };
+  }
+
+  if (normalized.includes("low") || normalized.includes("низ")) {
+    return { level: "low", label: "Низкая достоверность" };
+  }
+
+  return { level: "unknown", label: value ? `Достоверность: ${value}` : "Достоверность не указана" };
+}
+
 function compareByName(a, b) {
   return a.properties.__name.localeCompare(b.properties.__name, "ru");
 }
@@ -304,6 +331,8 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
   return features.map(feature => {
     const props = feature.properties;
     const freshness = getFreshnessInfo(props.__extra?.updatedAt);
+    const confidence = confidenceInfo(props.__extra?.confidence);
+    const sourceUrl = safeExternalUrl(props.__extra?.source);
     const isFavorite = favoriteIds.has(String(props.__id));
     const isComparing = compareIds.includes(String(props.__id));
     const isNearestOpen = nearestOpenId === props.__id;
@@ -336,6 +365,7 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
           ${props.__type} · ${props.__status}${dist}
           <div class="item__badges">
             <span class="freshness freshness--${freshness.level}" title="${freshness.details}">${freshness.label}</span>
+            <span class="confidence confidence--${confidence.level}">${confidence.label}</span>
           </div>
           ${isNearestOpen ? '<div class="item__note">Ближайший действующий пункт</div>' : ""}
         </div>
@@ -343,6 +373,7 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
           <button class="item__action item__compare${isComparing ? " is-active" : ""}" type="button" data-compare-id="${props.__id}">Сравнить</button>
           <button class="item__action item__copyCoords" type="button" data-copy-coords-id="${props.__id}">Координаты</button>
           <a class="item__action item__route" href="${routeHref}" target="_blank" rel="noreferrer">Маршрут</a>
+          ${sourceUrl ? `<a class="item__action item__source" href="${sourceUrl}" target="_blank" rel="noreferrer">Источник</a>` : ""}
         </div>
       </div>
     `;

@@ -484,6 +484,10 @@ if (!listHtml.includes("freshness freshness--fresh") || !listHtml.includes("Св
   throw new Error("Freshness badge was not rendered.");
 }
 
+if (!listHtml.includes("Высокая достоверность") || !listHtml.includes("item__source") || !listHtml.includes("https://example.test/source")) {
+  throw new Error("Source and confidence indicators were not rendered.");
+}
+
 if (compareHtml !== "") {
   throw new Error("Compare panel should be hidden until checkpoints are selected.");
 }
