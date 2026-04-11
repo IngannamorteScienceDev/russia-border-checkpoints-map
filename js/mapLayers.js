@@ -60,7 +60,9 @@ export function createCheckpointsLayerController({ map, openPopup }) {
   function rebuildLayers(features) {
     unbindLayerEvents();
 
-    ["clusters", "cluster-count", "points", "points-hit"].forEach(safeRemoveLayer);
+    ["clusters", "cluster-count", "favorite-points-halo", "points", "points-hit"].forEach(
+      safeRemoveLayer
+    );
     safeRemoveSource("checkpoints");
 
     map.addSource("checkpoints", {
@@ -94,6 +96,20 @@ export function createCheckpointsLayerController({ map, openPopup }) {
     });
 
     map.addLayer({
+      id: "favorite-points-halo",
+      type: "circle",
+      source: "checkpoints",
+      filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "__isFavorite"], true]],
+      paint: {
+        "circle-radius": 11,
+        "circle-color": "#facc15",
+        "circle-opacity": 0.28,
+        "circle-stroke-width": 1,
+        "circle-stroke-color": "#fef08a"
+      }
+    });
+
+    map.addLayer({
       id: "points",
       type: "circle",
       source: "checkpoints",
@@ -117,8 +133,8 @@ export function createCheckpointsLayerController({ map, openPopup }) {
           TYPE_COLORS.Пешеходный,
           TYPE_COLORS.Другое
         ],
-        "circle-stroke-width": 2,
-        "circle-stroke-color": "#020617"
+        "circle-stroke-width": ["case", ["==", ["get", "__isFavorite"], true], 4, 2],
+        "circle-stroke-color": ["case", ["==", ["get", "__isFavorite"], true], "#facc15", "#020617"]
       }
     });
 

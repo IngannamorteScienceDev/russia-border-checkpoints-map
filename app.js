@@ -366,10 +366,24 @@ function applyFilters() {
     state.viewFeatures = filterFeaturesToViewport(state.viewFeatures);
   }
 
-  layerController.updateSourceData(state.viewFeatures);
+  syncMapSourceData();
   closePopupIfHidden();
   syncFilterStateToUrl(dom);
   renderAll();
+}
+
+function getMapFeatures(features = state.viewFeatures) {
+  return features.map((feature) => ({
+    ...feature,
+    properties: {
+      ...feature.properties,
+      __isFavorite: state.favoriteIds.has(feature.properties.__id)
+    }
+  }));
+}
+
+function syncMapSourceData() {
+  layerController.updateSourceData(getMapFeatures());
 }
 
 function resetFilters() {
@@ -512,6 +526,7 @@ function toggleFavorite(id) {
     return;
   }
 
+  syncMapSourceData();
   renderAll();
 }
 
@@ -676,7 +691,7 @@ async function init() {
     }
 
     setProgress(80, "Строим слои...");
-    layerController.rebuildLayers(state.viewFeatures);
+    layerController.rebuildLayers(getMapFeatures());
     restoreSelectedCheckpointFromUrl();
 
     setProgress(100, "Готово");

@@ -574,6 +574,10 @@ if (lastMapInstance?.getLayoutProperty("sat-layer", "visibility") !== "visible")
   throw new Error("Satellite mode was not restored from URL.");
 }
 
+if (!lastMapInstance?.getLayer("favorite-points-halo")) {
+  throw new Error("Favorite checkpoint halo layer was not added to the map.");
+}
+
 if (styleToggleButton?.textContent !== "🗺 Карта") {
   throw new Error("Satellite toggle label was not updated after restoring URL state.");
 }
@@ -584,6 +588,14 @@ if (!listHtml.includes("Тестовый КПП") || listHtml.includes("Возд
 
 if (!listHtml.includes("item__favorite is-favorite") || !listHtml.includes('aria-pressed="true"')) {
   throw new Error("Favorite checkpoint was not rendered as selected.");
+}
+
+if (
+  !lastMapInstance
+    ?.getSource("checkpoints")
+    ?.data?.features?.some((feature) => feature.properties.__isFavorite)
+) {
+  throw new Error("Favorite checkpoint was not decorated in the map source.");
 }
 
 if (
@@ -630,11 +642,27 @@ if (loadFavoriteIds().has("100")) {
   throw new Error("Favorite button click did not remove the checkpoint from localStorage.");
 }
 
+if (
+  lastMapInstance
+    ?.getSource("checkpoints")
+    ?.data?.features?.some((feature) => feature.properties.__isFavorite)
+) {
+  throw new Error("Favorite button click did not update favorite state in the map source.");
+}
+
 const secondFavoriteButton = elements.get("list")?.querySelectorAll(".item__favorite")[0];
 secondFavoriteButton?.onclick?.(stopPropagationEvent);
 
 if (!loadFavoriteIds().has("100")) {
   throw new Error("Favorite button click did not restore the checkpoint in localStorage.");
+}
+
+if (
+  !lastMapInstance
+    ?.getSource("checkpoints")
+    ?.data?.features?.some((feature) => feature.properties.__isFavorite)
+) {
+  throw new Error("Restored favorite checkpoint was not reflected in the map source.");
 }
 
 const compareButton = elements.get("list")?.querySelectorAll(".item__compare")[0];
