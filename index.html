@@ -32,7 +32,14 @@
           </div>
         </div>
 
-        <div class="panel__controls">
+        <nav class="panel__nav" aria-label="Разделы панели">
+          <a href="#controls">Фильтры</a>
+          <a href="#stats">Сводка</a>
+          <a href="#list">Список</a>
+          <a href="#help">Помощь</a>
+        </nav>
+
+        <div id="controls" class="panel__controls">
           <input
             id="searchInput"
             class="input"
@@ -122,7 +129,7 @@
         <div id="recent" class="recent"></div>
         <div id="compare" class="compare"></div>
 
-        <section class="help">
+        <section id="help" class="help">
           <div class="help__title">Как пользоваться</div>
           <div class="help__list">
             <div class="help__item">
