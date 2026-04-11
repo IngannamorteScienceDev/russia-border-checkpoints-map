@@ -10,7 +10,8 @@ function copyWithLegacyTextarea(text) {
   document.body.appendChild(textarea);
 
   if (typeof textarea.select === "function") textarea.select();
-  if (typeof textarea.setSelectionRange === "function") textarea.setSelectionRange(0, textarea.value.length);
+  if (typeof textarea.setSelectionRange === "function")
+    textarea.setSelectionRange(0, textarea.value.length);
 
   let copied = false;
 

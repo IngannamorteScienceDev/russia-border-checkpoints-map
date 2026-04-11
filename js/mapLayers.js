@@ -103,12 +103,18 @@ export function createCheckpointsLayerController({ map, openPopup }) {
         "circle-color": [
           "match",
           ["get", "__type"],
-          "Автомобильный", TYPE_COLORS.Автомобильный,
-          "Железнодорожный", TYPE_COLORS.Железнодорожный,
-          "Воздушный", TYPE_COLORS.Воздушный,
-          "Морской", TYPE_COLORS.Морской,
-          "Речной", TYPE_COLORS.Речной,
-          "Пешеходный", TYPE_COLORS.Пешеходный,
+          "Автомобильный",
+          TYPE_COLORS.Автомобильный,
+          "Железнодорожный",
+          TYPE_COLORS.Железнодорожный,
+          "Воздушный",
+          TYPE_COLORS.Воздушный,
+          "Морской",
+          TYPE_COLORS.Морской,
+          "Речной",
+          TYPE_COLORS.Речной,
+          "Пешеходный",
+          TYPE_COLORS.Пешеходный,
           TYPE_COLORS.Другое
         ],
         "circle-stroke-width": 2,
@@ -127,7 +133,7 @@ export function createCheckpointsLayerController({ map, openPopup }) {
       }
     });
 
-    handlers.clustersClick = event => {
+    handlers.clustersClick = (event) => {
       const feature = event.features?.[0];
       if (!feature) return;
 
@@ -145,7 +151,7 @@ export function createCheckpointsLayerController({ map, openPopup }) {
       map.getCanvas().style.cursor = "";
     };
 
-    handlers.pointsClick = event => {
+    handlers.pointsClick = (event) => {
       openPopup(event.features?.[0], event.lngLat);
     };
 

@@ -27,12 +27,16 @@ function countBy(features, getter) {
 }
 
 function renderCountList(entries) {
-  return entries.map(([label, count]) => `
+  return entries
+    .map(
+      ([label, count]) => `
     <div class="versions-count">
       <span>${escapeHtml(label)}</span>
       <b>${count}</b>
     </div>
-  `).join("");
+  `
+    )
+    .join("");
 }
 
 function buildVersionId(snapshot) {
@@ -49,8 +53,8 @@ async function initVersionsPage() {
     const datasetMeta = buildDatasetMeta(features);
     const snapshot = buildDatasetSnapshot(features, datasetMeta);
     const freshness = getFreshnessInfo(datasetMeta.latestUpdatedAt);
-    const byStatus = countBy(features, feature => feature.properties.__status);
-    const byType = countBy(features, feature => feature.properties.__type);
+    const byStatus = countBy(features, (feature) => feature.properties.__status);
+    const byType = countBy(features, (feature) => feature.properties.__type);
     const versionId = buildVersionId(snapshot);
 
     summaryEl.innerHTML = `

@@ -1,4 +1,5 @@
-const ISSUES_NEW_URL = "https://github.com/IngannamorteScienceDev/russia-border-checkpoints-map/issues/new";
+const ISSUES_NEW_URL =
+  "https://github.com/IngannamorteScienceDev/russia-border-checkpoints-map/issues/new";
 
 export function buildReportUrl(feature, pageUrl = globalThis.window?.location?.href || "") {
   const props = feature?.properties || {};

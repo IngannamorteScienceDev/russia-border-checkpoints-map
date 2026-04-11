@@ -1,17 +1,19 @@
 function escapeCsvValue(value) {
   const text = String(value ?? "");
   if (/[",\n]/.test(text)) {
-    return `"${text.replace(/"/g, "\"\"")}"`;
+    return `"${text.replace(/"/g, '""')}"`;
   }
   return text;
 }
 
 function sanitizeFilePart(value) {
-  return String(value)
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/gi, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40) || "all";
+  return (
+    String(value)
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/gi, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "all"
+  );
 }
 
 function buildBaseName({ count, hasFilters }) {
@@ -65,10 +67,12 @@ function downloadText(filename, text, mimeType) {
 
 export function exportFeaturesAsCsv(features, options = {}) {
   const rows = features.map(cleanProperties);
-  const headers = Object.keys(rows[0] || cleanProperties({ properties: {}, geometry: { coordinates: [] } }));
+  const headers = Object.keys(
+    rows[0] || cleanProperties({ properties: {}, geometry: { coordinates: [] } })
+  );
   const csv = [
     headers.join(","),
-    ...rows.map(row => headers.map(header => escapeCsvValue(row[header])).join(","))
+    ...rows.map((row) => headers.map((header) => escapeCsvValue(row[header])).join(","))
   ].join("\n");
 
   const baseName = buildBaseName({
@@ -82,7 +86,7 @@ export function exportFeaturesAsCsv(features, options = {}) {
 export function exportFeaturesAsGeoJson(features, options = {}) {
   const collection = {
     type: "FeatureCollection",
-    features: features.map(feature => ({
+    features: features.map((feature) => ({
       type: "Feature",
       geometry: {
         type: "Point",

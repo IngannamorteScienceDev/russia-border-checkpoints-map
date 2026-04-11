@@ -76,7 +76,7 @@ export function applyFilterStateFromUrl(dom) {
 }
 
 export function syncFilterStateToUrl(dom) {
-  updateUrl(url => {
+  updateUrl((url) => {
     const state = {
       query: dom.searchEl.value.trim(),
       type: dom.typeEl.value,
@@ -97,7 +97,7 @@ export function getSelectedCheckpointIdFromUrl() {
 }
 
 export function syncSelectedCheckpointToUrl(checkpointId) {
-  updateUrl(url => {
+  updateUrl((url) => {
     setParam(url, CHECKPOINT_PARAM, checkpointId);
   });
 }
@@ -108,7 +108,7 @@ export function getSatelliteModeFromUrl() {
 }
 
 export function syncSatelliteModeToUrl(isEnabled) {
-  updateUrl(url => {
+  updateUrl((url) => {
     setParam(url, SATELLITE_PARAM, isEnabled ? "1" : null);
   });
 }
@@ -120,17 +120,16 @@ export function getMapViewStateFromUrl(defaultView) {
   const zoom = parseFiniteNumber(url.searchParams.get(MAP_PARAM_MAP.zoom));
 
   return {
-    center: Number.isFinite(lng) && Number.isFinite(lat)
-      ? [clamp(lng, -180, 180), clamp(lat, -90, 90)]
-      : [...defaultView.center],
-    zoom: Number.isFinite(zoom)
-      ? clamp(zoom, 0, 22)
-      : defaultView.zoom
+    center:
+      Number.isFinite(lng) && Number.isFinite(lat)
+        ? [clamp(lng, -180, 180), clamp(lat, -90, 90)]
+        : [...defaultView.center],
+    zoom: Number.isFinite(zoom) ? clamp(zoom, 0, 22) : defaultView.zoom
   };
 }
 
 export function syncMapViewToUrl({ center, zoom }) {
-  updateUrl(url => {
+  updateUrl((url) => {
     const [lng, lat] = Array.isArray(center) ? center : [null, null];
 
     setParam(url, MAP_PARAM_MAP.lng, Number.isFinite(lng) ? lng.toFixed(5) : null);

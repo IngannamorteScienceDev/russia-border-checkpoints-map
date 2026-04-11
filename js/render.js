@@ -8,28 +8,36 @@ export function buildLegend(legendEl) {
   legendEl.innerHTML = `
     <div class="legend__title">Тип КПП</div>
     <div class="legend__grid">
-      ${Object.entries(TYPE_COLORS).map(([name, color]) =>
-        `<div class="legend__item"><span class="legend__dot" style="background:${color}"></span>${name}</div>`
-      ).join("")}
+      ${Object.entries(TYPE_COLORS)
+        .map(
+          ([name, color]) =>
+            `<div class="legend__item"><span class="legend__dot" style="background:${color}"></span>${name}</div>`
+        )
+        .join("")}
     </div>
   `;
 }
 
 function fillSelect(el, defaultLabel, values) {
   el.__options = ["all", ...values];
-  el.innerHTML = `<option value="all">${defaultLabel}</option>` +
-    values.map(value => `<option value="${value}">${value}</option>`).join("");
+  el.innerHTML =
+    `<option value="all">${defaultLabel}</option>` +
+    values.map((value) => `<option value="${value}">${value}</option>`).join("");
 }
 
 export function fillFilters({ allFeatures, typeEl, statusEl, countryEl, subjectEl }) {
-  const types = [...new Set(allFeatures.map(feature => feature.properties.__type))]
-    .sort((a, b) => a.localeCompare(b, "ru"));
-  const statuses = [...new Set(allFeatures.map(feature => feature.properties.__status))]
-    .sort((a, b) => a.localeCompare(b, "ru"));
-  const countries = [...new Set(allFeatures.map(feature => feature.properties.__country))]
-    .sort((a, b) => a.localeCompare(b, "ru"));
-  const subjects = [...new Set(allFeatures.map(feature => feature.properties.__subject))]
-    .sort((a, b) => a.localeCompare(b, "ru"));
+  const types = [...new Set(allFeatures.map((feature) => feature.properties.__type))].sort((a, b) =>
+    a.localeCompare(b, "ru")
+  );
+  const statuses = [...new Set(allFeatures.map((feature) => feature.properties.__status))].sort(
+    (a, b) => a.localeCompare(b, "ru")
+  );
+  const countries = [...new Set(allFeatures.map((feature) => feature.properties.__country))].sort(
+    (a, b) => a.localeCompare(b, "ru")
+  );
+  const subjects = [...new Set(allFeatures.map((feature) => feature.properties.__subject))].sort(
+    (a, b) => a.localeCompare(b, "ru")
+  );
 
   fillSelect(typeEl, "Все типы", types);
   fillSelect(statusEl, "Все статусы", statuses);
@@ -125,7 +133,7 @@ export function renderShareSheet({
   `;
 
   shareSheetEl.querySelector?.(".share-sheet__close")?.addEventListener?.("click", onClose);
-  shareSheetEl.querySelectorAll("[data-share-action]").forEach(node => {
+  shareSheetEl.querySelectorAll("[data-share-action]").forEach((node) => {
     node.onclick = () => {
       if (node.dataset.shareAction === "copy") onCopy();
       if (node.dataset.shareAction === "native") onNativeShare();
@@ -142,11 +150,13 @@ export function renderDatasetChanges({ changesEl, summary }) {
     return;
   }
 
-  const deltaLabel = summary.totalDelta > 0
-    ? `+${summary.totalDelta}`
-    : String(summary.totalDelta);
-  const addedLabel = summary.addedIds.length ? `Добавлено: ${summary.addedIds.length}` : "Новых нет";
-  const removedLabel = summary.removedIds.length ? `Убрано: ${summary.removedIds.length}` : "Удаленных нет";
+  const deltaLabel = summary.totalDelta > 0 ? `+${summary.totalDelta}` : String(summary.totalDelta);
+  const addedLabel = summary.addedIds.length
+    ? `Добавлено: ${summary.addedIds.length}`
+    : "Новых нет";
+  const removedLabel = summary.removedIds.length
+    ? `Убрано: ${summary.removedIds.length}`
+    : "Удаленных нет";
 
   changesEl.innerHTML = `
     <div class="dataset-changes__title">Изменения данных</div>
@@ -179,19 +189,21 @@ export function renderRecent({ recentEl, recentFeatures, onItemClick }) {
   recentEl.innerHTML = `
     <div class="recent__title">Недавно открытые</div>
     <div class="recent__list">
-      ${recentFeatures.map(feature => {
-        const props = feature.properties;
-        return `
+      ${recentFeatures
+        .map((feature) => {
+          const props = feature.properties;
+          return `
           <button class="recent__item" type="button" data-id="${props.__id}">
             <span>${props.__name}</span>
             <small>${props.__country || "—"}</small>
           </button>
         `;
-      }).join("")}
+        })
+        .join("")}
     </div>
   `;
 
-  recentEl.querySelectorAll(".recent__item").forEach(node => {
+  recentEl.querySelectorAll(".recent__item").forEach((node) => {
     node.onclick = () => onItemClick(node.dataset.id);
   });
 
@@ -276,36 +288,46 @@ export function renderCompare({ compareEl, compareFeatures, onItemClick, onRemov
       <button class="compare__clear" type="button">Сбросить</button>
     </div>
     <div class="compare__items">
-      ${compareFeatures.map(feature => {
-        const props = feature.properties;
-        return `
+      ${compareFeatures
+        .map((feature) => {
+          const props = feature.properties;
+          return `
           <button class="compare__pill" type="button" data-id="${props.__id}">
             <span>${props.__name}</span>
             <small>${props.__country || "—"}</small>
             <i data-remove-compare-id="${props.__id}" aria-label="Убрать из сравнения">×</i>
           </button>
         `;
-      }).join("")}
+        })
+        .join("")}
     </div>
-    ${compareFeatures.length === 2 ? `
+    ${
+      compareFeatures.length === 2
+        ? `
       <div class="compare__table">
-        ${rows.map(([label, key]) => `
+        ${rows
+          .map(
+            ([label, key]) => `
           <div class="compare__row">
             <b>${label}</b>
             <span>${compareValue(compareFeatures[0], key)}</span>
             <span>${compareValue(compareFeatures[1], key)}</span>
           </div>
-        `).join("")}
+        `
+          )
+          .join("")}
       </div>
-    ` : ""}
+    `
+        : ""
+    }
   `;
 
-  compareEl.querySelectorAll(".compare__pill").forEach(node => {
+  compareEl.querySelectorAll(".compare__pill").forEach((node) => {
     node.onclick = () => onItemClick(node.dataset.id);
   });
 
-  compareEl.querySelectorAll("[data-remove-compare-id]").forEach(node => {
-    node.onclick = event => {
+  compareEl.querySelectorAll("[data-remove-compare-id]").forEach((node) => {
+    node.onclick = (event) => {
       event?.stopPropagation?.();
       onRemove(node.dataset.removeCompareId);
     };
@@ -356,7 +378,10 @@ function confidenceInfo(value) {
     return { level: "low", label: "Низкая достоверность" };
   }
 
-  return { level: "unknown", label: value ? `Достоверность: ${value}` : "Достоверность не указана" };
+  return {
+    level: "unknown",
+    label: value ? `Достоверность: ${value}` : "Достоверность не указана"
+  };
 }
 
 function compareByName(a, b) {
@@ -364,26 +389,27 @@ function compareByName(a, b) {
 }
 
 function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpenId) {
-  return features.map(feature => {
-    const props = feature.properties;
-    const freshness = getFreshnessInfo(props.__extra?.updatedAt);
-    const confidence = confidenceInfo(props.__extra?.confidence);
-    const qualityFlags = getQualityFlags(feature);
-    const hasQualityFlags = qualityFlags.length > 0;
-    const sourceUrl = safeExternalUrl(props.__extra?.source);
-    const isFavorite = favoriteIds.has(String(props.__id));
-    const isComparing = compareIds.includes(String(props.__id));
-    const isNearestOpen = nearestOpenId === props.__id;
-    const favoriteLabel = isFavorite ? "Убрать из избранного" : "Добавить в избранное";
-    const dist = userLocation
-      ? ` · 📏 ${haversine(userLocation, feature.geometry.coordinates).toFixed(1)} км`
-      : "";
-    const routeHref = userLocation
-      ? routeUrl(userLocation, feature.geometry.coordinates)
-      : mapPointUrl(feature.geometry.coordinates);
-    const reportHref = buildReportUrl(feature);
+  return features
+    .map((feature) => {
+      const props = feature.properties;
+      const freshness = getFreshnessInfo(props.__extra?.updatedAt);
+      const confidence = confidenceInfo(props.__extra?.confidence);
+      const qualityFlags = getQualityFlags(feature);
+      const hasQualityFlags = qualityFlags.length > 0;
+      const sourceUrl = safeExternalUrl(props.__extra?.source);
+      const isFavorite = favoriteIds.has(String(props.__id));
+      const isComparing = compareIds.includes(String(props.__id));
+      const isNearestOpen = nearestOpenId === props.__id;
+      const favoriteLabel = isFavorite ? "Убрать из избранного" : "Добавить в избранное";
+      const dist = userLocation
+        ? ` · 📏 ${haversine(userLocation, feature.geometry.coordinates).toFixed(1)} км`
+        : "";
+      const routeHref = userLocation
+        ? routeUrl(userLocation, feature.geometry.coordinates)
+        : mapPointUrl(feature.geometry.coordinates);
+      const reportHref = buildReportUrl(feature);
 
-    return `
+      return `
       <div class="item${isNearestOpen ? " item--nearest-open" : ""}${hasQualityFlags ? " item--quality-warning" : ""}" data-id="${props.__id}">
         <div class="item__name">
           <span class="item__headline">
@@ -405,7 +431,7 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
           <div class="item__badges">
             <span class="freshness freshness--${freshness.level}" title="${freshness.details}">${freshness.label}</span>
             <span class="confidence confidence--${confidence.level}">${confidence.label}</span>
-            ${qualityFlags.map(flag => `<span class="quality-flag quality-flag--${flag.level}">${flag.label}</span>`).join("")}
+            ${qualityFlags.map((flag) => `<span class="quality-flag quality-flag--${flag.level}">${flag.label}</span>`).join("")}
           </div>
           ${isNearestOpen ? '<div class="item__note">Ближайший действующий пункт</div>' : ""}
         </div>
@@ -418,7 +444,8 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
         </div>
       </div>
     `;
-  }).join("");
+    })
+    .join("");
 }
 
 function sortByDistance(features, userLocation) {
@@ -474,32 +501,34 @@ export function renderList({
   } else {
     const grouped = groupByCountry(viewFeatures);
 
-    listEl.innerHTML = grouped.map(([country, items]) => {
-      const sorted = [...items].sort(compareByName);
-      return `<div class="group">🌍 ${country} (${items.length})</div>${renderItems(sorted, userLocation, favoriteIds, compareIds, nearestOpenId)}`;
-    }).join("");
+    listEl.innerHTML = grouped
+      .map(([country, items]) => {
+        const sorted = [...items].sort(compareByName);
+        return `<div class="group">🌍 ${country} (${items.length})</div>${renderItems(sorted, userLocation, favoriteIds, compareIds, nearestOpenId)}`;
+      })
+      .join("");
   }
 
-  listEl.querySelectorAll(".item").forEach(node => {
+  listEl.querySelectorAll(".item").forEach((node) => {
     node.onclick = () => onItemClick(node.dataset.id);
   });
 
-  listEl.querySelectorAll(".item__favorite").forEach(node => {
-    node.onclick = event => {
+  listEl.querySelectorAll(".item__favorite").forEach((node) => {
+    node.onclick = (event) => {
       event?.stopPropagation?.();
       onFavoriteToggle?.(node.dataset.favoriteId);
     };
   });
 
-  listEl.querySelectorAll(".item__compare").forEach(node => {
-    node.onclick = event => {
+  listEl.querySelectorAll(".item__compare").forEach((node) => {
+    node.onclick = (event) => {
       event?.stopPropagation?.();
       onCompareToggle?.(node.dataset.compareId);
     };
   });
 
-  listEl.querySelectorAll(".item__copyCoords").forEach(node => {
-    node.onclick = async event => {
+  listEl.querySelectorAll(".item__copyCoords").forEach((node) => {
+    node.onclick = async (event) => {
       event?.stopPropagation?.();
       const copied = await onCopyCoordinates?.(node.dataset.copyCoordsId);
       if (!copied) return;
@@ -511,8 +540,8 @@ export function renderList({
     };
   });
 
-  listEl.querySelectorAll(".item__route").forEach(node => {
-    node.onclick = event => {
+  listEl.querySelectorAll(".item__route").forEach((node) => {
+    node.onclick = (event) => {
       event?.stopPropagation?.();
     };
   });

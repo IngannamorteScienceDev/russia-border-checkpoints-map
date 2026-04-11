@@ -34,10 +34,7 @@ export function loadRecentIds(storage = globalThis.localStorage) {
 
 export function saveRecentIds(recentIds, storage = globalThis.localStorage) {
   try {
-    storage?.setItem?.(
-      RECENT_STORAGE_KEY,
-      JSON.stringify(normalizeRecentIds(recentIds))
-    );
+    storage?.setItem?.(RECENT_STORAGE_KEY, JSON.stringify(normalizeRecentIds(recentIds)));
   } catch {
     // localStorage can be unavailable in private mode or locked-down browsers.
   }

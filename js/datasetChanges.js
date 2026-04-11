@@ -5,11 +5,11 @@ function normalizeId(id) {
 }
 
 export function buildDatasetSnapshot(features, datasetMeta = {}) {
-  const ids = [...new Set(
-    (features || [])
-      .map(feature => normalizeId(feature?.properties?.__id))
-      .filter(Boolean)
-  )].sort((a, b) => a.localeCompare(b, "ru"));
+  const ids = [
+    ...new Set(
+      (features || []).map((feature) => normalizeId(feature?.properties?.__id)).filter(Boolean)
+    )
+  ].sort((a, b) => a.localeCompare(b, "ru"));
 
   return {
     total: ids.length,
@@ -60,8 +60,8 @@ export function summarizeDatasetChanges(previousSnapshot, currentSnapshot) {
 
   const previousIds = new Set(previousSnapshot.ids || []);
   const currentIds = new Set(currentSnapshot.ids || []);
-  const addedIds = [...currentIds].filter(id => !previousIds.has(id));
-  const removedIds = [...previousIds].filter(id => !currentIds.has(id));
+  const addedIds = [...currentIds].filter((id) => !previousIds.has(id));
+  const removedIds = [...previousIds].filter((id) => !currentIds.has(id));
 
   return {
     isFirstVisit: false,

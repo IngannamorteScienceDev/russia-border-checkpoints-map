@@ -1,168 +1,173 @@
 <!doctype html>
 <html lang="ru">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>КПП РФ</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>КПП РФ</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="./style.css" />
-</head>
-<body>
-
-  <!-- Loader -->
-  <div id="loader" class="loader">
-    <div class="loader__card">
-      <div class="loader__title">КПП РФ</div>
-      <div class="loader__bar"><div id="loaderProgress" class="loader__barFill"></div></div>
-      <div id="loaderText" class="loader__text">Подключаем карту и загружаем КПП…</div>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <!-- Loader -->
+    <div id="loader" class="loader">
+      <div class="loader__card">
+        <div class="loader__title">КПП РФ</div>
+        <div class="loader__bar"><div id="loaderProgress" class="loader__barFill"></div></div>
+        <div id="loaderText" class="loader__text">Подключаем карту и загружаем КПП…</div>
+      </div>
     </div>
-  </div>
 
-  <div class="app">
+    <div class="app">
+      <!-- Panel -->
+      <aside id="panel" class="panel">
+        <div class="panel__top">
+          <button id="mobileToggle" class="panel__burger" aria-label="Открыть/закрыть панель">
+            ☰
+          </button>
 
-    <!-- Panel -->
-    <aside id="panel" class="panel">
-      <div class="panel__top">
-        <button id="mobileToggle" class="panel__burger" aria-label="Открыть/закрыть панель">
-          ☰
-        </button>
-
-        <div class="panel__titleBlock">
-          <div class="panel__title">КПП РФ</div>
-          <div class="panel__subtitle">Интерактивная карта пунктов пропуска</div>
-        </div>
-      </div>
-
-      <div class="panel__controls">
-        <input id="searchInput" class="input" type="text" placeholder="Поиск: название, регион, страна..." />
-
-        <div class="row">
-          <select id="typeFilter" class="select">
-            <option value="all">Все типы</option>
-          </select>
-
-          <select id="statusFilter" class="select">
-            <option value="all">Все статусы</option>
-          </select>
-        </div>
-
-        <div class="row">
-          <select id="countryFilter" class="select">
-            <option value="all">Все страны</option>
-          </select>
-
-          <select id="subjectFilter" class="select">
-            <option value="all">Все субъекты</option>
-          </select>
-        </div>
-
-        <div id="quickPresets" class="presets" aria-label="Быстрые фильтры">
-          <button class="preset" type="button" data-preset="open">Действующие</button>
-          <button class="preset" type="button" data-preset="auto">Авто</button>
-          <button class="preset" type="button" data-preset="rail">Ж/д</button>
-          <button class="preset" type="button" data-preset="air">Авиа</button>
-        </div>
-
-        <div class="row">
-          <select id="sortOrder" class="select">
-            <option value="country">По стране</option>
-            <option value="name">По названию</option>
-            <option value="distance">По расстоянию</option>
-          </select>
-
-          <button id="nearestBtn" class="btn btn--ghost">Ближайшие</button>
-        </div>
-
-        <div class="row row--single">
-          <button id="favoritesOnly" class="btn btn--ghost" aria-pressed="false">★ Избранные (0)</button>
-        </div>
-
-        <div class="row row--single">
-          <button id="fitResults" class="btn btn--ghost">Показать результаты на карте</button>
-        </div>
-
-        <div class="row row--single">
-          <button id="viewportOnly" class="btn btn--ghost" aria-pressed="false">Только в области карты</button>
-        </div>
-
-        <div class="row">
-          <button id="geoBtn" class="btn">📍 Гео</button>
-          <button id="styleToggle" class="btn">🛰 Спутник</button>
-        </div>
-
-        <div class="row row--single">
-          <button id="resetFilters" class="btn btn--ghost">Сбросить фильтры</button>
-        </div>
-
-        <div class="row">
-          <button id="exportCsv" class="btn btn--ghost">Экспорт CSV</button>
-          <button id="exportGeoJson" class="btn btn--ghost">Экспорт GeoJSON</button>
-        </div>
-
-        <div class="row row--single">
-          <button id="shareLink" class="btn btn--ghost">Поделиться ссылкой</button>
-        </div>
-
-        <div class="row row--single">
-          <a class="btn btn--ghost" href="./versions.html">Версии данных</a>
-        </div>
-      </div>
-
-      <div id="shareSheet" class="share-sheet"></div>
-      <div id="datasetChanges" class="dataset-changes"></div>
-      <div id="nearestOpen" class="nearest-open"></div>
-      <div id="recent" class="recent"></div>
-      <div id="compare" class="compare"></div>
-
-      <section class="help">
-        <div class="help__title">Как пользоваться</div>
-        <div class="help__list">
-          <div class="help__item">
-            <span class="help__tag">Поиск</span>
-            Ищите КПП по названию, стране, субъекту РФ и типу.
-          </div>
-          <div class="help__item">
-            <span class="help__tag">Карта</span>
-            Нажмите на точку на карте или карточку в списке, чтобы открыть детали.
-          </div>
-          <div class="help__item">
-            <span class="help__tag">Ссылка</span>
-            Кнопка «Поделиться ссылкой» копирует текущее состояние карты вместе с фильтрами и ракурсом.
-          </div>
-          <div class="help__item">
-            <span class="help__tag">Экспорт</span>
-            CSV и GeoJSON выгружают только текущую отфильтрованную выборку.
-          </div>
-          <div class="help__item">
-            <span class="help__tag">Цвета</span>
-            Цвет маркера и бейджа соответствует типу пункта пропуска.
+          <div class="panel__titleBlock">
+            <div class="panel__title">КПП РФ</div>
+            <div class="panel__subtitle">Интерактивная карта пунктов пропуска</div>
           </div>
         </div>
-      </section>
 
-      <div id="legend" class="legend"></div>
+        <div class="panel__controls">
+          <input
+            id="searchInput"
+            class="input"
+            type="text"
+            placeholder="Поиск: название, регион, страна..."
+          />
 
-      <div id="stats" class="stats"></div>
+          <div class="row">
+            <select id="typeFilter" class="select">
+              <option value="all">Все типы</option>
+            </select>
 
-      <div id="list" class="list"></div>
+            <select id="statusFilter" class="select">
+              <option value="all">Все статусы</option>
+            </select>
+          </div>
 
-      <div id="emptyState" class="empty"></div>
-    </aside>
+          <div class="row">
+            <select id="countryFilter" class="select">
+              <option value="all">Все страны</option>
+            </select>
 
-    <!-- Floating burger for mobile when panel is closed -->
-    <button id="mobileToggleFloating" class="mobile-fab" aria-label="Открыть панель">
-      ☰
-    </button>
+            <select id="subjectFilter" class="select">
+              <option value="all">Все субъекты</option>
+            </select>
+          </div>
 
-    <!-- Map -->
-    <main class="mapWrap">
-      <div id="map" class="map"></div>
-    </main>
+          <div id="quickPresets" class="presets" aria-label="Быстрые фильтры">
+            <button class="preset" type="button" data-preset="open">Действующие</button>
+            <button class="preset" type="button" data-preset="auto">Авто</button>
+            <button class="preset" type="button" data-preset="rail">Ж/д</button>
+            <button class="preset" type="button" data-preset="air">Авиа</button>
+          </div>
 
-  </div>
+          <div class="row">
+            <select id="sortOrder" class="select">
+              <option value="country">По стране</option>
+              <option value="name">По названию</option>
+              <option value="distance">По расстоянию</option>
+            </select>
 
-  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script type="module" src="./app.js"></script>
-</body>
+            <button id="nearestBtn" class="btn btn--ghost">Ближайшие</button>
+          </div>
+
+          <div class="row row--single">
+            <button id="favoritesOnly" class="btn btn--ghost" aria-pressed="false">
+              ★ Избранные (0)
+            </button>
+          </div>
+
+          <div class="row row--single">
+            <button id="fitResults" class="btn btn--ghost">Показать результаты на карте</button>
+          </div>
+
+          <div class="row row--single">
+            <button id="viewportOnly" class="btn btn--ghost" aria-pressed="false">
+              Только в области карты
+            </button>
+          </div>
+
+          <div class="row">
+            <button id="geoBtn" class="btn">📍 Гео</button>
+            <button id="styleToggle" class="btn">🛰 Спутник</button>
+          </div>
+
+          <div class="row row--single">
+            <button id="resetFilters" class="btn btn--ghost">Сбросить фильтры</button>
+          </div>
+
+          <div class="row">
+            <button id="exportCsv" class="btn btn--ghost">Экспорт CSV</button>
+            <button id="exportGeoJson" class="btn btn--ghost">Экспорт GeoJSON</button>
+          </div>
+
+          <div class="row row--single">
+            <button id="shareLink" class="btn btn--ghost">Поделиться ссылкой</button>
+          </div>
+
+          <div class="row row--single">
+            <a class="btn btn--ghost" href="./versions.html">Версии данных</a>
+          </div>
+        </div>
+
+        <div id="shareSheet" class="share-sheet"></div>
+        <div id="datasetChanges" class="dataset-changes"></div>
+        <div id="nearestOpen" class="nearest-open"></div>
+        <div id="recent" class="recent"></div>
+        <div id="compare" class="compare"></div>
+
+        <section class="help">
+          <div class="help__title">Как пользоваться</div>
+          <div class="help__list">
+            <div class="help__item">
+              <span class="help__tag">Поиск</span>
+              Ищите КПП по названию, стране, субъекту РФ и типу.
+            </div>
+            <div class="help__item">
+              <span class="help__tag">Карта</span>
+              Нажмите на точку на карте или карточку в списке, чтобы открыть детали.
+            </div>
+            <div class="help__item">
+              <span class="help__tag">Ссылка</span>
+              Кнопка «Поделиться ссылкой» копирует текущее состояние карты вместе с фильтрами и
+              ракурсом.
+            </div>
+            <div class="help__item">
+              <span class="help__tag">Экспорт</span>
+              CSV и GeoJSON выгружают только текущую отфильтрованную выборку.
+            </div>
+            <div class="help__item">
+              <span class="help__tag">Цвета</span>
+              Цвет маркера и бейджа соответствует типу пункта пропуска.
+            </div>
+          </div>
+        </section>
+
+        <div id="legend" class="legend"></div>
+
+        <div id="stats" class="stats"></div>
+
+        <div id="list" class="list"></div>
+
+        <div id="emptyState" class="empty"></div>
+      </aside>
+
+      <!-- Floating burger for mobile when panel is closed -->
+      <button id="mobileToggleFloating" class="mobile-fab" aria-label="Открыть панель">☰</button>
+
+      <!-- Map -->
+      <main class="mapWrap">
+        <div id="map" class="map"></div>
+      </main>
+    </div>
+
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
 </html>

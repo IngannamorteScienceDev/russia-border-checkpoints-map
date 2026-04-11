@@ -52,7 +52,9 @@ const {
   syncMapViewToUrl,
   syncSatelliteModeToUrl
 } = await import(new URL("../js/urlState.js", import.meta.url));
-const { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } = await import(new URL("../js/favorites.js", import.meta.url));
+const { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } = await import(
+  new URL("../js/favorites.js", import.meta.url)
+);
 const { renderList } = await import(new URL("../js/render.js", import.meta.url));
 
 const dom = {
@@ -72,7 +74,10 @@ assert(dom.statusEl.value === "Действует", "URL status filter was not a
 assert(dom.sortEl.value === "distance", "URL sort mode was not applied.");
 
 const mapView = getMapViewStateFromUrl({ center: [90, 61], zoom: 4 });
-assert(mapView.center[0] === 180 && mapView.center[1] === 90 && mapView.zoom === 22, "Map URL state was not clamped.");
+assert(
+  mapView.center[0] === 180 && mapView.center[1] === 90 && mapView.zoom === 22,
+  "Map URL state was not clamped."
+);
 assert(getSatelliteModeFromUrl() === true, "Satellite URL state was not parsed.");
 
 dom.typeEl.value = "all";
@@ -80,8 +85,14 @@ dom.sortEl.value = "name";
 syncFilterStateToUrl(dom);
 
 const filterUrl = new URL(replacedUrl);
-assert(filterUrl.searchParams.get("type") === null, "Default type filter should be removed from URL.");
-assert(filterUrl.searchParams.get("sort") === "name", "Non-default sort should be synchronized to URL.");
+assert(
+  filterUrl.searchParams.get("type") === null,
+  "Default type filter should be removed from URL."
+);
+assert(
+  filterUrl.searchParams.get("sort") === "name",
+  "Non-default sort should be synchronized to URL."
+);
 
 syncMapViewToUrl({ center: [37.6176, 55.7558], zoom: 6.5 });
 const viewUrl = new URL(replacedUrl);
@@ -90,7 +101,10 @@ assert(viewUrl.searchParams.get("lat") === "55.75580", "Map latitude was not ser
 assert(viewUrl.searchParams.get("zoom") === "6.50", "Map zoom was not serialized.");
 
 syncSatelliteModeToUrl(false);
-assert(new URL(replacedUrl).searchParams.get("sat") === null, "Satellite mode should be removed when disabled.");
+assert(
+  new URL(replacedUrl).searchParams.get("sat") === null,
+  "Satellite mode should be removed when disabled."
+);
 
 const storage = new Map();
 const localStorage = {
@@ -106,7 +120,10 @@ let favorites = toggleFavoriteId(loadFavoriteIds(localStorage), "101");
 favorites = toggleFavoriteId(favorites, "100");
 saveFavoriteIds(favorites, localStorage);
 assert(loadFavoriteIds(localStorage).has("100"), "Favorite IDs were not persisted.");
-assert(toggleFavoriteId(loadFavoriteIds(localStorage), "100").has("100") === false, "Favorite ID was not toggled off.");
+assert(
+  toggleFavoriteId(loadFavoriteIds(localStorage), "100").has("100") === false,
+  "Favorite ID was not toggled off."
+);
 
 const features = [
   {
@@ -153,8 +170,14 @@ renderList({
   onItemClick() {}
 });
 
-assert(listEl.innerHTML.indexOf("Alpha") < listEl.innerHTML.indexOf("Beta"), "Name sorting did not order checkpoints alphabetically.");
-assert(listEl.innerHTML.includes("item__favorite is-favorite"), "Favorite rendering was not applied.");
+assert(
+  listEl.innerHTML.indexOf("Alpha") < listEl.innerHTML.indexOf("Beta"),
+  "Name sorting did not order checkpoints alphabetically."
+);
+assert(
+  listEl.innerHTML.includes("item__favorite is-favorite"),
+  "Favorite rendering was not applied."
+);
 assert(listEl.innerHTML.includes("item__compare is-active"), "Compare rendering was not applied.");
 
 renderList({
@@ -168,6 +191,9 @@ renderList({
   onItemClick() {}
 });
 
-assert(listEl.innerHTML.indexOf("Alpha") < listEl.innerHTML.indexOf("Beta"), "Distance sorting did not place the closest checkpoint first.");
+assert(
+  listEl.innerHTML.indexOf("Alpha") < listEl.innerHTML.indexOf("Beta"),
+  "Distance sorting did not place the closest checkpoint first."
+);
 
 console.log("frontend module tests passed");

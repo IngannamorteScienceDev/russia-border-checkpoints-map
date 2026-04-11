@@ -1,7 +1,4 @@
-import {
-  SATELLITE_LAYER_ID,
-  STYLE_MAP
-} from "./js/config.js";
+import { SATELLITE_LAYER_ID, STYLE_MAP } from "./js/config.js";
 import { toggleCompareId } from "./js/compare.js";
 import { buildDatasetMeta, loadFeatures, filterFeatures } from "./js/data.js";
 import {
@@ -16,7 +13,17 @@ import { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } from "./js/favorit
 import { haversine } from "./js/geo.js";
 import { createCheckpointsLayerController, ensureSatelliteLayer } from "./js/mapLayers.js";
 import { createPopupController } from "./js/popup.js";
-import { buildLegend, fillFilters, renderCompare, renderDatasetChanges, renderList, renderNearestOpen, renderRecent, renderShareSheet, renderStats } from "./js/render.js";
+import {
+  buildLegend,
+  fillFilters,
+  renderCompare,
+  renderDatasetChanges,
+  renderList,
+  renderNearestOpen,
+  renderRecent,
+  renderShareSheet,
+  renderStats
+} from "./js/render.js";
 import { loadRecentIds, prependRecentId, saveRecentIds } from "./js/recent.js";
 import { copyText } from "./js/share.js";
 import {
@@ -73,7 +80,7 @@ map.addControl(new maplibregl.NavigationControl(), "bottom-right");
 const popupController = createPopupController({
   map,
   getUserLocation: () => state.userLocation,
-  onPopupChange: feature => {
+  onPopupChange: (feature) => {
     syncSelectedCheckpointToUrl(feature?.properties?.__id || "");
   }
 });
@@ -173,9 +180,7 @@ function renderAll() {
 
 function syncCurrentMapView() {
   const mapCenter = map.getCenter();
-  const center = Array.isArray(mapCenter)
-    ? mapCenter
-    : [mapCenter?.lng, mapCenter?.lat];
+  const center = Array.isArray(mapCenter) ? mapCenter : [mapCenter?.lng, mapCenter?.lat];
 
   syncMapViewToUrl({
     center,
@@ -192,11 +197,7 @@ function isSatelliteVisible() {
 }
 
 function setSatelliteMode(enabled) {
-  map.setLayoutProperty(
-    SATELLITE_LAYER_ID,
-    "visibility",
-    enabled ? "visible" : "none"
-  );
+  map.setLayoutProperty(SATELLITE_LAYER_ID, "visibility", enabled ? "visible" : "none");
 
   dom.styleToggleEl.textContent = enabled ? "🗺 Карта" : "🛰 Спутник";
   syncSatelliteModeToUrl(enabled);
@@ -217,40 +218,38 @@ function getActiveFilterCount() {
 }
 
 function getFavoriteCount() {
-  return state.allFeatures.filter(feature =>
-    state.favoriteIds.has(feature.properties.__id)
-  ).length;
+  return state.allFeatures.filter((feature) => state.favoriteIds.has(feature.properties.__id))
+    .length;
 }
 
 function getRecentFeatures() {
   const featuresById = new Map(
-    state.allFeatures.map(feature => [feature.properties.__id, feature])
+    state.allFeatures.map((feature) => [feature.properties.__id, feature])
   );
 
-  return state.recentIds
-    .map(id => featuresById.get(id))
-    .filter(Boolean);
+  return state.recentIds.map((id) => featuresById.get(id)).filter(Boolean);
 }
 
 function getCompareFeatures() {
   const featuresById = new Map(
-    state.allFeatures.map(feature => [feature.properties.__id, feature])
+    state.allFeatures.map((feature) => [feature.properties.__id, feature])
   );
 
-  return state.compareIds
-    .map(id => featuresById.get(id))
-    .filter(Boolean);
+  return state.compareIds.map((id) => featuresById.get(id)).filter(Boolean);
 }
 
 function getNearestOpenFeature() {
   if (!state.userLocation) return null;
 
-  return state.viewFeatures
-    .filter(feature => feature.properties.__status === "Действует")
-    .sort((a, b) =>
-      haversine(state.userLocation, a.geometry.coordinates) -
-      haversine(state.userLocation, b.geometry.coordinates)
-    )[0] || null;
+  return (
+    state.viewFeatures
+      .filter((feature) => feature.properties.__status === "Действует")
+      .sort(
+        (a, b) =>
+          haversine(state.userLocation, a.geometry.coordinates) -
+          haversine(state.userLocation, b.geometry.coordinates)
+      )[0] || null
+  );
 }
 
 function syncFavoritesButton() {
@@ -270,17 +269,15 @@ function setSortMode(value) {
 
 function getFeatureBounds(features) {
   const coordinates = features
-    .map(feature => feature.geometry?.coordinates)
-    .filter(coords =>
-      Array.isArray(coords) &&
-      Number.isFinite(coords[0]) &&
-      Number.isFinite(coords[1])
+    .map((feature) => feature.geometry?.coordinates)
+    .filter(
+      (coords) => Array.isArray(coords) && Number.isFinite(coords[0]) && Number.isFinite(coords[1])
     );
 
   if (!coordinates.length) return null;
 
-  const lngs = coordinates.map(coords => coords[0]);
-  const lats = coordinates.map(coords => coords[1]);
+  const lngs = coordinates.map((coords) => coords[0]);
+  const lats = coordinates.map((coords) => coords[1]);
 
   return {
     coordinates,
@@ -338,7 +335,7 @@ function matchesQuickPreset(presetName) {
 }
 
 function syncPresetButtons() {
-  dom.presetsEl.querySelectorAll("[data-preset]").forEach(button => {
+  dom.presetsEl.querySelectorAll("[data-preset]").forEach((button) => {
     button.classList.toggle("is-active", matchesQuickPreset(button.dataset.preset));
   });
 }
@@ -362,7 +359,7 @@ function applyFilters() {
   });
 
   state.viewFeatures = state.showFavoritesOnly
-    ? filteredFeatures.filter(feature => state.favoriteIds.has(feature.properties.__id))
+    ? filteredFeatures.filter((feature) => state.favoriteIds.has(feature.properties.__id))
     : filteredFeatures;
 
   if (state.showViewportOnly) {
@@ -390,7 +387,7 @@ function filterFeaturesToViewport(features) {
   const bounds = map.getBounds?.();
   if (!bounds?.contains) return features;
 
-  return features.filter(feature => {
+  return features.filter((feature) => {
     const coordinates = feature.geometry?.coordinates;
     return Array.isArray(coordinates) && bounds.contains(coordinates);
   });
@@ -419,7 +416,7 @@ function exportCurrentView(format) {
 }
 
 function getFeatureById(id, features = state.allFeatures) {
-  return features.find(item => item.properties.__id === id) || null;
+  return features.find((item) => item.properties.__id === id) || null;
 }
 
 function closePopupIfHidden() {
@@ -427,7 +424,7 @@ function closePopupIfHidden() {
   if (!selectedFeature) return;
 
   const isVisible = state.viewFeatures.some(
-    item => item.properties.__id === selectedFeature.properties.__id
+    (item) => item.properties.__id === selectedFeature.properties.__id
   );
 
   if (!isVisible) {
@@ -536,7 +533,7 @@ function toggleCompare(id) {
 }
 
 function removeCompareItem(id) {
-  state.compareIds = state.compareIds.filter(item => item !== id);
+  state.compareIds = state.compareIds.filter((item) => item !== id);
   renderAll();
 }
 
@@ -573,7 +570,7 @@ function requestUserLocation({ setDistanceSort = false } = {}) {
   setGeoButtonLoading(true);
 
   navigator.geolocation.getCurrentPosition(
-    position => {
+    (position) => {
       state.userLocation = [position.coords.longitude, position.coords.latitude];
       updateUserMarker();
 
@@ -605,7 +602,7 @@ function attachUi() {
   dom.statusEl.onchange = applyFilters;
   dom.countryEl.onchange = applyFilters;
   dom.subjectEl.onchange = applyFilters;
-  dom.presetsEl.onclick = event => {
+  dom.presetsEl.onclick = (event) => {
     applyQuickPreset(event.target?.dataset?.preset);
   };
   dom.sortEl.onchange = () => {
@@ -647,7 +644,7 @@ function attachUi() {
 async function init() {
   try {
     setProgress(10, "Подключаем карту...");
-    await new Promise(resolve => (map.loaded() ? resolve() : map.once("load", resolve)));
+    await new Promise((resolve) => (map.loaded() ? resolve() : map.once("load", resolve)));
 
     ensureSatelliteLayer(map);
     setSatelliteMode(getSatelliteModeFromUrl());
@@ -657,10 +654,7 @@ async function init() {
     state.viewFeatures = state.allFeatures;
     state.datasetMeta = buildDatasetMeta(state.allFeatures);
     const currentSnapshot = buildDatasetSnapshot(state.allFeatures, state.datasetMeta);
-    state.datasetChangeSummary = summarizeDatasetChanges(
-      loadDatasetSnapshot(),
-      currentSnapshot
-    );
+    state.datasetChangeSummary = summarizeDatasetChanges(loadDatasetSnapshot(), currentSnapshot);
     saveDatasetSnapshot(currentSnapshot);
 
     setProgress(55, "Настраиваем интерфейс...");

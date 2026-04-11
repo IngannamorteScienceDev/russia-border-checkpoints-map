@@ -1,4 +1,4 @@
-const el = id => document.getElementById(id);
+const el = (id) => document.getElementById(id);
 
 export function getDomElements() {
   return {

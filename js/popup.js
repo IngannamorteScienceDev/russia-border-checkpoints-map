@@ -28,12 +28,16 @@ function buildPopupHtml(feature, userLocation) {
   if (extra.operator) lines.push({ k: "Оператор", v: extra.operator });
   if (extra.updatedAt) lines.push({ k: "Обновлено", v: extra.updatedAt });
 
-  const table = lines.map(line => `
+  const table = lines
+    .map(
+      (line) => `
     <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;line-height:1.35;margin:2px 0">
       <span style="opacity:.75">${line.k}</span>
       <span style="font-weight:650;text-align:right">${line.v}</span>
     </div>
-  `).join("");
+  `
+    )
+    .join("");
 
   return `
     <div style="font-weight:900;font-size:16px;margin-bottom:6px">${props.__name}</div>

@@ -1,5 +1,8 @@
 function norm(value) {
-  return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalizeType(value) {
@@ -42,15 +45,19 @@ function extractCountry(props) {
   if (candidates.length) return String(candidates.join(", ")).trim();
 
   const keys = Object.keys(props || {});
-  const guessKeys = keys.filter(key => {
+  const guessKeys = keys.filter((key) => {
     const normalized = norm(key);
-    return normalized.includes("country") || normalized.includes("страна") || normalized.includes("сопред");
+    return (
+      normalized.includes("country") ||
+      normalized.includes("страна") ||
+      normalized.includes("сопред")
+    );
   });
 
   const guessed = guessKeys
-    .map(key => props[key])
-    .filter(value => typeof value === "string" || typeof value === "number")
-    .map(value => String(value).trim())
+    .map((key) => props[key])
+    .filter((value) => typeof value === "string" || typeof value === "number")
+    .map((value) => String(value).trim())
     .filter(Boolean);
 
   if (guessed.length) return guessed.join(", ");
@@ -59,15 +66,17 @@ function extractCountry(props) {
 }
 
 function extractSubject(props) {
-  return String(
-    props.subject_name ||
-    props.subject ||
-    props.region_name ||
-    props.region ||
-    props.rf_subject ||
-    props.rf_subject_name ||
-    "Не указано"
-  ).trim() || "Не указано";
+  return (
+    String(
+      props.subject_name ||
+        props.subject ||
+        props.region_name ||
+        props.region ||
+        props.rf_subject ||
+        props.rf_subject_name ||
+        "Не указано"
+    ).trim() || "Не указано"
+  );
 }
 
 function extractExtra(props) {
@@ -90,7 +99,13 @@ function extractExtra(props) {
     operator: pick("operator", "agency", "department", "vedomstvo"),
     source: pick("source", "source_url", "url", "href"),
     confidence: pick("confidence_level", "confidence", "data_confidence", "quality"),
-    updatedAt: pick("updated_at", "last_updated", "last_update", "status_updated_at", "date_updated")
+    updatedAt: pick(
+      "updated_at",
+      "last_updated",
+      "last_update",
+      "status_updated_at",
+      "date_updated"
+    )
   };
 }
 
@@ -154,18 +169,26 @@ export async function loadFeatures({ setProgress }) {
   }
 
   const data = await response.json();
-  const features = (data.features || []).filter(feature => feature?.geometry?.type === "Point");
+  const features = (data.features || []).filter((feature) => feature?.geometry?.type === "Point");
 
-  return features.map(feature => {
+  return features.map((feature) => {
     const props = feature.properties || {};
     const country = extractCountry(props);
     const subject = extractSubject(props);
     const extra = extractExtra(props);
-    const name = String(props.checkpoint_name || props.name || props.title || "Без названия").trim();
-    const type = normalizeType(props.checkpoint_type || props.type || props.kind || props.transport_type);
+    const name = String(
+      props.checkpoint_name || props.name || props.title || "Без названия"
+    ).trim();
+    const type = normalizeType(
+      props.checkpoint_type || props.type || props.kind || props.transport_type
+    );
     const status = normalizeStatus(props.current_status || props.status || props.state);
-    const lng = Array.isArray(feature.geometry.coordinates) ? feature.geometry.coordinates[0] : null;
-    const lat = Array.isArray(feature.geometry.coordinates) ? feature.geometry.coordinates[1] : null;
+    const lng = Array.isArray(feature.geometry.coordinates)
+      ? feature.geometry.coordinates[0]
+      : null;
+    const lat = Array.isArray(feature.geometry.coordinates)
+      ? feature.geometry.coordinates[1]
+      : null;
     const hasCoordinates = Number.isFinite(lng) && Number.isFinite(lat);
 
     return {
@@ -180,7 +203,11 @@ export async function loadFeatures({ setProgress }) {
         __subject: subject,
         __coords: hasCoordinates ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : "—",
         __extra: extra,
-        __search: norm([name, subject, country, type, status, extra.category, extra.mode].filter(Boolean).join(" | "))
+        __search: norm(
+          [name, subject, country, type, status, extra.category, extra.mode]
+            .filter(Boolean)
+            .join(" | ")
+        )
       }
     };
   });
@@ -189,7 +216,7 @@ export async function loadFeatures({ setProgress }) {
 export function filterFeatures(allFeatures, { query, type, status, country, subject }) {
   const normalizedQuery = norm(query);
 
-  return allFeatures.filter(feature => {
+  return allFeatures.filter((feature) => {
     const props = feature.properties;
 
     if (type !== "all" && props.__type !== type) return false;

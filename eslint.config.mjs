@@ -3,13 +3,7 @@ import globals from "globals";
 
 export default [
   {
-    ignores: [
-      ".venv/**",
-      "data/**",
-      "frontend/**",
-      "raw_data/**",
-      "scripts/**"
-    ]
+    ignores: [".venv/**", "data/**", "frontend/**", "raw_data/**", "scripts/**"]
   },
   js.configs.recommended,
   {
@@ -24,10 +18,13 @@ export default [
       }
     },
     rules: {
-      "no-unused-vars": ["error", {
-        argsIgnorePattern: "^_",
-        caughtErrorsIgnorePattern: "^_"
-      }]
+      "no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_"
+        }
+      ]
     }
   }
 ];

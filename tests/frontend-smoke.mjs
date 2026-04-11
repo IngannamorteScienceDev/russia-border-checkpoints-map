@@ -34,8 +34,8 @@ function parseNodes(html, selector) {
     const [tagName, className, dataName] = selectorConfig;
     const pattern = new RegExp(`<${tagName}[^>]*class="([^"]*)"[^>]*>`, "g");
     return [...html.matchAll(pattern)]
-      .filter(match => match[1].split(/\s+/).includes(className))
-      .map(match => {
+      .filter((match) => match[1].split(/\s+/).includes(className))
+      .map((match) => {
         const dataset = {};
         if (dataName) {
           const dataMatch = match[0].match(new RegExp(`data-${dataName}="([^"]+)"`));
@@ -50,7 +50,7 @@ function parseNodes(html, selector) {
   if (dataSelector) {
     const dataName = dataSelector[1];
     const pattern = new RegExp(`<[^>]*data-${dataName}="([^"]+)"[^>]*>`, "g");
-    return [...html.matchAll(pattern)].map(match =>
+    return [...html.matchAll(pattern)].map((match) =>
       createNode({ [toDatasetKey(dataName)]: match[1] })
     );
   }
@@ -152,7 +152,9 @@ globalThis.document = {
 };
 
 globalThis.window = {
-  location: { href: "http://localhost:8000/?country=%D0%9A%D0%B8%D1%82%D0%B0%D0%B9&status=%D0%94%D0%B5%D0%B9%D1%81%D1%82%D0%B2%D1%83%D0%B5%D1%82&q=%D1%82%D0%B5%D1%81%D1%82&checkpoint=100&lng=120.50000&lat=50.25000&zoom=5.50&sat=1" },
+  location: {
+    href: "http://localhost:8000/?country=%D0%9A%D0%B8%D1%82%D0%B0%D0%B9&status=%D0%94%D0%B5%D0%B9%D1%81%D1%82%D0%B2%D1%83%D0%B5%D1%82&q=%D1%82%D0%B5%D1%81%D1%82&checkpoint=100&lng=120.50000&lat=50.25000&zoom=5.50&sat=1"
+  },
   history: {
     replaceState(_state, _title, nextUrl) {
       replaceStateCalls += 1;
@@ -327,10 +329,7 @@ class FakeMap {
 
   fitBounds(bounds, options = {}) {
     const [southWest, northEast] = bounds;
-    this.center = [
-      (southWest[0] + northEast[0]) / 2,
-      (southWest[1] + northEast[1]) / 2
-    ];
+    this.center = [(southWest[0] + northEast[0]) / 2, (southWest[1] + northEast[1]) / 2];
 
     if (typeof options.maxZoom === "number") {
       this.zoom = Math.min(Math.max(this.zoom, 5), options.maxZoom);
@@ -358,7 +357,7 @@ class FakeMap {
 
   getBounds() {
     return {
-      contains: coordinates => this.boundsContains(coordinates)
+      contains: (coordinates) => this.boundsContains(coordinates)
     };
   }
 
@@ -427,27 +426,19 @@ globalThis.maplibregl = {
 URL.createObjectURL = () => "blob:test-download";
 URL.revokeObjectURL = () => {};
 
-const {
-  FAVORITES_STORAGE_KEY,
-  loadFavoriteIds,
-  saveFavoriteIds,
-  toggleFavoriteId
-} = await import(new URL("../js/favorites.js", import.meta.url));
+const { FAVORITES_STORAGE_KEY, loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } = await import(
+  new URL("../js/favorites.js", import.meta.url)
+);
 const { toggleCompareId } = await import(new URL("../js/compare.js", import.meta.url));
-const {
-  buildDatasetSnapshot,
-  saveDatasetSnapshot,
-  summarizeDatasetChanges
-} = await import(new URL("../js/datasetChanges.js", import.meta.url));
+const { buildDatasetSnapshot, saveDatasetSnapshot, summarizeDatasetChanges } = await import(
+  new URL("../js/datasetChanges.js", import.meta.url)
+);
 const { getFreshnessInfo } = await import(new URL("../js/freshness.js", import.meta.url));
 const { getQualityFlags } = await import(new URL("../js/quality.js", import.meta.url));
 const { buildReportUrl } = await import(new URL("../js/report.js", import.meta.url));
-const {
-  RECENT_STORAGE_KEY,
-  loadRecentIds,
-  prependRecentId,
-  saveRecentIds
-} = await import(new URL("../js/recent.js", import.meta.url));
+const { RECENT_STORAGE_KEY, loadRecentIds, prependRecentId, saveRecentIds } = await import(
+  new URL("../js/recent.js", import.meta.url)
+);
 
 let favoriteIds = loadFavoriteIds();
 favoriteIds = toggleFavoriteId(favoriteIds, "100");
@@ -487,11 +478,18 @@ if (getFreshnessInfo("2024-01-01T00:00:00Z", new Date("2026-04-01T00:00:00Z")).l
   throw new Error("Freshness helper did not classify stale records.");
 }
 
-if (getQualityFlags({ properties: { __extra: {}, __status: "Неизвестно", __coords: "—" } }).length < 4) {
+if (
+  getQualityFlags({ properties: { __extra: {}, __status: "Неизвестно", __coords: "—" } }).length < 4
+) {
   throw new Error("Quality helper did not flag incomplete records.");
 }
 
-if (!buildReportUrl({ properties: { __id: "100", __name: "Тест" } }, "https://example.test/map").includes("issues/new")) {
+if (
+  !buildReportUrl(
+    { properties: { __id: "100", __name: "Тест" } },
+    "https://example.test/map"
+  ).includes("issues/new")
+) {
   throw new Error("Report URL helper did not build a GitHub issue URL.");
 }
 
@@ -504,9 +502,13 @@ if (datasetSummary.totalDelta !== 1 || datasetSummary.addedIds[0] !== "101") {
   throw new Error("Dataset change summary did not detect added checkpoints.");
 }
 
-saveDatasetSnapshot(buildDatasetSnapshot([{
-  properties: { __id: "100" }
-}]));
+saveDatasetSnapshot(
+  buildDatasetSnapshot([
+    {
+      properties: { __id: "100" }
+    }
+  ])
+);
 
 let recentIds = prependRecentId([], "101");
 recentIds = prependRecentId(recentIds, "100");
@@ -529,7 +531,7 @@ if (loadRecentIds().length !== 0) {
 saveRecentIds(["101"]);
 
 await import(new URL("../app.js", import.meta.url));
-await new Promise(resolve => setTimeout(resolve, 0));
+await new Promise((resolve) => setTimeout(resolve, 0));
 
 const statsHtml = elements.get("stats")?.innerHTML || "";
 const listHtml = elements.get("list")?.innerHTML || "";
@@ -559,7 +561,12 @@ if (!statsHtml.includes("Всего КПП") || !statsHtml.includes("Обнов�
   throw new Error("Stats block was not rendered.");
 }
 
-if (!initialMapOptions || initialMapOptions.center[0] !== 120.5 || initialMapOptions.center[1] !== 50.25 || initialMapOptions.zoom !== 5.5) {
+if (
+  !initialMapOptions ||
+  initialMapOptions.center[0] !== 120.5 ||
+  initialMapOptions.center[1] !== 50.25 ||
+  initialMapOptions.zoom !== 5.5
+) {
   throw new Error("Map view was not restored from URL.");
 }
 
@@ -579,7 +586,12 @@ if (!listHtml.includes("item__favorite is-favorite") || !listHtml.includes('aria
   throw new Error("Favorite checkpoint was not rendered as selected.");
 }
 
-if (!listHtml.includes("item__copyCoords") || !listHtml.includes("Координаты") || !listHtml.includes("item__route") || !listHtml.includes("yandex.ru/maps")) {
+if (
+  !listHtml.includes("item__copyCoords") ||
+  !listHtml.includes("Координаты") ||
+  !listHtml.includes("item__route") ||
+  !listHtml.includes("yandex.ru/maps")
+) {
   throw new Error("Checkpoint quick actions were not rendered.");
 }
 
@@ -591,11 +603,18 @@ if (!listHtml.includes("freshness freshness--fresh") || !listHtml.includes("Св
   throw new Error("Freshness badge was not rendered.");
 }
 
-if (!listHtml.includes("Высокая достоверность") || !listHtml.includes("item__source") || !listHtml.includes("https://example.test/source")) {
+if (
+  !listHtml.includes("Высокая достоверность") ||
+  !listHtml.includes("item__source") ||
+  !listHtml.includes("https://example.test/source")
+) {
   throw new Error("Source and confidence indicators were not rendered.");
 }
 
-if (!listHtml.includes("item__report") || !listHtml.includes("github.com/IngannamorteScienceDev/russia-border-checkpoints-map/issues/new")) {
+if (
+  !listHtml.includes("item__report") ||
+  !listHtml.includes("github.com/IngannamorteScienceDev/russia-border-checkpoints-map/issues/new")
+) {
   throw new Error("Report issue action was not rendered.");
 }
 
@@ -632,11 +651,19 @@ if (!lastClipboardText.includes("43.10000, 131.90000")) {
   throw new Error("Copy coordinates action did not write checkpoint coordinates.");
 }
 
-if (!recentHtml.includes("Недавно открытые") || !recentHtml.includes("Тестовый КПП") || !recentHtml.includes("Воздушный тест")) {
+if (
+  !recentHtml.includes("Недавно открытые") ||
+  !recentHtml.includes("Тестовый КПП") ||
+  !recentHtml.includes("Воздушный тест")
+) {
   throw new Error("Recently viewed checkpoints were not rendered.");
 }
 
-if (!datasetChangesHtml.includes("Изменения данных") || !datasetChangesHtml.includes("+1") || !datasetChangesHtml.includes("Добавлено: 1")) {
+if (
+  !datasetChangesHtml.includes("Изменения данных") ||
+  !datasetChangesHtml.includes("+1") ||
+  !datasetChangesHtml.includes("Добавлено: 1")
+) {
   throw new Error("Dataset change summary was not rendered.");
 }
 
@@ -672,11 +699,18 @@ if (url.searchParams.get("checkpoint") !== "100") {
   throw new Error("Selected checkpoint was not preserved in URL.");
 }
 
-if (url.searchParams.get("lng") !== "131.90000" || url.searchParams.get("lat") !== "43.10000" || url.searchParams.get("zoom") !== "7.00") {
+if (
+  url.searchParams.get("lng") !== "131.90000" ||
+  url.searchParams.get("lat") !== "43.10000" ||
+  url.searchParams.get("zoom") !== "7.00"
+) {
   throw new Error("Map view was not synchronized after restoring the checkpoint popup.");
 }
 
-if (typeof exportCsvButton?.onclick !== "function" || typeof exportGeoJsonButton?.onclick !== "function") {
+if (
+  typeof exportCsvButton?.onclick !== "function" ||
+  typeof exportGeoJsonButton?.onclick !== "function"
+) {
   throw new Error("Export buttons were not wired.");
 }
 
@@ -719,12 +753,21 @@ if (!lastDownload?.download?.endsWith(".geojson")) {
 }
 
 await shareLinkButton.onclick();
-if (!lastClipboardText.includes("checkpoint=100") || !lastClipboardText.includes("country=") || !lastClipboardText.includes("zoom=7.00") || !lastClipboardText.includes("sat=1")) {
+if (
+  !lastClipboardText.includes("checkpoint=100") ||
+  !lastClipboardText.includes("country=") ||
+  !lastClipboardText.includes("zoom=7.00") ||
+  !lastClipboardText.includes("sat=1")
+) {
   throw new Error("Share link did not copy current URL state.");
 }
 
 const shareSheetHtml = elements.get("shareSheet")?.innerHTML || "";
-if (!shareSheetHtml.includes("Поделиться картой") || !shareSheetHtml.includes("api.qrserver.com") || !shareSheetHtml.includes("share-sheet__url")) {
+if (
+  !shareSheetHtml.includes("Поделиться картой") ||
+  !shareSheetHtml.includes("api.qrserver.com") ||
+  !shareSheetHtml.includes("share-sheet__url")
+) {
   throw new Error("Share sheet with QR code was not rendered.");
 }
 
@@ -771,12 +814,18 @@ if (sortOrder?.value !== "distance") {
 }
 
 const nearestOpenHtml = elements.get("nearestOpen")?.innerHTML || "";
-if (!nearestOpenHtml.includes("Ближайший действующий") || !nearestOpenHtml.includes("Тестовый КПП")) {
+if (
+  !nearestOpenHtml.includes("Ближайший действующий") ||
+  !nearestOpenHtml.includes("Тестовый КПП")
+) {
   throw new Error("Nearest open checkpoint summary was not rendered.");
 }
 
 const nearestListHtml = elements.get("list")?.innerHTML || "";
-if (!nearestListHtml.includes("item--nearest-open") || !nearestListHtml.includes("Ближайший действующий пункт")) {
+if (
+  !nearestListHtml.includes("item--nearest-open") ||
+  !nearestListHtml.includes("Ближайший действующий пункт")
+) {
   throw new Error("Nearest open checkpoint was not highlighted in the list.");
 }
 
@@ -795,11 +844,20 @@ resetFiltersButton.onclick?.();
 
 const finalUrl = new URL(window.location.href);
 
-if (finalUrl.searchParams.get("q") !== null || finalUrl.searchParams.get("country") !== null || finalUrl.searchParams.get("status") !== null || finalUrl.searchParams.get("checkpoint") !== null) {
+if (
+  finalUrl.searchParams.get("q") !== null ||
+  finalUrl.searchParams.get("country") !== null ||
+  finalUrl.searchParams.get("status") !== null ||
+  finalUrl.searchParams.get("checkpoint") !== null
+) {
   throw new Error("Reset filters did not clear filter state from URL.");
 }
 
-if (finalUrl.searchParams.get("lng") !== "37.61760" || finalUrl.searchParams.get("lat") !== "55.75580" || finalUrl.searchParams.get("zoom") !== "6.50") {
+if (
+  finalUrl.searchParams.get("lng") !== "37.61760" ||
+  finalUrl.searchParams.get("lat") !== "55.75580" ||
+  finalUrl.searchParams.get("zoom") !== "6.50"
+) {
   throw new Error("Reset filters should preserve the current map view in URL.");
 }
 
@@ -808,11 +866,18 @@ if (finalUrl.searchParams.get("sat") !== "1") {
 }
 
 const finalListHtml = elements.get("list")?.innerHTML || "";
-if (finalListHtml.indexOf("Воздушный тест") === -1 || finalListHtml.indexOf("Тестовый КПП") === -1) {
+if (
+  finalListHtml.indexOf("Воздушный тест") === -1 ||
+  finalListHtml.indexOf("Тестовый КПП") === -1
+) {
   throw new Error("Rendered list is missing expected checkpoints after resetting filters.");
 }
 
-if (!finalListHtml.includes("item--quality-warning") || !finalListHtml.includes("Нет источника") || !finalListHtml.includes("Нет даты обновления")) {
+if (
+  !finalListHtml.includes("item--quality-warning") ||
+  !finalListHtml.includes("Нет источника") ||
+  !finalListHtml.includes("Нет даты обновления")
+) {
   throw new Error("Incomplete checkpoint markers were not rendered.");
 }
 
@@ -824,11 +889,14 @@ if (finalUrl.searchParams.get("sort") !== "distance") {
   throw new Error("Reset filters should preserve the current sort mode in URL.");
 }
 
-lastMapInstance.boundsContains = coordinates => coordinates[0] < 100;
+lastMapInstance.boundsContains = (coordinates) => coordinates[0] < 100;
 viewportOnlyButton.onclick?.();
 
 const viewportOnlyListHtml = elements.get("list")?.innerHTML || "";
-if (!viewportOnlyListHtml.includes("Воздушный тест") || viewportOnlyListHtml.includes("Тестовый КПП")) {
+if (
+  !viewportOnlyListHtml.includes("Воздушный тест") ||
+  viewportOnlyListHtml.includes("Тестовый КПП")
+) {
   throw new Error("Viewport-only filter did not limit the rendered list to visible checkpoints.");
 }
 
@@ -842,14 +910,20 @@ lastMapInstance.boundsContains = () => true;
 fitResultsButton.onclick?.();
 
 const fitUrl = new URL(window.location.href);
-if (fitUrl.searchParams.get("lng") !== "109.42500" || fitUrl.searchParams.get("lat") !== "48.42500") {
+if (
+  fitUrl.searchParams.get("lng") !== "109.42500" ||
+  fitUrl.searchParams.get("lat") !== "48.42500"
+) {
   throw new Error("Fit-results action did not center the map on rendered checkpoints.");
 }
 
 favoritesOnlyButton.onclick?.();
 
 const favoriteOnlyListHtml = elements.get("list")?.innerHTML || "";
-if (!favoriteOnlyListHtml.includes("Тестовый КПП") || favoriteOnlyListHtml.includes("Воздушный тест")) {
+if (
+  !favoriteOnlyListHtml.includes("Тестовый КПП") ||
+  favoriteOnlyListHtml.includes("Воздушный тест")
+) {
   throw new Error("Favorites-only filter did not limit the rendered list.");
 }
 
