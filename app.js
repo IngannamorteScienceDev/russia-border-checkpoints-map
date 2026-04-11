@@ -13,6 +13,7 @@ import { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } from "./js/favorit
 import { haversine } from "./js/geo.js";
 import { createCheckpointsLayerController, ensureSatelliteLayer } from "./js/mapLayers.js";
 import { createPopupController } from "./js/popup.js";
+import { getQualityFlags } from "./js/quality.js";
 import {
   buildLegend,
   fillFilters,
@@ -373,13 +374,19 @@ function applyFilters() {
 }
 
 function getMapFeatures(features = state.viewFeatures) {
-  return features.map((feature) => ({
-    ...feature,
-    properties: {
-      ...feature.properties,
-      __isFavorite: state.favoriteIds.has(feature.properties.__id)
-    }
-  }));
+  return features.map((feature) => {
+    const qualityFlags = getQualityFlags(feature);
+
+    return {
+      ...feature,
+      properties: {
+        ...feature.properties,
+        __isFavorite: state.favoriteIds.has(feature.properties.__id),
+        __hasQualityIssues: qualityFlags.length > 0,
+        __hasCriticalQualityIssues: qualityFlags.some((flag) => flag.level === "critical")
+      }
+    };
+  });
 }
 
 function syncMapSourceData() {

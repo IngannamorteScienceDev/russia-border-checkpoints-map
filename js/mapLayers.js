@@ -60,9 +60,14 @@ export function createCheckpointsLayerController({ map, openPopup }) {
   function rebuildLayers(features) {
     unbindLayerEvents();
 
-    ["clusters", "cluster-count", "favorite-points-halo", "points", "points-hit"].forEach(
-      safeRemoveLayer
-    );
+    [
+      "clusters",
+      "cluster-count",
+      "quality-points-alert",
+      "favorite-points-halo",
+      "points",
+      "points-hit"
+    ].forEach(safeRemoveLayer);
     safeRemoveSource("checkpoints");
 
     map.addSource("checkpoints", {
@@ -106,6 +111,30 @@ export function createCheckpointsLayerController({ map, openPopup }) {
         "circle-opacity": 0.28,
         "circle-stroke-width": 1,
         "circle-stroke-color": "#fef08a"
+      }
+    });
+
+    map.addLayer({
+      id: "quality-points-alert",
+      type: "circle",
+      source: "checkpoints",
+      filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "__hasQualityIssues"], true]],
+      paint: {
+        "circle-radius": ["case", ["==", ["get", "__hasCriticalQualityIssues"], true], 15, 13],
+        "circle-color": [
+          "case",
+          ["==", ["get", "__hasCriticalQualityIssues"], true],
+          "#ef4444",
+          "#f59e0b"
+        ],
+        "circle-opacity": 0.24,
+        "circle-stroke-width": 1,
+        "circle-stroke-color": [
+          "case",
+          ["==", ["get", "__hasCriticalQualityIssues"], true],
+          "#fecaca",
+          "#fde68a"
+        ]
       }
     });
 

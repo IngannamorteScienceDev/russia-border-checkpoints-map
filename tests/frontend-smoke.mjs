@@ -578,6 +578,10 @@ if (!lastMapInstance?.getLayer("favorite-points-halo")) {
   throw new Error("Favorite checkpoint halo layer was not added to the map.");
 }
 
+if (!lastMapInstance?.getLayer("quality-points-alert")) {
+  throw new Error("Data quality alert layer was not added to the map.");
+}
+
 if (styleToggleButton?.textContent !== "🗺 Карта") {
   throw new Error("Satellite toggle label was not updated after restoring URL state.");
 }
@@ -907,6 +911,14 @@ if (
   !finalListHtml.includes("Нет даты обновления")
 ) {
   throw new Error("Incomplete checkpoint markers were not rendered.");
+}
+
+if (
+  !lastMapInstance
+    ?.getSource("checkpoints")
+    ?.data?.features?.some((feature) => feature.properties.__hasQualityIssues)
+) {
+  throw new Error("Incomplete checkpoint marker was not reflected in the map source.");
 }
 
 if (finalListHtml.indexOf("Воздушный тест") > finalListHtml.indexOf("Тестовый КПП")) {
