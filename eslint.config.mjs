@@ -3,7 +3,7 @@ import globals from "globals";
 
 export default [
   {
-    ignores: [".venv/**", "data/**", "frontend/**", "raw_data/**", "scripts/**"]
+    ignores: [".venv/**", "data/**", "frontend/**", "js/vendor/**", "raw_data/**", "scripts/**"]
   },
   js.configs.recommended,
   {

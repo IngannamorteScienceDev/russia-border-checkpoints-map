@@ -2,6 +2,7 @@ import { TYPE_COLORS } from "./config.js";
 import { getFreshnessInfo } from "./freshness.js";
 import { haversine, mapPointUrl, routeUrl } from "./geo.js";
 import { getQualityFlags } from "./quality.js";
+import { createQrSvgDataUri } from "./qr.js";
 import { buildReportUrl } from "./report.js";
 
 export function buildLegend(legendEl) {
@@ -109,7 +110,7 @@ export function renderShareSheet({
   }
 
   const safeShareUrl = escapeHtml(shareUrl);
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=${encodeURIComponent(shareUrl)}`;
+  const qrUrl = escapeHtml(createQrSvgDataUri(shareUrl));
 
   shareSheetEl.innerHTML = `
     <div class="share-sheet__header">
@@ -127,7 +128,7 @@ export function renderShareSheet({
           <button class="share-sheet__button" type="button" data-share-action="copy">Копировать</button>
           ${canNativeShare ? '<button class="share-sheet__button" type="button" data-share-action="native">Системное меню</button>' : ""}
         </div>
-        <div class="share-sheet__note">QR формируется внешним сервисом, поэтому для него нужен доступ к сети.</div>
+        <div class="share-sheet__note">QR генерируется локально в браузере, без внешних сервисов.</div>
       </div>
     </div>
   `;

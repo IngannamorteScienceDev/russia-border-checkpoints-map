@@ -797,7 +797,8 @@ if (
 const shareSheetHtml = elements.get("shareSheet")?.innerHTML || "";
 if (
   !shareSheetHtml.includes("Поделиться картой") ||
-  !shareSheetHtml.includes("api.qrserver.com") ||
+  !shareSheetHtml.includes("data:image/svg+xml") ||
+  shareSheetHtml.includes("api.qrserver.com") ||
   !shareSheetHtml.includes("share-sheet__url")
 ) {
   throw new Error("Share sheet with QR code was not rendered.");
