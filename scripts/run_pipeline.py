@@ -12,6 +12,7 @@ PIPELINE_STEPS = [
     ("STEP 1. Fetch Rosgranstroy data", ["python", "scripts/00_fetch_rosgranstroy.py"]),
     ("STEP 2. Normalize data to CSV", ["python", "scripts/01_parse_rosgranstroy.py"]),
     ("STEP 3. Build final GeoJSON", ["python", "scripts/02_build_geojson.py"]),
+    ("STEP 4. Update dataset changelog", ["python", "scripts/03_update_changelog.py"]),
 ]
 
 
