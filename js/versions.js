@@ -173,7 +173,8 @@ async function initVersionsPage() {
     const freshness = getFreshnessInfo(datasetMeta.latestUpdatedAt);
     const byStatus = countBy(features, (feature) => feature.properties.__status);
     const byType = countBy(features, (feature) => feature.properties.__type);
-    const versionId = buildVersionId(snapshot);
+    const versionId =
+      qualityReport.datasetVersion || changelog.entries?.[0]?.version || buildVersionId(snapshot);
 
     summaryEl.innerHTML = `
       <div class="versions-card versions-card--wide">
