@@ -34,6 +34,36 @@ jobs:
       - name: Refresh checkpoint data
         run: python scripts/run_pipeline.py
 
+      - name: Build data quality PR summary
+        id: quality-summary
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads(Path("data/data_quality_report.json").read_text(encoding="utf-8"))
+          summary = report.get("summary", {})
+          warnings = report.get("warnings") or []
+          lines = [
+              f"- Checked records: {summary.get('checked', 0)}",
+              f"- Blocking errors: {summary.get('errorCount', 0)}",
+              f"- Warnings: {summary.get('warningCount', 0)}",
+              f"- Dataset version: {report.get('datasetVersion', 'unknown')}",
+          ]
+
+          if warnings:
+              lines.append("")
+              lines.append("Top warnings:")
+              lines.extend(f"- {warning}" for warning in warnings[:10])
+          else:
+              lines.append("- No data quality warnings.")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write("body<<QUALITY_SUMMARY\n")
+              output.write("\n".join(lines))
+              output.write("\nQUALITY_SUMMARY\n")
+
       - name: Run Python validation tests
         run: python -m unittest discover -s tests -v
 
@@ -61,6 +91,9 @@ jobs:
           title: "chore: refresh checkpoint data"
           body: |
             Automated data refresh from the scheduled pipeline.
+
+            Data quality report:
+            ${{ steps.quality-summary.outputs.body }}
 
             Checks run:
             - Python validation tests
