@@ -53,6 +53,7 @@ const QUICK_FILTER_PRESETS = {
   air: { type: "Воздушный" }
 };
 const initialMapView = getMapViewStateFromUrl(DEFAULT_MAP_VIEW);
+const isMapLibreAvailable = Boolean(globalThis.maplibregl?.Map);
 
 const state = {
   allFeatures: [],
@@ -71,15 +72,111 @@ const state = {
   shareFeedbackTimer: null
 };
 
-const map = new maplibregl.Map({
-  container: "map",
-  style: STYLE_MAP,
-  center: initialMapView.center,
-  zoom: initialMapView.zoom,
-  antialias: true
-});
+function createFallbackMap({ center, zoom }) {
+  const sources = new Map();
+  const layers = new Map();
+  const listeners = new Map();
+  const canvas = { style: {} };
+  let currentCenter = [...center];
+  let currentZoom = zoom;
 
-map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+  function emit(eventName) {
+    for (const handler of listeners.get(eventName) || []) handler();
+  }
+
+  return {
+    isFallback: true,
+    loaded: () => true,
+    once(_eventName, callback) {
+      callback();
+    },
+    addControl() {},
+    addSource(id, source) {
+      sources.set(id, {
+        ...source,
+        data: source.data,
+        setData(data) {
+          this.data = data;
+        },
+        getClusterExpansionZoom(_id, callback) {
+          callback(null, currentZoom);
+        }
+      });
+    },
+    getSource(id) {
+      return sources.get(id);
+    },
+    removeSource(id) {
+      sources.delete(id);
+    },
+    addLayer(layer) {
+      layers.set(layer.id, { ...layer, layout: layer.layout ? { ...layer.layout } : {} });
+    },
+    getLayer(id) {
+      return layers.get(id);
+    },
+    removeLayer(id) {
+      layers.delete(id);
+    },
+    on(eventName, maybeLayer, maybeHandler) {
+      const handler = typeof maybeLayer === "function" ? maybeLayer : maybeHandler;
+      if (typeof handler !== "function") return;
+      if (!listeners.has(eventName)) listeners.set(eventName, new Set());
+      listeners.get(eventName).add(handler);
+    },
+    off(eventName, maybeLayer, maybeHandler) {
+      const handler = typeof maybeLayer === "function" ? maybeLayer : maybeHandler;
+      listeners.get(eventName)?.delete(handler);
+    },
+    easeTo(options = {}) {
+      if (Array.isArray(options.center)) currentCenter = [...options.center];
+      if (typeof options.zoom === "number") currentZoom = options.zoom;
+      emit("moveend");
+    },
+    fitBounds(bounds, options = {}) {
+      const [southWest, northEast] = bounds;
+      currentCenter = [(southWest[0] + northEast[0]) / 2, (southWest[1] + northEast[1]) / 2];
+      if (typeof options.maxZoom === "number") currentZoom = Math.min(currentZoom, options.maxZoom);
+      emit("moveend");
+    },
+    resize() {},
+    getCanvas() {
+      return canvas;
+    },
+    getZoom() {
+      return currentZoom;
+    },
+    getCenter() {
+      return { lng: currentCenter[0], lat: currentCenter[1] };
+    },
+    getBounds() {
+      return { contains: () => true };
+    },
+    setLayoutProperty(id, prop, value) {
+      const layer = layers.get(id);
+      if (!layer) return;
+      if (!layer.layout) layer.layout = {};
+      layer.layout[prop] = value;
+    },
+    getLayoutProperty(id, prop) {
+      return layers.get(id)?.layout?.[prop] ?? "none";
+    }
+  };
+}
+
+const map = isMapLibreAvailable
+  ? new maplibregl.Map({
+      container: "map",
+      style: STYLE_MAP,
+      center: initialMapView.center,
+      zoom: initialMapView.zoom,
+      antialias: true
+    })
+  : createFallbackMap(initialMapView);
+
+if (isMapLibreAvailable) {
+  map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+}
 
 const popupController = createPopupController({
   map,
@@ -119,6 +216,15 @@ function syncOfflineStatus() {
   dom.offlineStatusEl.hidden = !isOffline;
   dom.offlineStatusEl.classList.toggle("is-visible", isOffline);
   dom.offlineStatusEl.textContent = isOffline ? "Офлайн: показываем сохраненную версию карты" : "";
+}
+
+function syncMapFallbackStatus() {
+  if (!map.isFallback) return;
+
+  dom.mapWrapEl?.classList.add("mapWrap--fallback");
+  if (dom.mapFallbackEl) dom.mapFallbackEl.hidden = false;
+  dom.styleToggleEl.disabled = true;
+  dom.styleToggleEl.textContent = "Карта недоступна";
 }
 
 function renderAll() {
@@ -210,6 +316,12 @@ function isSatelliteVisible() {
 }
 
 function setSatelliteMode(enabled) {
+  if (map.isFallback) {
+    syncSatelliteModeToUrl(false);
+    syncMapFallbackStatus();
+    return;
+  }
+
   map.setLayoutProperty(SATELLITE_LAYER_ID, "visibility", enabled ? "visible" : "none");
 
   dom.styleToggleEl.textContent = enabled ? "🗺 Карта" : "🛰 Спутник";
@@ -583,6 +695,7 @@ function toggleViewportOnly() {
 
 function updateUserMarker() {
   if (!state.userLocation) return;
+  if (!globalThis.maplibregl?.Marker) return;
 
   if (state.userMarker) state.userMarker.remove();
 
@@ -679,6 +792,7 @@ function attachUi() {
 
 async function init() {
   syncOfflineStatus();
+  syncMapFallbackStatus();
 
   try {
     setProgress(10, "Подключаем карту...");

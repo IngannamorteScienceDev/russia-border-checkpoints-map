@@ -93,6 +93,12 @@ export function createPopupController({ map, getUserLocation, onPopupChange }) {
 
     lastPopupFeature = feature;
 
+    if (!globalThis.maplibregl?.Popup) {
+      notifyPopupChange(feature);
+      map.easeTo({ center: feature.geometry.coordinates, zoom: Math.max(map.getZoom(), 7) });
+      return;
+    }
+
     popupRef = new maplibregl.Popup({ maxWidth: "380px", closeButton: true, closeOnClick: true })
       .setLngLat(lngLat || feature.geometry.coordinates)
       .setHTML(buildPopupHtml(feature, getUserLocation()))

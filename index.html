@@ -175,8 +175,17 @@
       <button id="mobileToggleFloating" class="mobile-fab" aria-label="Открыть панель">☰</button>
 
       <!-- Map -->
-      <main class="mapWrap">
+      <main id="mapWrap" class="mapWrap">
         <div id="map" class="map"></div>
+        <div id="mapFallback" class="map-fallback" role="status" hidden>
+          <div>
+            <b>Карта временно недоступна</b>
+            <span
+              >Похоже, внешний MapLibre CDN не загрузился. Данные, фильтры, избранное и экспорт
+              продолжают работать.</span
+            >
+          </div>
+        </div>
       </main>
     </div>
 
