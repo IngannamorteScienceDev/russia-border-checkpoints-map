@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="КПП РФ">
+  <defs>
+    <linearGradient id="bg" x1="96" x2="416" y1="72" y2="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1d4ed8" />
+      <stop offset="1" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="pin" x1="176" x2="336" y1="122" y2="364" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fef3c7" />
+      <stop offset="1" stop-color="#f59e0b" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <path d="M104 352c58-38 111-50 160-36 53 16 99 4 144-36v84c-45 40-91 52-144 36-49-14-102-2-160 36z" fill="#38bdf8" opacity=".22" />
+  <path d="M256 96c-68 0-124 55-124 123 0 91 124 197 124 197s124-106 124-197c0-68-56-123-124-123z" fill="url(#pin)" />
+  <circle cx="256" cy="218" r="48" fill="#0f172a" />
+  <path d="M194 432h124" stroke="#e0f2fe" stroke-width="26" stroke-linecap="round" opacity=".9" />
+</svg>

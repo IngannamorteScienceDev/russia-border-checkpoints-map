@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
@@ -59,6 +61,24 @@ const { registerAppShellServiceWorker } = await import(
   new URL("../js/serviceWorker.js", import.meta.url)
 );
 const { renderList } = await import(new URL("../js/render.js", import.meta.url));
+
+const manifest = JSON.parse(
+  await readFile(new URL("../manifest.webmanifest", import.meta.url), "utf-8")
+);
+const indexHtml = await readFile(new URL("../index.html", import.meta.url), "utf-8");
+const versionsHtml = await readFile(new URL("../versions.html", import.meta.url), "utf-8");
+
+assert(manifest.display === "standalone", "PWA manifest should use standalone display.");
+assert(manifest.start_url === "./", "PWA manifest should start at the app root.");
+assert(manifest.scope === "./", "PWA manifest scope should stay relative for GitHub Pages.");
+assert(
+  manifest.icons?.some((icon) => icon.purpose === "maskable"),
+  "PWA manifest should include a maskable icon."
+);
+assert(
+  indexHtml.includes('rel="manifest"') && versionsHtml.includes('rel="manifest"'),
+  "HTML pages should link to the PWA manifest."
+);
 
 let registeredWorkerUrl = "";
 let registeredWorkerOptions = null;

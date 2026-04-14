@@ -1,0 +1,35 @@
+{
+  "name": "КПП РФ: карта пунктов пропуска",
+  "short_name": "КПП РФ",
+  "description": "Интерактивная карта пунктов пропуска через государственную границу России.",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020617",
+  "theme_color": "#0b1220",
+  "categories": ["maps", "travel", "utilities"],
+  "icons": [
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/maskable-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Версии данных",
+      "short_name": "Версии",
+      "description": "Открыть страницу версий и сводки датасета.",
+      "url": "./versions.html"
+    }
+  ]
+}
