@@ -204,7 +204,7 @@ export async function loadFeatures({ setProgress }) {
         __coords: hasCoordinates ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : "—",
         __extra: extra,
         __search: norm(
-          [name, subject, country, type, status, extra.category, extra.mode]
+          [extra.checkpointId, name, subject, country, type, status, extra.category, extra.mode]
             .filter(Boolean)
             .join(" | ")
         )

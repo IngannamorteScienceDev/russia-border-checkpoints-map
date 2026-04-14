@@ -1339,17 +1339,44 @@ body.versions-body {
   overflow-wrap: anywhere;
   font-size: 22px;
 }
-.versions-quality__warnings {
+.versions-quality__groups,
+.versions-quality__issues {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   margin-top: 14px;
 }
-.versions-quality__warnings h3 {
+.versions-quality__groups h3,
+.versions-quality__issues h3 {
   margin: 0;
   font-size: 14px;
   color: rgba(254, 243, 199, 0.95);
 }
-.versions-quality__warnings p,
+.versions-quality__group {
+  border: 1px solid rgba(251, 191, 36, 0.12);
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.22);
+  padding: 10px;
+}
+.versions-quality__groupHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.versions-quality__groupHeader b {
+  color: rgba(254, 243, 199, 0.96);
+}
+.versions-quality__groupHeader span {
+  border: 1px solid rgba(251, 191, 36, 0.18);
+  border-radius: 999px;
+  background: rgba(120, 53, 15, 0.2);
+  padding: 5px 9px;
+  color: rgba(254, 243, 199, 0.88);
+  font-size: 12px;
+  font-weight: 850;
+}
+.versions-quality__issue,
 .versions-quality__empty {
   margin: 0;
   border: 1px solid rgba(251, 191, 36, 0.12);
@@ -1359,6 +1386,37 @@ body.versions-body {
   color: rgba(254, 243, 199, 0.86);
   font-size: 13px;
   line-height: 1.45;
+}
+.versions-quality__issue + .versions-quality__issue {
+  margin-top: 8px;
+}
+.versions-quality__issue--error {
+  border-color: rgba(248, 113, 113, 0.22);
+  background: rgba(127, 29, 29, 0.16);
+  color: rgba(254, 202, 202, 0.9);
+}
+.versions-quality__issue p {
+  margin: 0;
+}
+.versions-quality__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.versions-quality__links a {
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.12);
+  color: rgba(186, 230, 253, 0.94);
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 850;
+  text-decoration: none;
+}
+.versions-quality__links a:hover {
+  border-color: rgba(125, 211, 252, 0.4);
+  background: rgba(14, 165, 233, 0.2);
 }
 .versions-changelog__item {
   display: grid;

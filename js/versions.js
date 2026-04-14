@@ -80,11 +80,80 @@ function renderChangelog(entries = []) {
   `;
 }
 
+function getWarningGroup(warning) {
+  if (warning.includes("Duplicate coordinate pair")) return "Дубли координат";
+  if (warning.includes("low precision")) return "Низкая точность координат";
+  if (warning.includes("expected Russia range")) return "Подозрительные координаты";
+  if (warning.includes("checkpoint_type")) return "Неожиданный тип КПП";
+  return "Прочие предупреждения";
+}
+
+function getWarningCheckpointIds(warning) {
+  const leadingId = warning.match(/^([a-zA-Z0-9_-]+):/);
+  if (leadingId) return [leadingId[1]];
+
+  if (warning.includes("Duplicate coordinate pair")) {
+    return [
+      ...new Set(
+        warning
+          .split(":")
+          .at(-1)
+          .match(/\b\d+\b/g) || []
+      )
+    ];
+  }
+
+  return [];
+}
+
+function groupWarnings(warnings) {
+  const groups = new Map();
+
+  for (const warning of warnings) {
+    const groupName = getWarningGroup(warning);
+    if (!groups.has(groupName)) groups.set(groupName, []);
+    groups.get(groupName).push(warning);
+  }
+
+  return [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
+}
+
+function renderCheckpointLinks(ids) {
+  if (!ids.length) return "";
+
+  return `
+    <div class="versions-quality__links">
+      ${ids
+        .map(
+          (id) =>
+            `<a href="./index.html?checkpoint=${encodeURIComponent(id)}&amp;q=${encodeURIComponent(id)}">КПП ${escapeHtml(id)}</a>`
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderQualityItems(items, { level = "warning", limit = 8 } = {}) {
+  return items
+    .slice(0, limit)
+    .map((item) => {
+      const checkpointIds = getWarningCheckpointIds(item);
+
+      return `
+        <article class="versions-quality__issue versions-quality__issue--${level}">
+          <p>${escapeHtml(item)}</p>
+          ${renderCheckpointLinks(checkpointIds)}
+        </article>
+      `;
+    })
+    .join("");
+}
+
 function renderQualityReport(report = {}) {
   const summary = report.summary || {};
   const warnings = report.warnings || [];
   const errors = report.errors || [];
-  const warningPreview = warnings.slice(0, 8);
+  const warningGroups = groupWarnings(warnings);
   const errorCount = Number(summary.errorCount || errors.length || 0);
   const warningCount = Number(summary.warningCount || warnings.length || 0);
   const statusLabel =
@@ -124,11 +193,33 @@ function renderQualityReport(report = {}) {
         </div>
       </div>
       ${
-        warningPreview.length
+        errors.length
           ? `
-            <div class="versions-quality__warnings">
-              <h3>Первые предупреждения</h3>
-              ${warningPreview.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("")}
+            <div class="versions-quality__issues">
+              <h3>Блокирующие ошибки</h3>
+              ${renderQualityItems(errors, { level: "error", limit: 8 })}
+            </div>
+          `
+          : ""
+      }
+      ${
+        warningGroups.length
+          ? `
+            <div class="versions-quality__groups">
+              <h3>Группы предупреждений</h3>
+              ${warningGroups
+                .map(
+                  ([groupName, groupWarningsList]) => `
+                    <article class="versions-quality__group">
+                      <div class="versions-quality__groupHeader">
+                        <b>${escapeHtml(groupName)}</b>
+                        <span>${groupWarningsList.length}</span>
+                      </div>
+                      ${renderQualityItems(groupWarningsList, { level: "warning", limit: 6 })}
+                    </article>
+                  `
+                )
+                .join("")}
             </div>
           `
           : '<p class="versions-quality__empty">Предупреждений нет.</p>'

@@ -54,7 +54,10 @@ globalThis.fetch = async (url) => {
           datasetVersion: "2026-01-19-2-test",
           generatedFrom: "data/checkpoints.geojson",
           summary: { checked: 2, errorCount: 0, warningCount: 1 },
-          warnings: ["101: coordinates have low precision"],
+          warnings: [
+            "101: coordinates have low precision",
+            "Duplicate coordinate pair detected: (55.0, 55.0): 100, 101"
+          ],
           errors: []
         };
       }
@@ -113,6 +116,15 @@ assert(summaryHtml.includes("Качество данных"), "Quality report he
 assert(
   summaryHtml.includes("101: coordinates have low precision"),
   "Quality warning preview was not rendered."
+);
+assert(
+  summaryHtml.includes("Низкая точность координат") && summaryHtml.includes("Дубли координат"),
+  "Quality warnings were not grouped by type."
+);
+assert(
+  summaryHtml.includes("index.html?checkpoint=101&amp;q=101") &&
+    summaryHtml.includes("index.html?checkpoint=100&amp;q=100"),
+  "Quality warning checkpoint links were not rendered."
 );
 assert(summaryHtml.includes("История версий"), "Dataset changelog was not rendered.");
 assert(summaryHtml.includes("2026-01-19-2-test"), "Dataset version was not rendered.");

@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { filterFeatures } from "../js/data.js";
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -212,6 +213,30 @@ const features = [
     }
   }
 ];
+
+const indexedFeatures = [
+  {
+    properties: {
+      __search: "100 beta приморский край"
+    }
+  },
+  {
+    properties: {
+      __search: "101 alpha кемеровская область"
+    }
+  }
+];
+
+assert(
+  filterFeatures(indexedFeatures, {
+    query: "101",
+    type: "all",
+    status: "all",
+    country: "all",
+    subject: "all"
+  }).length === 1,
+  "Checkpoint ID search should match the indexed ID."
+);
 
 const listEl = createListElement();
 const emptyEl = createEmptyElement();
