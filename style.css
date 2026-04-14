@@ -83,6 +83,35 @@ body {
   font-size: 13px;
   color: rgba(229, 231, 235, 0.8);
 }
+.offline-status {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  z-index: 45;
+  max-width: min(520px, calc(100vw - 28px));
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: 999px;
+  background: rgba(120, 53, 15, 0.86);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+  color: #fef3c7;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-8px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+.offline-status.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.offline-status[hidden] {
+  display: none;
+}
 
 /* Layout */
 .panel {
@@ -1027,6 +1056,16 @@ body {
   }
   .app {
     height: 100dvh;
+  }
+  .offline-status {
+    right: 12px;
+    left: 12px;
+    max-width: none;
+    text-align: center;
+    transform: translateY(-8px);
+  }
+  .offline-status.is-visible {
+    transform: translateY(0);
   }
   .row {
     flex-direction: column;

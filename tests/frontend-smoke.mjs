@@ -66,6 +66,7 @@ function createElement() {
     __nodeCache: new Map(),
     value: "all",
     disabled: false,
+    hidden: false,
     onclick: null,
     onchange: null,
     oninput: null,
@@ -105,6 +106,7 @@ let lastPopupRef = null;
 let initialMapOptions = null;
 let replaceStateCalls = 0;
 const storage = new Map();
+const windowListeners = new Map();
 
 globalThis.localStorage = {
   getItem(key) {
@@ -161,6 +163,9 @@ globalThis.window = {
       window.location.href = String(nextUrl);
     }
   },
+  addEventListener(eventName, handler) {
+    windowListeners.set(eventName, handler);
+  },
   matchMedia() {
     return { matches: false };
   }
@@ -169,6 +174,7 @@ globalThis.window = {
 Object.defineProperty(globalThis, "navigator", {
   configurable: true,
   value: {
+    onLine: false,
     clipboard: {
       async writeText(text) {
         lastClipboardText = text;
@@ -547,6 +553,7 @@ const exportGeoJsonButton = elements.get("exportGeoJson");
 const shareLinkButton = elements.get("shareLink");
 const nearestButton = elements.get("nearestBtn");
 const favoritesOnlyButton = elements.get("favoritesOnly");
+const offlineStatus = elements.get("offlineStatus");
 const fitResultsButton = elements.get("fitResults");
 const viewportOnlyButton = elements.get("viewportOnly");
 const quickPresets = elements.get("quickPresets");
@@ -560,6 +567,24 @@ const url = new URL(window.location.href);
 
 if (!statsHtml.includes("Всего КПП") || !statsHtml.includes("Обновлено")) {
   throw new Error("Stats block was not rendered.");
+}
+
+if (offlineStatus?.hidden !== false || !offlineStatus?.textContent.includes("Офлайн")) {
+  throw new Error("Offline status indicator was not shown while navigator is offline.");
+}
+
+navigator.onLine = true;
+windowListeners.get("online")?.();
+
+if (offlineStatus?.hidden !== true || offlineStatus?.textContent !== "") {
+  throw new Error("Offline status indicator was not hidden after returning online.");
+}
+
+navigator.onLine = false;
+windowListeners.get("offline")?.();
+
+if (offlineStatus?.hidden !== false) {
+  throw new Error("Offline status indicator was not restored after offline event.");
 }
 
 if (

@@ -32,6 +32,7 @@ export function getDomElements() {
     loaderEl: el("loader"),
     loaderProgressEl: el("loaderProgress"),
     loaderTextEl: el("loaderText"),
+    offlineStatusEl: el("offlineStatus"),
     styleToggleEl: el("styleToggle"),
     geoBtnEl: el("geoBtn")
   };

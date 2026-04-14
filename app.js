@@ -112,6 +112,15 @@ function hideLoaderOnce() {
   }, 250);
 }
 
+function syncOfflineStatus() {
+  if (!dom.offlineStatusEl) return;
+
+  const isOffline = globalThis.navigator?.onLine === false;
+  dom.offlineStatusEl.hidden = !isOffline;
+  dom.offlineStatusEl.classList.toggle("is-visible", isOffline);
+  dom.offlineStatusEl.textContent = isOffline ? "Офлайн: показываем сохраненную версию карты" : "";
+}
+
 function renderAll() {
   const nearestOpenFeature = getNearestOpenFeature();
 
@@ -617,6 +626,8 @@ function requestUserLocation({ setDistanceSort = false } = {}) {
 
 function attachUi() {
   map.on("moveend", syncCurrentMapView);
+  globalThis.window?.addEventListener?.("online", syncOfflineStatus);
+  globalThis.window?.addEventListener?.("offline", syncOfflineStatus);
 
   dom.searchEl.oninput = () => {
     clearTimeout(state.debounceTimer);
@@ -667,6 +678,8 @@ function attachUi() {
 }
 
 async function init() {
+  syncOfflineStatus();
+
   try {
     setProgress(10, "Подключаем карту...");
     await new Promise((resolve) => (map.loaded() ? resolve() : map.once("load", resolve)));
