@@ -1,4 +1,7 @@
+import hashlib
 from collections import Counter
+
+UNKNOWN_LABEL = "\u041d\u0435 \u0443\u043a\u0430\u0437\u0430\u043d\u043e"
 
 try:
     from tqdm import tqdm as _tqdm
@@ -47,6 +50,126 @@ def _preview(items, limit=5):
         preview += f" (+{remainder} more)"
 
     return preview
+
+
+def _feature_id(feature):
+    properties = feature.get("properties") or {}
+    return _clean(properties.get("checkpoint_id") or properties.get("__id"))
+
+
+def _count_features_by(features, key):
+    counts = {}
+
+    for feature in features:
+        properties = feature.get("properties") or {}
+        value = _clean(properties.get(key)) or UNKNOWN_LABEL
+        counts[value] = counts.get(value, 0) + 1
+
+    return dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
+
+
+def _validate_count_map(counts, total, context):
+    if not isinstance(counts, dict):
+        raise ValidationError(f"{context} must be an object.")
+
+    invalid_values = [
+        key
+        for key, value in counts.items()
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0
+    ]
+
+    if invalid_values:
+        raise ValidationError(
+            f"{context} contains invalid counts: "
+            + _preview([str(key) for key in invalid_values])
+        )
+
+    if sum(counts.values()) != total:
+        raise ValidationError(f"{context} counts must sum to snapshot total.")
+
+
+def _validate_changelog_snapshot(snapshot, context):
+    if not isinstance(snapshot, dict):
+        raise ValidationError(f"{context} snapshot must be an object.")
+
+    total = snapshot.get("total")
+    if not isinstance(total, int) or isinstance(total, bool) or total < 0:
+        raise ValidationError(f"{context} snapshot total must be a non-negative integer.")
+
+    ids = snapshot.get("ids")
+    if not isinstance(ids, list):
+        raise ValidationError(f"{context} snapshot ids must be a list.")
+
+    cleaned_ids = [_clean(item) for item in ids]
+    if any(not item for item in cleaned_ids):
+        raise ValidationError(f"{context} snapshot ids must not contain empty values.")
+
+    if cleaned_ids != ids:
+        raise ValidationError(f"{context} snapshot ids must be strings without padding.")
+
+    if cleaned_ids != sorted(cleaned_ids):
+        raise ValidationError(f"{context} snapshot ids must be sorted.")
+
+    if len(set(cleaned_ids)) != len(cleaned_ids):
+        raise ValidationError(f"{context} snapshot ids must be unique.")
+
+    if total != len(cleaned_ids):
+        raise ValidationError(f"{context} snapshot total must match ids length.")
+
+    expected_hash = hashlib.sha256("\n".join(cleaned_ids).encode("utf-8")).hexdigest()
+    if snapshot.get("idsHash") != expected_hash:
+        raise ValidationError(f"{context} snapshot idsHash does not match ids.")
+
+    latest_updated_at = snapshot.get("latestUpdatedAt")
+    if latest_updated_at is not None and not _clean(latest_updated_at):
+        raise ValidationError(f"{context} snapshot latestUpdatedAt must be a string or null.")
+
+    _validate_count_map(snapshot.get("byStatus"), total, f"{context} snapshot byStatus")
+    _validate_count_map(snapshot.get("byType"), total, f"{context} snapshot byType")
+
+
+def build_dataset_snapshot(features):
+    ids = sorted({_feature_id(feature) for feature in features if _feature_id(feature)})
+    latest_updated_at = max(
+        (
+            _clean((feature.get("properties") or {}).get("last_updated"))
+            for feature in features
+        ),
+        default="",
+    )
+    ids_hash = hashlib.sha256("\n".join(ids).encode("utf-8")).hexdigest()
+
+    return {
+        "total": len(features),
+        "ids": ids,
+        "idsHash": ids_hash,
+        "latestUpdatedAt": latest_updated_at or None,
+        "byStatus": _count_features_by(features, "status"),
+        "byType": _count_features_by(features, "checkpoint_type"),
+    }
+
+
+def build_dataset_version(snapshot):
+    date_part = (snapshot["latestUpdatedAt"] or "unknown-date")[:10]
+    return f"{date_part}-{snapshot['total']}-{snapshot['idsHash'][:8]}"
+
+
+def summarize_dataset_changes(previous_snapshot, current_snapshot):
+    if not previous_snapshot:
+        return {
+            "totalDelta": current_snapshot["total"],
+            "added": current_snapshot["total"],
+            "removed": 0,
+        }
+
+    previous_ids = set(previous_snapshot.get("ids") or [])
+    current_ids = set(current_snapshot.get("ids") or [])
+
+    return {
+        "totalDelta": current_snapshot["total"] - int(previous_snapshot.get("total") or 0),
+        "added": len(current_ids - previous_ids),
+        "removed": len(previous_ids - current_ids),
+    }
 
 
 def normalize_longitude(coordinate):
@@ -232,3 +355,89 @@ def validate_geojson(geojson):
         )
 
     return len(features)
+
+
+def validate_dataset_changelog(changelog, geojson=None):
+    if not isinstance(changelog, dict):
+        raise ValidationError("Dataset changelog must be a JSON object.")
+
+    if changelog.get("schemaVersion") != 1:
+        raise ValidationError("Dataset changelog schemaVersion must be 1.")
+
+    entries = changelog.get("entries")
+    if not isinstance(entries, list) or not entries:
+        raise ValidationError("Dataset changelog must contain a non-empty entries list.")
+
+    seen_versions = set()
+
+    for index, entry in enumerate(entries, start=1):
+        context = f"Dataset changelog entry {index}"
+
+        if not isinstance(entry, dict):
+            raise ValidationError(f"{context} must be an object.")
+
+        version = _clean(entry.get("version"))
+        if not version:
+            raise ValidationError(f"{context} is missing version.")
+
+        if version in seen_versions:
+            raise ValidationError(f"Dataset changelog contains duplicate version: {version}")
+        seen_versions.add(version)
+
+        for field_name in ("date", "generatedAt", "summary"):
+            if not _clean(entry.get(field_name)):
+                raise ValidationError(f"{context} is missing {field_name}.")
+
+        snapshot = entry.get("snapshot")
+        _validate_changelog_snapshot(snapshot, context)
+
+        expected_version = build_dataset_version(snapshot)
+        if version != expected_version:
+            raise ValidationError(
+                f"{context} version does not match snapshot: "
+                f"expected {expected_version}, got {version}"
+            )
+
+        changes = entry.get("changes")
+        if not isinstance(changes, dict):
+            raise ValidationError(f"{context} changes must be an object.")
+
+        required_change_fields = ("totalDelta", "added", "removed")
+        for field_name in required_change_fields:
+            value = changes.get(field_name)
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise ValidationError(f"{context} changes.{field_name} must be an integer.")
+
+        previous_snapshot = entries[index].get("snapshot") if index < len(entries) else None
+        expected_changes = summarize_dataset_changes(previous_snapshot, snapshot)
+
+        for field_name, expected_value in expected_changes.items():
+            if changes[field_name] != expected_value:
+                raise ValidationError(
+                    f"{context} changes.{field_name} does not match snapshots: "
+                    f"expected {expected_value}, got {changes[field_name]}"
+                )
+
+    if geojson is not None:
+        if not isinstance(geojson, dict):
+            raise ValidationError("GeoJSON input for changelog validation must be an object.")
+
+        features = geojson.get("features")
+        if not isinstance(features, list):
+            raise ValidationError("GeoJSON input for changelog validation is missing features.")
+
+        current_snapshot = build_dataset_snapshot(features)
+        current_entry = entries[0]
+
+        if current_entry.get("snapshot") != current_snapshot:
+            raise ValidationError(
+                "Dataset changelog first entry snapshot does not match current GeoJSON."
+            )
+
+        expected_version = build_dataset_version(current_snapshot)
+        if current_entry.get("version") != expected_version:
+            raise ValidationError(
+                "Dataset changelog first entry version does not match current GeoJSON."
+            )
+
+    return len(entries)

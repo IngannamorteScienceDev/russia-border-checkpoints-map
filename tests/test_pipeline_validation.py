@@ -1,3 +1,4 @@
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -7,8 +8,12 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from pipeline_validation import (  # noqa: E402
     ValidationError,
+    build_dataset_snapshot,
+    build_dataset_version,
     normalize_coordinate_text,
     parse_coordinate,
+    summarize_dataset_changes,
+    validate_dataset_changelog,
     validate_geojson,
     validate_raw_payload,
     validate_rows,
@@ -59,6 +64,24 @@ def make_feature(**overrides):
         geometry.update(overrides.pop("geometry"))
     feature.update(overrides)
     return feature
+
+
+def make_changelog(features):
+    snapshot = build_dataset_snapshot(features)
+
+    return {
+        "schemaVersion": 1,
+        "entries": [
+            {
+                "version": build_dataset_version(snapshot),
+                "date": "2026-04-14",
+                "generatedAt": "2026-04-14T00:00:00+00:00",
+                "summary": "Test checkpoint dataset snapshot.",
+                "changes": summarize_dataset_changes(None, snapshot),
+                "snapshot": snapshot,
+            }
+        ],
+    }
 
 
 class PipelineValidationTests(unittest.TestCase):
@@ -116,6 +139,41 @@ class PipelineValidationTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValidationError, "out-of-range latitude"):
             validate_geojson(geojson)
+
+    def test_validate_dataset_changelog_accepts_current_file(self):
+        geojson = json.loads(
+            (ROOT / "data/checkpoints.geojson").read_text(encoding="utf-8")
+        )
+        changelog = json.loads(
+            (ROOT / "data/dataset_changelog.json").read_text(encoding="utf-8")
+        )
+
+        self.assertGreater(validate_dataset_changelog(changelog, geojson), 0)
+
+    def test_validate_dataset_changelog_rejects_tampered_ids_hash(self):
+        geojson = {
+            "type": "FeatureCollection",
+            "features": [make_feature()],
+        }
+        changelog = make_changelog(geojson["features"])
+        changelog["entries"][0]["snapshot"]["idsHash"] = "bad-hash"
+
+        with self.assertRaisesRegex(ValidationError, "idsHash"):
+            validate_dataset_changelog(changelog, geojson)
+
+    def test_validate_dataset_changelog_rejects_stale_snapshot(self):
+        geojson = {
+            "type": "FeatureCollection",
+            "features": [make_feature()],
+        }
+        stale_geojson = {
+            "type": "FeatureCollection",
+            "features": [make_feature(properties={"checkpoint_id": "202"})],
+        }
+        changelog = make_changelog(geojson["features"])
+
+        with self.assertRaisesRegex(ValidationError, "current GeoJSON"):
+            validate_dataset_changelog(changelog, stale_geojson)
 
 
 if __name__ == "__main__":
