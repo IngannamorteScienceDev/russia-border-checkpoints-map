@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "datasetVersion": "2026-01-19-385-a6a7e0dd",
+  "generatedFrom": "data/checkpoints.geojson",
+  "latestUpdatedAt": "2026-01-19T09:56:39.000000Z",
+  "summary": {
+    "checked": 385,
+    "errorCount": 0,
+    "warningCount": 11
+  },
+  "warnings": [
+    "391: coordinates have low precision",
+    "390: coordinates have low precision",
+    "274: coordinates have low precision",
+    "386: coordinates have low precision",
+    "389: coordinates have low precision",
+    "388: coordinates have low precision",
+    "197: coordinates have low precision",
+    "280: coordinates have low precision",
+    "383: coordinates have low precision",
+    "Duplicate coordinate pair detected: (55.0, 55.0): 391, 390, 386, 389, 388, 383",
+    "Duplicate coordinate pair detected: (82.66736, 55.00944): 221, 222"
+  ],
+  "errors": []
+}

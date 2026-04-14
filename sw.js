@@ -12,6 +12,7 @@ const APP_SHELL_URLS = [
   "./icons/maskable-icon.svg",
   "./data/checkpoints.geojson",
   "./data/dataset_changelog.json",
+  "./data/data_quality_report.json",
   "./js/compare.js",
   "./js/config.js",
   "./js/data.js",
