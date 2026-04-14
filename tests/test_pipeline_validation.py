@@ -1,6 +1,7 @@
 import json
 import sys
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -8,12 +9,14 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from pipeline_validation import (  # noqa: E402
     ValidationError,
+    analyze_data_quality,
     build_dataset_snapshot,
     build_dataset_version,
     normalize_coordinate_text,
     parse_coordinate,
     summarize_dataset_changes,
     validate_dataset_changelog,
+    validate_data_quality,
     validate_geojson,
     validate_raw_payload,
     validate_rows,
@@ -84,6 +87,13 @@ def make_changelog(features):
     }
 
 
+def make_geojson(features):
+    return {
+        "type": "FeatureCollection",
+        "features": list(features),
+    }
+
+
 class PipelineValidationTests(unittest.TestCase):
     def test_validate_raw_payload_returns_data_object(self):
         data = validate_raw_payload({
@@ -139,6 +149,54 @@ class PipelineValidationTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValidationError, "out-of-range latitude"):
             validate_geojson(geojson)
+
+    def test_validate_data_quality_rejects_invalid_source_url(self):
+        geojson = make_geojson([make_feature(properties={"source": "not-a-url"})])
+
+        with self.assertRaisesRegex(ValidationError, "source"):
+            validate_data_quality(geojson)
+
+    def test_validate_data_quality_rejects_unknown_confidence_level(self):
+        geojson = make_geojson([make_feature(properties={"confidence_level": "unknown"})])
+
+        with self.assertRaisesRegex(ValidationError, "confidence_level"):
+            validate_data_quality(geojson)
+
+    def test_validate_data_quality_rejects_future_update_timestamp(self):
+        future_timestamp = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+        geojson = make_geojson([make_feature(properties={"last_updated": future_timestamp})])
+
+        with self.assertRaisesRegex(ValidationError, "future"):
+            validate_data_quality(geojson)
+
+    def test_analyze_data_quality_reports_low_precision_coordinates(self):
+        geojson = make_geojson(
+            [
+                make_feature(
+                    geometry={"coordinates": [131.9, 43.1]},
+                    properties={"checkpoint_type": "Автомобильный пункт пропуска"},
+                )
+            ]
+        )
+        report = analyze_data_quality(geojson)
+
+        self.assertEqual(report["summary"]["errorCount"], 0)
+        self.assertTrue(
+            any("low precision" in warning for warning in report["warnings"])
+        )
+
+    def test_analyze_data_quality_reports_duplicate_coordinates(self):
+        geojson = make_geojson(
+            [
+                make_feature(properties={"checkpoint_id": "101"}),
+                make_feature(properties={"checkpoint_id": "102"}),
+            ]
+        )
+        report = analyze_data_quality(geojson)
+
+        self.assertTrue(
+            any("Duplicate coordinate pair" in warning for warning in report["warnings"])
+        )
 
     def test_validate_dataset_changelog_accepts_current_file(self):
         geojson = json.loads(
