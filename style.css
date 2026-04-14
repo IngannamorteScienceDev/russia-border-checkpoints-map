@@ -509,10 +509,18 @@ body {
   margin-bottom: 10px;
   font-size: 16px;
 }
+.legend__section + .legend__section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
 .legend__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px 14px;
+}
+.legend__grid--special {
+  grid-template-columns: 1fr;
 }
 .legend__item {
   display: flex;
@@ -526,6 +534,49 @@ body {
   height: 12px;
   border-radius: 999px;
   box-shadow: 0 0 0 2px rgba(2, 6, 23, 0.7);
+}
+.legend__marker {
+  display: inline-grid;
+  position: relative;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 999px;
+  background: #3b82f6;
+  color: #e5e7eb;
+  font-size: 9px;
+  font-weight: 900;
+  box-shadow: 0 0 0 2px rgba(2, 6, 23, 0.76);
+}
+.legend__marker--cluster {
+  width: 24px;
+  height: 24px;
+  background: #3b82f6;
+}
+.legend__marker--favorite {
+  background: #3b82f6;
+  box-shadow:
+    0 0 0 4px rgba(250, 204, 21, 0.28),
+    0 0 0 1px #fef08a inset;
+}
+.legend__marker--quality {
+  background: #f59e0b;
+  box-shadow:
+    0 0 0 5px rgba(245, 158, 11, 0.24),
+    0 0 0 1px #fde68a inset;
+}
+.legend__marker--critical {
+  background: #ef4444;
+  box-shadow:
+    0 0 0 6px rgba(239, 68, 68, 0.24),
+    0 0 0 1px #fecaca inset;
+}
+.legend__note {
+  margin: 10px 0 0;
+  color: rgba(229, 231, 235, 0.56);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .stats {

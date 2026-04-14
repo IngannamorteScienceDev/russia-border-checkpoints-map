@@ -538,6 +538,7 @@ const listHtml = elements.get("list")?.innerHTML || "";
 const recentHtml = elements.get("recent")?.innerHTML || "";
 const compareHtml = elements.get("compare")?.innerHTML || "";
 const datasetChangesHtml = elements.get("datasetChanges")?.innerHTML || "";
+const legendHtml = elements.get("legend")?.innerHTML || "";
 const countryFilterHtml = elements.get("countryFilter")?.innerHTML || "";
 const subjectFilterHtml = elements.get("subjectFilter")?.innerHTML || "";
 const typeFilterHtml = elements.get("typeFilter")?.innerHTML || "";
@@ -580,6 +581,15 @@ if (!lastMapInstance?.getLayer("favorite-points-halo")) {
 
 if (!lastMapInstance?.getLayer("quality-points-alert")) {
   throw new Error("Data quality alert layer was not added to the map.");
+}
+
+if (
+  !legendHtml.includes("legend__special") ||
+  !legendHtml.includes("legend__marker--favorite") ||
+  !legendHtml.includes("legend__marker--quality") ||
+  !legendHtml.includes("legend__marker--critical")
+) {
+  throw new Error("Special marker legend was not rendered.");
 }
 
 if (styleToggleButton?.textContent !== "🗺 Карта") {

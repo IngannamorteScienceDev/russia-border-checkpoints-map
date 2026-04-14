@@ -7,14 +7,38 @@ import { buildReportUrl } from "./report.js";
 
 export function buildLegend(legendEl) {
   legendEl.innerHTML = `
-    <div class="legend__title">Тип КПП</div>
-    <div class="legend__grid">
-      ${Object.entries(TYPE_COLORS)
-        .map(
-          ([name, color]) =>
-            `<div class="legend__item"><span class="legend__dot" style="background:${color}"></span>${name}</div>`
-        )
-        .join("")}
+    <div class="legend__section">
+      <div class="legend__title">Тип КПП</div>
+      <div class="legend__grid">
+        ${Object.entries(TYPE_COLORS)
+          .map(
+            ([name, color]) =>
+              `<div class="legend__item"><span class="legend__dot" style="background:${color}"></span>${name}</div>`
+          )
+          .join("")}
+      </div>
+    </div>
+    <div class="legend__section legend__special">
+      <div class="legend__title">Особые отметки</div>
+      <div class="legend__grid legend__grid--special">
+        <div class="legend__item">
+          <span class="legend__marker legend__marker--cluster" aria-hidden="true">12</span>
+          Кластер КПП
+        </div>
+        <div class="legend__item">
+          <span class="legend__marker legend__marker--favorite" aria-hidden="true"></span>
+          Избранное
+        </div>
+        <div class="legend__item">
+          <span class="legend__marker legend__marker--quality" aria-hidden="true"></span>
+          Есть вопросы к данным
+        </div>
+        <div class="legend__item">
+          <span class="legend__marker legend__marker--critical" aria-hidden="true"></span>
+          Критичные пропуски
+        </div>
+      </div>
+      <p class="legend__note">Ореолы накладываются поверх цвета типа КПП.</p>
     </div>
   `;
 }
