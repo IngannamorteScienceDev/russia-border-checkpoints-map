@@ -6,7 +6,7 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,mjs,css,html,json,yml}\"",
     "format:check": "prettier --check \"**/*.{js,mjs,css,html,json,yml}\"",
-    "test:frontend": "node tests/frontend-smoke.mjs && node tests/frontend-modules.mjs"
+    "test:frontend": "node tests/frontend-smoke.mjs && node tests/frontend-modules.mjs && node tests/service-worker-smoke.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
