@@ -55,7 +55,44 @@ const {
 const { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } = await import(
   new URL("../js/favorites.js", import.meta.url)
 );
+const { registerAppShellServiceWorker } = await import(
+  new URL("../js/serviceWorker.js", import.meta.url)
+);
 const { renderList } = await import(new URL("../js/render.js", import.meta.url));
+
+let registeredWorkerUrl = "";
+let registeredWorkerOptions = null;
+const serviceWorkerRegistration = await registerAppShellServiceWorker({
+  location: { href: "https://example.test/project/index.html?x=1" },
+  serviceWorker: {
+    register(workerUrl, options) {
+      registeredWorkerUrl = String(workerUrl);
+      registeredWorkerOptions = options;
+      return Promise.resolve({ scope: options.scope });
+    }
+  }
+});
+
+assert(serviceWorkerRegistration?.scope === "/project/", "Service worker registration failed.");
+assert(
+  registeredWorkerUrl === "https://example.test/project/sw.js",
+  "Service worker URL should be resolved from the current app directory."
+);
+assert(
+  registeredWorkerOptions?.scope === "/project/",
+  "Service worker scope should stay inside the current app directory."
+);
+assert(
+  (await registerAppShellServiceWorker({
+    location: { href: "file:///project/index.html" },
+    serviceWorker: {
+      register() {
+        throw new Error("Service worker should not register on file protocol.");
+      }
+    }
+  })) === null,
+  "Service worker registration should be skipped outside http(s)."
+);
 
 const dom = {
   searchEl: { value: "" },

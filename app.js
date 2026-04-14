@@ -26,6 +26,7 @@ import {
   renderStats
 } from "./js/render.js";
 import { loadRecentIds, prependRecentId, saveRecentIds } from "./js/recent.js";
+import { registerAppShellServiceWorker } from "./js/serviceWorker.js";
 import { copyText } from "./js/share.js";
 import {
   applyFilterStateFromUrl,
@@ -39,6 +40,8 @@ import {
 } from "./js/urlState.js";
 
 const dom = getDomElements();
+registerAppShellServiceWorker();
+
 const DEFAULT_MAP_VIEW = {
   center: [90, 61],
   zoom: 4
