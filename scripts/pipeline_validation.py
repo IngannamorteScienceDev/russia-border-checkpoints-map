@@ -1,7 +1,12 @@
 import hashlib
 from collections import Counter
+from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse
 
 UNKNOWN_LABEL = "\u041d\u0435 \u0443\u043a\u0430\u0437\u0430\u043d\u043e"
+ALLOWED_CONFIDENCE_LEVELS = {"high", "medium", "low"}
+CHECKPOINT_TYPE_MARKER = "\u043f\u0443\u043d\u043a\u0442 \u043f\u0440\u043e\u043f\u0443\u0441\u043a\u0430"
+FUTURE_DATE_TOLERANCE = timedelta(days=1)
 
 try:
     from tqdm import tqdm as _tqdm
@@ -50,6 +55,37 @@ def _preview(items, limit=5):
         preview += f" (+{remainder} more)"
 
     return preview
+
+
+def _parse_iso_datetime(value):
+    text = _clean(value)
+    if not text:
+        return None
+
+    normalized = text.replace("Z", "+00:00")
+
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+
+    return parsed.astimezone(timezone.utc)
+
+
+def _is_http_url(value):
+    parsed = urlparse(_clean(value))
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _decimal_places(value):
+    text = f"{value:.10f}".rstrip("0").rstrip(".")
+    if "." not in text:
+        return 0
+
+    return len(text.rsplit(".", 1)[1])
 
 
 def _feature_id(feature):
@@ -285,6 +321,82 @@ def validate_rows(rows):
     return len(rows)
 
 
+def analyze_data_quality(geojson):
+    features = geojson.get("features") if isinstance(geojson, dict) else []
+    errors = []
+    warnings = []
+    coordinate_index = {}
+    now = datetime.now(timezone.utc)
+
+    for index, feature in enumerate(features or [], start=1):
+        properties = feature.get("properties") or {}
+        coordinates = (feature.get("geometry") or {}).get("coordinates") or []
+        checkpoint_id = _clean(properties.get("checkpoint_id")) or f"feature {index}"
+
+        source = _clean(properties.get("source"))
+        if source and not _is_http_url(source):
+            errors.append(f"{checkpoint_id}: source must be an http(s) URL")
+
+        confidence_level = _clean(properties.get("confidence_level")).lower()
+        if confidence_level and confidence_level not in ALLOWED_CONFIDENCE_LEVELS:
+            errors.append(
+                f"{checkpoint_id}: confidence_level must be one of "
+                + ", ".join(sorted(ALLOWED_CONFIDENCE_LEVELS))
+            )
+
+        updated_at = _parse_iso_datetime(properties.get("last_updated"))
+        if properties.get("last_updated") and updated_at is None:
+            errors.append(f"{checkpoint_id}: last_updated must be an ISO datetime")
+        elif updated_at and updated_at > now + FUTURE_DATE_TOLERANCE:
+            errors.append(f"{checkpoint_id}: last_updated is unexpectedly in the future")
+
+        if len(coordinates) == 2:
+            longitude, latitude = coordinates
+            coordinate_key = (round(float(longitude), 5), round(float(latitude), 5))
+            coordinate_index.setdefault(coordinate_key, []).append(checkpoint_id)
+
+            if abs(float(latitude)) < 1 and abs(float(longitude)) < 1:
+                errors.append(f"{checkpoint_id}: coordinates look like a null island placeholder")
+
+            if _decimal_places(float(latitude)) < 3 or _decimal_places(float(longitude)) < 3:
+                warnings.append(f"{checkpoint_id}: coordinates have low precision")
+
+            if not 35 <= float(latitude) <= 83:
+                warnings.append(f"{checkpoint_id}: latitude is outside the expected Russia range")
+
+        checkpoint_type = _clean(properties.get("checkpoint_type"))
+        if checkpoint_type and CHECKPOINT_TYPE_MARKER not in checkpoint_type.lower():
+            warnings.append(f"{checkpoint_id}: checkpoint_type has an unexpected label")
+
+    duplicate_coordinates = [
+        f"{coordinate}: {', '.join(ids)}"
+        for coordinate, ids in coordinate_index.items()
+        if len(ids) > 1
+    ]
+    warnings.extend(
+        f"Duplicate coordinate pair detected: {item}" for item in duplicate_coordinates
+    )
+
+    return {
+        "errors": errors,
+        "warnings": warnings,
+        "summary": {
+            "checked": len(features or []),
+            "errorCount": len(errors),
+            "warningCount": len(warnings),
+        },
+    }
+
+
+def validate_data_quality(geojson):
+    report = analyze_data_quality(geojson)
+
+    if report["errors"]:
+        raise ValidationError("Advanced data quality errors: " + _preview(report["errors"]))
+
+    return report
+
+
 def validate_geojson(geojson):
     if not isinstance(geojson, dict):
         raise ValidationError("GeoJSON output must be a JSON object.")
@@ -353,6 +465,8 @@ def validate_geojson(geojson):
             "GeoJSON contains duplicate checkpoint_id values: "
             + _preview(duplicates)
         )
+
+    validate_data_quality(geojson)
 
     return len(features)
 
