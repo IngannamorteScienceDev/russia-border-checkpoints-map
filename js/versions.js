@@ -80,12 +80,78 @@ function renderChangelog(entries = []) {
   `;
 }
 
+function renderQualityReport(report = {}) {
+  const summary = report.summary || {};
+  const warnings = report.warnings || [];
+  const errors = report.errors || [];
+  const warningPreview = warnings.slice(0, 8);
+  const errorCount = Number(summary.errorCount || errors.length || 0);
+  const warningCount = Number(summary.warningCount || warnings.length || 0);
+  const statusLabel =
+    errorCount > 0
+      ? "Есть блокирующие ошибки"
+      : warningCount > 0
+        ? "Есть предупреждения"
+        : "Проблем не найдено";
+  const statusClass =
+    errorCount > 0
+      ? "versions-quality--error"
+      : warningCount > 0
+        ? "versions-quality--warning"
+        : "versions-quality--ok";
+
+  return `
+    <section class="versions-quality ${statusClass}">
+      <div class="versions-quality__header">
+        <div>
+          <h2>Качество данных</h2>
+          <p>${escapeHtml(statusLabel)} · версия ${escapeHtml(report.datasetVersion || "unknown")}</p>
+        </div>
+        <span>${summary.checked || 0} проверено</span>
+      </div>
+      <div class="versions-quality__grid">
+        <div>
+          <span>Ошибки</span>
+          <b>${errorCount}</b>
+        </div>
+        <div>
+          <span>Предупреждения</span>
+          <b>${warningCount}</b>
+        </div>
+        <div>
+          <span>Источник</span>
+          <b>${escapeHtml(report.generatedFrom || "data/checkpoints.geojson")}</b>
+        </div>
+      </div>
+      ${
+        warningPreview.length
+          ? `
+            <div class="versions-quality__warnings">
+              <h3>Первые предупреждения</h3>
+              ${warningPreview.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("")}
+            </div>
+          `
+          : '<p class="versions-quality__empty">Предупреждений нет.</p>'
+      }
+    </section>
+  `;
+}
+
 async function loadChangelog() {
   const response = await fetch(new URL("../data/dataset_changelog.json", import.meta.url), {
     cache: "no-store"
   });
 
   if (!response.ok) return { entries: [] };
+  return response.json();
+}
+
+async function loadQualityReport() {
+  const response = await fetch(new URL("../data/data_quality_report.json", import.meta.url), {
+    cache: "no-store"
+  });
+
+  if (!response.ok) return { summary: { checked: 0, errorCount: 0, warningCount: 0 } };
   return response.json();
 }
 
@@ -101,6 +167,7 @@ async function initVersionsPage() {
   try {
     const features = await loadFeatures({ setProgress: () => {} });
     const changelog = await loadChangelog();
+    const qualityReport = await loadQualityReport();
     const datasetMeta = buildDatasetMeta(features);
     const snapshot = buildDatasetSnapshot(features, datasetMeta);
     const freshness = getFreshnessInfo(datasetMeta.latestUpdatedAt);
@@ -138,6 +205,7 @@ async function initVersionsPage() {
         <h2>По типам</h2>
         ${renderCountList(byType)}
       </section>
+      ${renderQualityReport(qualityReport)}
       ${renderChangelog(changelog.entries || [])}
     `;
   } catch (error) {
