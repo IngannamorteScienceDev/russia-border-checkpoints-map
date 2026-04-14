@@ -1144,9 +1144,44 @@ body.versions-body {
 .versions-breakdown {
   grid-column: span 2;
 }
+.versions-changelog {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.34);
+  padding: 16px;
+}
 .versions-breakdown h2,
+.versions-changelog h2,
 .versions-note h2 {
   margin: 0 0 12px;
+}
+.versions-changelog__item {
+  display: grid;
+  gap: 10px;
+  padding: 14px 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+.versions-changelog__item b {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.versions-changelog__item span {
+  color: rgba(229, 231, 235, 0.66);
+}
+.versions-changelog__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.versions-changelog__stats span {
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 6px 9px;
+  color: rgba(219, 234, 254, 0.92);
+  font-size: 12px;
+  font-weight: 750;
 }
 .versions-count {
   display: flex;

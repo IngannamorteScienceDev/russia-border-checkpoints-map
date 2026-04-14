@@ -39,6 +39,56 @@ function renderCountList(entries) {
     .join("");
 }
 
+function renderChangelog(entries = []) {
+  if (!entries.length) {
+    return `
+      <section class="versions-changelog">
+        <h2>История версий</h2>
+        <p>Changelog пока пуст.</p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="versions-changelog">
+      <h2>История версий</h2>
+      ${entries
+        .slice(0, 8)
+        .map((entry) => {
+          const changes = entry.changes || {};
+          const snapshot = entry.snapshot || {};
+          const delta = Number(changes.totalDelta || 0);
+          const deltaLabel = delta > 0 ? `+${delta}` : String(delta);
+
+          return `
+            <article class="versions-changelog__item">
+              <div>
+                <b>${escapeHtml(entry.version)}</b>
+                <span>${escapeHtml(entry.date)} · ${escapeHtml(entry.summary)}</span>
+              </div>
+              <div class="versions-changelog__stats">
+                <span>Всего: ${snapshot.total || 0}</span>
+                <span>Дельта: ${deltaLabel}</span>
+                <span>Добавлено: ${changes.added || 0}</span>
+                <span>Удалено: ${changes.removed || 0}</span>
+              </div>
+            </article>
+          `;
+        })
+        .join("")}
+    </section>
+  `;
+}
+
+async function loadChangelog() {
+  const response = await fetch(new URL("../data/dataset_changelog.json", import.meta.url), {
+    cache: "no-store"
+  });
+
+  if (!response.ok) return { entries: [] };
+  return response.json();
+}
+
 function buildVersionId(snapshot) {
   const datePart = snapshot.latestUpdatedAt
     ? snapshot.latestUpdatedAt.slice(0, 10)
@@ -50,6 +100,7 @@ function buildVersionId(snapshot) {
 async function initVersionsPage() {
   try {
     const features = await loadFeatures({ setProgress: () => {} });
+    const changelog = await loadChangelog();
     const datasetMeta = buildDatasetMeta(features);
     const snapshot = buildDatasetSnapshot(features, datasetMeta);
     const freshness = getFreshnessInfo(datasetMeta.latestUpdatedAt);
@@ -87,6 +138,7 @@ async function initVersionsPage() {
         <h2>По типам</h2>
         ${renderCountList(byType)}
       </section>
+      ${renderChangelog(changelog.entries || [])}
     `;
   } catch (error) {
     console.error(error);
