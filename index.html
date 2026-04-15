@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#0b1220" />
+    <meta name="theme-color" content="#123029" />
     <meta name="application-name" content="КПП РФ" />
     <title>КПП РФ</title>
 
@@ -24,54 +24,44 @@
 
     <div id="offlineStatus" class="offline-status" role="status" aria-live="polite" hidden></div>
 
-    <div class="app">
-      <!-- Panel -->
-      <aside id="panel" class="panel">
-        <div class="panel__top">
-          <button id="mobileToggle" class="panel__burger" aria-label="Открыть/закрыть панель">
+    <div class="app app--research">
+      <aside id="panel" class="panel" aria-label="Панель управления картой">
+        <header class="panel__hero">
+          <button id="mobileToggle" class="panel__burger" aria-label="Открыть или закрыть панель">
             ☰
           </button>
 
-          <div class="panel__titleBlock">
-            <div class="panel__title">КПП РФ</div>
-            <div class="panel__subtitle">Интерактивная карта пунктов пропуска</div>
+          <div>
+            <div class="panel__eyebrow">Исследовательская карта</div>
+            <h1 class="panel__title">Пункты пропуска РФ</h1>
+            <p class="panel__subtitle">
+              Спутник, границы, дороги и проверяемые данные в одном рабочем интерфейсе.
+            </p>
           </div>
-        </div>
+        </header>
 
         <nav class="panel__nav" aria-label="Разделы панели">
-          <a href="#controls">Фильтры</a>
-          <a href="#stats">Сводка</a>
-          <a href="#list">Список</a>
-          <a href="#help">Помощь</a>
+          <a href="#controls">Поиск</a>
+          <a href="#layers">Слои</a>
+          <a href="#tools">Инструменты</a>
+          <a href="#list">Результаты</a>
         </nav>
 
-        <div id="controls" class="panel__controls">
+        <section id="controls" class="panel-card panel-card--search">
+          <div class="panel-card__header">
+            <div>
+              <div class="panel-card__kicker">Поиск и фильтры</div>
+              <h2>Найти КПП</h2>
+            </div>
+            <button id="resetFilters" class="panel-card__link" type="button">Сбросить</button>
+          </div>
+
           <input
             id="searchInput"
-            class="input"
+            class="input input--search"
             type="text"
-            placeholder="Поиск: название, регион, страна..."
+            placeholder="Название, ID, регион, страна, тип..."
           />
-
-          <div class="row">
-            <select id="typeFilter" class="select">
-              <option value="all">Все типы</option>
-            </select>
-
-            <select id="statusFilter" class="select">
-              <option value="all">Все статусы</option>
-            </select>
-          </div>
-
-          <div class="row">
-            <select id="countryFilter" class="select">
-              <option value="all">Все страны</option>
-            </select>
-
-            <select id="subjectFilter" class="select">
-              <option value="all">Все субъекты</option>
-            </select>
-          </div>
 
           <div id="quickPresets" class="presets" aria-label="Быстрые фильтры">
             <button class="preset" type="button" data-preset="open">Действующие</button>
@@ -80,54 +70,94 @@
             <button class="preset" type="button" data-preset="air">Авиа</button>
           </div>
 
-          <div class="row">
-            <select id="sortOrder" class="select">
-              <option value="country">По стране</option>
-              <option value="name">По названию</option>
-              <option value="distance">По расстоянию</option>
-            </select>
+          <div class="filter-grid">
+            <label class="field">
+              <span>Тип</span>
+              <select id="typeFilter" class="select">
+                <option value="all">Все типы</option>
+              </select>
+            </label>
 
-            <button id="nearestBtn" class="btn btn--ghost">Ближайшие</button>
+            <label class="field">
+              <span>Статус</span>
+              <select id="statusFilter" class="select">
+                <option value="all">Все статусы</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Страна</span>
+              <select id="countryFilter" class="select">
+                <option value="all">Все страны</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Субъект РФ</span>
+              <select id="subjectFilter" class="select">
+                <option value="all">Все субъекты</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section id="layers" class="panel-card panel-card--layers">
+          <div class="panel-card__header">
+            <div>
+              <div class="panel-card__kicker">Картография</div>
+              <h2>Слои карты</h2>
+            </div>
+          </div>
+          <div class="layer-actions" aria-label="Управление слоями карты">
+            <button id="styleToggle" class="layer-toggle" type="button" aria-pressed="true">
+              Спутник включен
+            </button>
+            <button id="boundariesToggle" class="layer-toggle" type="button" aria-pressed="true">
+              Границы и города
+            </button>
+            <button id="roadsToggle" class="layer-toggle" type="button" aria-pressed="true">
+              Дороги
+            </button>
+          </div>
+          <p class="panel-card__note">
+            Спутник показывает местность, а референсные слои поверх него добавляют границы, города и
+            дорожную сеть.
+          </p>
+        </section>
+
+        <section id="tools" class="panel-card panel-card--tools">
+          <div class="panel-card__header">
+            <div>
+              <div class="panel-card__kicker">Действия</div>
+              <h2>Инструменты</h2>
+            </div>
           </div>
 
-          <div class="row row--single">
-            <button id="favoritesOnly" class="btn btn--ghost" aria-pressed="false">
+          <div class="tool-grid">
+            <label class="field field--wide">
+              <span>Сортировка</span>
+              <select id="sortOrder" class="select">
+                <option value="country">По стране</option>
+                <option value="name">По названию</option>
+                <option value="distance">По расстоянию</option>
+              </select>
+            </label>
+
+            <button id="nearestBtn" class="btn" type="button">Ближайшие</button>
+            <button id="geoBtn" class="btn" type="button">Гео</button>
+            <button id="fitResults" class="btn btn--ghost" type="button">Показать на карте</button>
+            <button id="viewportOnly" class="btn btn--ghost" type="button" aria-pressed="false">
+              Только видимые
+            </button>
+            <button id="favoritesOnly" class="btn btn--ghost" type="button" aria-pressed="false">
               ★ Избранные (0)
             </button>
-          </div>
-
-          <div class="row row--single">
-            <button id="fitResults" class="btn btn--ghost">Показать результаты на карте</button>
-          </div>
-
-          <div class="row row--single">
-            <button id="viewportOnly" class="btn btn--ghost" aria-pressed="false">
-              Только в области карты
-            </button>
-          </div>
-
-          <div class="row">
-            <button id="geoBtn" class="btn">📍 Гео</button>
-            <button id="styleToggle" class="btn">🛰 Спутник</button>
-          </div>
-
-          <div class="row row--single">
-            <button id="resetFilters" class="btn btn--ghost">Сбросить фильтры</button>
-          </div>
-
-          <div class="row">
-            <button id="exportCsv" class="btn btn--ghost">Экспорт CSV</button>
-            <button id="exportGeoJson" class="btn btn--ghost">Экспорт GeoJSON</button>
-          </div>
-
-          <div class="row row--single">
-            <button id="shareLink" class="btn btn--ghost">Поделиться ссылкой</button>
-          </div>
-
-          <div class="row row--single">
+            <button id="shareLink" class="btn btn--ghost" type="button">Поделиться</button>
+            <button id="exportCsv" class="btn btn--ghost" type="button">CSV</button>
+            <button id="exportGeoJson" class="btn btn--ghost" type="button">GeoJSON</button>
             <a class="btn btn--ghost" href="./versions.html">Версии данных</a>
           </div>
-        </div>
+        </section>
 
         <div id="shareSheet" class="share-sheet"></div>
         <div id="datasetChanges" class="dataset-changes"></div>
@@ -140,24 +170,15 @@
           <div class="help__list">
             <div class="help__item">
               <span class="help__tag">Поиск</span>
-              Ищите КПП по названию, стране, субъекту РФ и типу.
+              Ищите КПП по названию, ID, стране, субъекту РФ, типу и статусу.
             </div>
             <div class="help__item">
               <span class="help__tag">Карта</span>
-              Нажмите на точку на карте или карточку в списке, чтобы открыть детали.
+              Нажмите на точку или карточку, чтобы открыть паспорт пункта пропуска.
             </div>
             <div class="help__item">
-              <span class="help__tag">Ссылка</span>
-              Кнопка «Поделиться ссылкой» копирует текущее состояние карты вместе с фильтрами и
-              ракурсом.
-            </div>
-            <div class="help__item">
-              <span class="help__tag">Экспорт</span>
-              CSV и GeoJSON выгружают только текущую отфильтрованную выборку.
-            </div>
-            <div class="help__item">
-              <span class="help__tag">Цвета</span>
-              Цвет маркера и бейджа соответствует типу пункта пропуска.
+              <span class="help__tag">Данные</span>
+              Карточки показывают источник, свежесть, достоверность и предупреждения качества.
             </div>
           </div>
         </section>
@@ -166,16 +187,25 @@
 
         <div id="stats" class="stats"></div>
 
-        <div id="list" class="list"></div>
-
-        <div id="emptyState" class="empty"></div>
+        <section class="results-shell" aria-label="Результаты поиска">
+          <div class="results-shell__header">
+            <div>
+              <div class="panel-card__kicker">Выборка</div>
+              <h2>Результаты</h2>
+            </div>
+          </div>
+          <div id="list" class="list"></div>
+          <div id="emptyState" class="empty"></div>
+        </section>
       </aside>
 
-      <!-- Floating burger for mobile when panel is closed -->
       <button id="mobileToggleFloating" class="mobile-fab" aria-label="Открыть панель">☰</button>
 
-      <!-- Map -->
       <main id="mapWrap" class="mapWrap">
+        <div class="map-chrome" aria-hidden="true">
+          <div class="map-chrome__title">Спутник + границы + дороги</div>
+          <div class="map-chrome__text">Выберите КПП на карте или уточните поиск слева</div>
+        </div>
         <div id="map" class="map"></div>
         <div id="mapFallback" class="map-fallback" role="status" hidden>
           <div>

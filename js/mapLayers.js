@@ -1,25 +1,63 @@
 import {
+  BOUNDARIES_LAYER_ID,
+  BOUNDARIES_SOURCE,
+  BOUNDARIES_SOURCE_ID,
+  ROADS_LAYER_ID,
+  ROADS_SOURCE,
+  ROADS_SOURCE_ID,
   SATELLITE_LAYER_ID,
   SATELLITE_SOURCE,
   SATELLITE_SOURCE_ID,
   TYPE_COLORS
 } from "./config.js";
 
-export function ensureSatelliteLayer(map) {
-  if (!map.getSource(SATELLITE_SOURCE_ID)) {
-    map.addSource(SATELLITE_SOURCE_ID, {
-      ...SATELLITE_SOURCE,
-      tiles: [...SATELLITE_SOURCE.tiles]
+function ensureRasterSource(map, id, source) {
+  if (!map.getSource(id)) {
+    map.addSource(id, {
+      ...source,
+      tiles: [...source.tiles]
     });
   }
+}
 
-  if (!map.getLayer(SATELLITE_LAYER_ID)) {
+function ensureRasterLayer(map, id, sourceId, { visibility = "none", opacity = 1 } = {}) {
+  if (!map.getLayer(id)) {
     map.addLayer({
-      id: SATELLITE_LAYER_ID,
+      id,
       type: "raster",
-      source: SATELLITE_SOURCE_ID,
-      layout: { visibility: "none" }
+      source: sourceId,
+      layout: { visibility },
+      paint: { "raster-opacity": opacity }
     });
+  }
+}
+
+export function ensureSatelliteLayer(map) {
+  ensureRasterSource(map, SATELLITE_SOURCE_ID, SATELLITE_SOURCE);
+  ensureRasterLayer(map, SATELLITE_LAYER_ID, SATELLITE_SOURCE_ID);
+
+  ensureRasterSource(map, BOUNDARIES_SOURCE_ID, BOUNDARIES_SOURCE);
+  ensureRasterLayer(map, BOUNDARIES_LAYER_ID, BOUNDARIES_SOURCE_ID, { opacity: 0.92 });
+
+  ensureRasterSource(map, ROADS_SOURCE_ID, ROADS_SOURCE);
+  ensureRasterLayer(map, ROADS_LAYER_ID, ROADS_SOURCE_ID, { opacity: 0.9 });
+}
+
+export function setMapReferenceVisibility(map, { satellite, boundaries, roads }) {
+  if (map.getLayer(SATELLITE_LAYER_ID)) {
+    map.setLayoutProperty(SATELLITE_LAYER_ID, "visibility", satellite ? "visible" : "none");
+  }
+
+  if (map.getLayer(BOUNDARIES_LAYER_ID)) {
+    map.setLayoutProperty(
+      BOUNDARIES_LAYER_ID,
+      "visibility",
+      satellite && boundaries ? "visible" : "none"
+    );
+  }
+
+  if (map.getLayer(ROADS_LAYER_ID)) {
+    map.setLayoutProperty(ROADS_LAYER_ID, "visibility", satellite && roads ? "visible" : "none");
   }
 }
 

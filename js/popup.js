@@ -1,18 +1,49 @@
 import { haversine, routeUrl } from "./geo.js";
+import { getFreshnessInfo } from "./freshness.js";
+import { getQualityFlags } from "./quality.js";
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function safeExternalUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return ["http:", "https:"].includes(url.protocol) ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+function detailRow(label, value) {
+  return `
+    <div class="checkpoint-popup__row">
+      <span>${escapeHtml(label)}</span>
+      <b>${escapeHtml(value || "—")}</b>
+    </div>
+  `;
+}
 
 function buildPopupHtml(feature, userLocation) {
   const props = feature.properties;
   const coords = feature.geometry.coordinates;
+  const extra = props.__extra || {};
+  const freshness = getFreshnessInfo(extra.updatedAt);
+  const qualityFlags = getQualityFlags(feature);
+  const sourceUrl = safeExternalUrl(extra.source);
 
   const dist = userLocation
     ? `${haversine(userLocation, coords).toFixed(1)} км`
     : "включите геолокацию";
 
   const route = userLocation
-    ? `<a href="${routeUrl(userLocation, coords)}" target="_blank" rel="noreferrer">🛣 Маршрут</a>`
+    ? `<a href="${routeUrl(userLocation, coords)}" target="_blank" rel="noreferrer">Маршрут</a>`
     : "";
 
-  const extra = props.__extra || {};
   const lines = [
     { k: "Субъект РФ", v: props.__subject || "—" },
     { k: "Страна", v: props.__country || "—" },
@@ -28,32 +59,40 @@ function buildPopupHtml(feature, userLocation) {
   if (extra.operator) lines.push({ k: "Оператор", v: extra.operator });
   if (extra.updatedAt) lines.push({ k: "Обновлено", v: extra.updatedAt });
 
-  const table = lines
-    .map(
-      (line) => `
-    <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;line-height:1.35;margin:2px 0">
-      <span style="opacity:.75">${line.k}</span>
-      <span style="font-weight:650;text-align:right">${line.v}</span>
-    </div>
-  `
-    )
-    .join("");
+  const qualityHtml = qualityFlags.length
+    ? qualityFlags
+        .map(
+          (flag) =>
+            `<span class="checkpoint-popup__flag checkpoint-popup__flag--${flag.level}">${escapeHtml(flag.label)}</span>`
+        )
+        .join("")
+    : '<span class="checkpoint-popup__flag checkpoint-popup__flag--ok">Без критичных замечаний</span>';
 
   return `
-    <div style="font-weight:900;font-size:16px;margin-bottom:6px">${props.__name}</div>
-    <div style="font-size:13px;opacity:.85;margin-bottom:8px">📏 ${dist}</div>
+    <article class="checkpoint-popup">
+      <header class="checkpoint-popup__header">
+        <span class="checkpoint-popup__type">${escapeHtml(props.__type || "КПП")}</span>
+        <h3>${escapeHtml(props.__name)}</h3>
+        <p>${escapeHtml(props.__status || "Статус не указан")} · расстояние: ${escapeHtml(dist)}</p>
+      </header>
 
-    <div style="border:1px solid rgba(148,163,184,.14);
-                border-radius:12px;
-                padding:10px;
-                background:rgba(15,23,42,.35);
-                margin-bottom:10px">
-      ${table}
-    </div>
+      <section class="checkpoint-popup__section">
+        ${lines.map((line) => detailRow(line.k, line.v)).join("")}
+      </section>
 
-    <div style="display:flex;gap:12px;align-items:center;font-size:13px">
-      ${route}
-    </div>
+      <section class="checkpoint-popup__section checkpoint-popup__section--quality">
+        <div class="checkpoint-popup__qualityTop">
+          <span class="freshness freshness--${freshness.level}" title="${escapeHtml(freshness.details)}">${escapeHtml(freshness.label)}</span>
+          ${extra.confidence ? `<span class="checkpoint-popup__confidence">${escapeHtml(extra.confidence)}</span>` : ""}
+        </div>
+        <div class="checkpoint-popup__flags">${qualityHtml}</div>
+      </section>
+
+      <footer class="checkpoint-popup__actions">
+        ${route}
+        ${sourceUrl ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">Источник</a>` : ""}
+      </footer>
+    </article>
   `;
 }
 

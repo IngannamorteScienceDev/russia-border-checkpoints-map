@@ -51,9 +51,11 @@ const {
   applyFilterStateFromUrl,
   getMapViewStateFromUrl,
   getSatelliteModeFromUrl,
+  getReferenceLayerStateFromUrl,
   syncFilterStateToUrl,
   syncMapViewToUrl,
-  syncSatelliteModeToUrl
+  syncSatelliteModeToUrl,
+  syncReferenceLayerStateToUrl
 } = await import(new URL("../js/urlState.js", import.meta.url));
 const { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } = await import(
   new URL("../js/favorites.js", import.meta.url)
@@ -137,6 +139,10 @@ assert(
   "Map URL state was not clamped."
 );
 assert(getSatelliteModeFromUrl() === true, "Satellite URL state was not parsed.");
+assert(
+  getReferenceLayerStateFromUrl({ boundaries: true, roads: true }).boundaries === true,
+  "Default reference layer URL state was not parsed."
+);
 
 dom.typeEl.value = "all";
 dom.sortEl.value = "name";
@@ -160,8 +166,16 @@ assert(viewUrl.searchParams.get("zoom") === "6.50", "Map zoom was not serialized
 
 syncSatelliteModeToUrl(false);
 assert(
-  new URL(replacedUrl).searchParams.get("sat") === null,
-  "Satellite mode should be removed when disabled."
+  new URL(replacedUrl).searchParams.get("sat") === "0",
+  "Satellite mode should be stored as disabled."
+);
+
+syncReferenceLayerStateToUrl({ boundaries: false, roads: true });
+const referenceUrl = new URL(replacedUrl);
+assert(
+  referenceUrl.searchParams.get("borders") === "0" &&
+    referenceUrl.searchParams.get("roads") === "1",
+  "Reference layer state was not synchronized to URL."
 );
 
 const storage = new Map();

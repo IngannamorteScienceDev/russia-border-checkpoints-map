@@ -113,6 +113,11 @@ assert(
   "Satellite toggle should be disabled without MapLibre."
 );
 assert(
+  elements.get("boundariesToggle")?.disabled === true &&
+    elements.get("roadsToggle")?.disabled === true,
+  "Reference layer toggles should be disabled without MapLibre."
+);
+assert(
   elements.get("styleToggle")?.textContent.includes("Карта"),
   "Satellite toggle should explain that the map is unavailable."
 );

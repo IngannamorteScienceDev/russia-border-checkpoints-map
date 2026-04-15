@@ -1,14 +1,37 @@
-export const STYLE_MAP = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+export const STYLE_MAP = "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
 
 export const SATELLITE_SOURCE_ID = "sat";
 export const SATELLITE_LAYER_ID = "sat-layer";
+export const BOUNDARIES_SOURCE_ID = "esri-boundaries-places";
+export const BOUNDARIES_LAYER_ID = "esri-boundaries-places-layer";
+export const ROADS_SOURCE_ID = "esri-transportation";
+export const ROADS_LAYER_ID = "esri-transportation-layer";
 
 export const SATELLITE_SOURCE = {
   type: "raster",
   tiles: [
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
   ],
-  tileSize: 256
+  tileSize: 256,
+  attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+};
+
+export const BOUNDARIES_SOURCE = {
+  type: "raster",
+  tiles: [
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+  ],
+  tileSize: 256,
+  attribution: "Reference tiles &copy; Esri"
+};
+
+export const ROADS_SOURCE = {
+  type: "raster",
+  tiles: [
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
+  ],
+  tileSize: 256,
+  attribution: "Transportation tiles &copy; Esri"
 };
 
 export const TYPE_COLORS = {

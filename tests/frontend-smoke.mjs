@@ -562,6 +562,8 @@ const typeFilter = elements.get("typeFilter");
 const statusFilter = elements.get("statusFilter");
 const resetFiltersButton = elements.get("resetFilters");
 const styleToggleButton = elements.get("styleToggle");
+const boundariesToggleButton = elements.get("boundariesToggle");
+const roadsToggleButton = elements.get("roadsToggle");
 const sortOrder = elements.get("sortOrder");
 const url = new URL(window.location.href);
 
@@ -609,7 +611,23 @@ if (!lastMapInstance?.getLayer("quality-points-alert")) {
 }
 
 if (
+  !lastMapInstance?.getLayer("esri-boundaries-places-layer") ||
+  !lastMapInstance?.getLayer("esri-transportation-layer")
+) {
+  throw new Error("Reference map overlay layers were not added to the map.");
+}
+
+if (
+  lastMapInstance?.getLayoutProperty("esri-boundaries-places-layer", "visibility") !== "visible" ||
+  lastMapInstance?.getLayoutProperty("esri-transportation-layer", "visibility") !== "visible"
+) {
+  throw new Error("Reference map overlay layers should be visible with satellite mode.");
+}
+
+if (
   !legendHtml.includes("legend__special") ||
+  !legendHtml.includes("legend__marker--imagery") ||
+  !legendHtml.includes("legend__marker--reference") ||
   !legendHtml.includes("legend__marker--favorite") ||
   !legendHtml.includes("legend__marker--quality") ||
   !legendHtml.includes("legend__marker--critical")
@@ -617,7 +635,7 @@ if (
   throw new Error("Special marker legend was not rendered.");
 }
 
-if (styleToggleButton?.textContent !== "🗺 Карта") {
+if (styleToggleButton?.textContent !== "Спутник включен") {
   throw new Error("Satellite toggle label was not updated after restoring URL state.");
 }
 
@@ -801,6 +819,13 @@ if (typeof viewportOnlyButton?.onclick !== "function") {
   throw new Error("Viewport-only button was not wired.");
 }
 
+if (
+  typeof boundariesToggleButton?.onclick !== "function" ||
+  typeof roadsToggleButton?.onclick !== "function"
+) {
+  throw new Error("Reference layer toggles were not wired.");
+}
+
 if (typeof quickPresets?.onclick !== "function") {
   throw new Error("Quick presets were not wired.");
 }
@@ -840,21 +865,39 @@ if (
 }
 
 styleToggleButton.onclick?.();
-if (new URL(window.location.href).searchParams.get("sat") !== null) {
-  throw new Error("Satellite mode was not cleared from URL after toggling off.");
+if (new URL(window.location.href).searchParams.get("sat") !== "0") {
+  throw new Error("Satellite mode was not stored as disabled in URL after toggling off.");
 }
 
 if (lastMapInstance?.getLayoutProperty("sat-layer", "visibility") !== "none") {
   throw new Error("Satellite layer was not hidden after toggling off.");
 }
 
-if (styleToggleButton?.textContent !== "🛰 Спутник") {
+if (styleToggleButton?.textContent !== "Схема включена") {
   throw new Error("Satellite toggle label was not restored after turning the layer off.");
 }
 
 styleToggleButton.onclick?.();
 if (new URL(window.location.href).searchParams.get("sat") !== "1") {
   throw new Error("Satellite mode was not restored in URL after toggling on.");
+}
+
+boundariesToggleButton.onclick?.();
+if (new URL(window.location.href).searchParams.get("borders") !== "0") {
+  throw new Error("Boundaries overlay state was not synchronized to URL.");
+}
+
+if (lastMapInstance?.getLayoutProperty("esri-boundaries-places-layer", "visibility") !== "none") {
+  throw new Error("Boundaries overlay layer was not hidden after toggling off.");
+}
+
+roadsToggleButton.onclick?.();
+if (new URL(window.location.href).searchParams.get("roads") !== "0") {
+  throw new Error("Roads overlay state was not synchronized to URL.");
+}
+
+if (lastMapInstance?.getLayoutProperty("esri-transportation-layer", "visibility") !== "none") {
+  throw new Error("Roads overlay layer was not hidden after toggling off.");
 }
 
 lastPopupRef?.remove();

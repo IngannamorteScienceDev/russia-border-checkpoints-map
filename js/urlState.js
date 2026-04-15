@@ -8,6 +8,8 @@ const FILTER_PARAM_MAP = {
 };
 const CHECKPOINT_PARAM = "checkpoint";
 const SATELLITE_PARAM = "sat";
+const BOUNDARIES_PARAM = "borders";
+const ROADS_PARAM = "roads";
 const MAP_PARAM_MAP = {
   lng: "lng",
   lat: "lat",
@@ -38,9 +40,14 @@ function parseFiniteNumber(value) {
   return Number.isFinite(number) ? number : null;
 }
 
-function parseBooleanParam(value) {
-  if (value === null || value === undefined) return false;
-  return ["1", "true", "yes", "on"].includes(String(value).toLowerCase());
+function parseBooleanParam(value, defaultValue = false) {
+  if (value === null || value === undefined) return defaultValue;
+
+  const normalized = String(value).toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off"].includes(normalized)) return false;
+
+  return defaultValue;
 }
 
 function clamp(value, min, max) {
@@ -102,14 +109,30 @@ export function syncSelectedCheckpointToUrl(checkpointId) {
   });
 }
 
-export function getSatelliteModeFromUrl() {
+export function getSatelliteModeFromUrl(defaultValue = false) {
   const url = new URL(window.location.href);
-  return parseBooleanParam(url.searchParams.get(SATELLITE_PARAM));
+  return parseBooleanParam(url.searchParams.get(SATELLITE_PARAM), defaultValue);
 }
 
 export function syncSatelliteModeToUrl(isEnabled) {
   updateUrl((url) => {
-    setParam(url, SATELLITE_PARAM, isEnabled ? "1" : null);
+    setParam(url, SATELLITE_PARAM, isEnabled ? "1" : "0");
+  });
+}
+
+export function getReferenceLayerStateFromUrl(defaultState = { boundaries: true, roads: true }) {
+  const url = new URL(window.location.href);
+
+  return {
+    boundaries: parseBooleanParam(url.searchParams.get(BOUNDARIES_PARAM), defaultState.boundaries),
+    roads: parseBooleanParam(url.searchParams.get(ROADS_PARAM), defaultState.roads)
+  };
+}
+
+export function syncReferenceLayerStateToUrl({ boundaries, roads }) {
+  updateUrl((url) => {
+    setParam(url, BOUNDARIES_PARAM, boundaries ? "1" : "0");
+    setParam(url, ROADS_PARAM, roads ? "1" : "0");
   });
 }
 

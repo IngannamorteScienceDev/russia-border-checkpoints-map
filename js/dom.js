@@ -36,6 +36,8 @@ export function getDomElements() {
     loaderTextEl: el("loaderText"),
     offlineStatusEl: el("offlineStatus"),
     styleToggleEl: el("styleToggle"),
+    boundariesToggleEl: el("boundariesToggle"),
+    roadsToggleEl: el("roadsToggle"),
     geoBtnEl: el("geoBtn")
   };
 }

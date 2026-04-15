@@ -11,7 +11,11 @@ import { getDomElements } from "./js/dom.js";
 import { exportFeaturesAsCsv, exportFeaturesAsGeoJson } from "./js/export.js";
 import { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } from "./js/favorites.js";
 import { haversine } from "./js/geo.js";
-import { createCheckpointsLayerController, ensureSatelliteLayer } from "./js/mapLayers.js";
+import {
+  createCheckpointsLayerController,
+  ensureSatelliteLayer,
+  setMapReferenceVisibility
+} from "./js/mapLayers.js";
 import { createPopupController } from "./js/popup.js";
 import { getQualityFlags } from "./js/quality.js";
 import {
@@ -36,7 +40,9 @@ import {
   syncMapViewToUrl,
   syncSelectedCheckpointToUrl,
   getSatelliteModeFromUrl,
-  syncSatelliteModeToUrl
+  syncSatelliteModeToUrl,
+  getReferenceLayerStateFromUrl,
+  syncReferenceLayerStateToUrl
 } from "./js/urlState.js";
 
 const dom = getDomElements();
@@ -53,6 +59,7 @@ const QUICK_FILTER_PRESETS = {
   air: { type: "Воздушный" }
 };
 const initialMapView = getMapViewStateFromUrl(DEFAULT_MAP_VIEW);
+const initialReferenceLayerState = getReferenceLayerStateFromUrl();
 const isMapLibreAvailable = Boolean(globalThis.maplibregl?.Map);
 
 const state = {
@@ -65,6 +72,8 @@ const state = {
   compareIds: [],
   showFavoritesOnly: false,
   showViewportOnly: false,
+  showBoundariesLayer: initialReferenceLayerState.boundaries,
+  showRoadsLayer: initialReferenceLayerState.roads,
   shareSheetOpen: false,
   userLocation: null,
   userMarker: null,
@@ -224,6 +233,8 @@ function syncMapFallbackStatus() {
   dom.mapWrapEl?.classList.add("mapWrap--fallback");
   if (dom.mapFallbackEl) dom.mapFallbackEl.hidden = false;
   dom.styleToggleEl.disabled = true;
+  if (dom.boundariesToggleEl) dom.boundariesToggleEl.disabled = true;
+  if (dom.roadsToggleEl) dom.roadsToggleEl.disabled = true;
   dom.styleToggleEl.textContent = "Карта недоступна";
 }
 
@@ -315,17 +326,80 @@ function isSatelliteVisible() {
   return map.getLayoutProperty(SATELLITE_LAYER_ID, "visibility") === "visible";
 }
 
-function setSatelliteMode(enabled) {
+function syncMapLayerButtons() {
+  const satelliteEnabled = isSatelliteVisible();
+
+  dom.styleToggleEl.textContent = satelliteEnabled ? "Спутник включен" : "Схема включена";
+  dom.styleToggleEl.classList.toggle("is-active", satelliteEnabled);
+  dom.styleToggleEl.setAttribute?.("aria-pressed", satelliteEnabled ? "true" : "false");
+
+  if (dom.boundariesToggleEl) {
+    dom.boundariesToggleEl.disabled = !satelliteEnabled || map.isFallback;
+    dom.boundariesToggleEl.classList.toggle(
+      "is-active",
+      satelliteEnabled && state.showBoundariesLayer
+    );
+    dom.boundariesToggleEl.setAttribute?.(
+      "aria-pressed",
+      satelliteEnabled && state.showBoundariesLayer ? "true" : "false"
+    );
+  }
+
+  if (dom.roadsToggleEl) {
+    dom.roadsToggleEl.disabled = !satelliteEnabled || map.isFallback;
+    dom.roadsToggleEl.classList.toggle("is-active", satelliteEnabled && state.showRoadsLayer);
+    dom.roadsToggleEl.setAttribute?.(
+      "aria-pressed",
+      satelliteEnabled && state.showRoadsLayer ? "true" : "false"
+    );
+  }
+}
+
+function syncMapLayerVisibility() {
+  setMapReferenceVisibility(map, {
+    satellite: isSatelliteVisible(),
+    boundaries: state.showBoundariesLayer,
+    roads: state.showRoadsLayer
+  });
+  syncMapLayerButtons();
+}
+
+function setSatelliteMode(enabled, { syncUrl = true } = {}) {
   if (map.isFallback) {
     syncSatelliteModeToUrl(false);
     syncMapFallbackStatus();
     return;
   }
 
-  map.setLayoutProperty(SATELLITE_LAYER_ID, "visibility", enabled ? "visible" : "none");
+  setMapReferenceVisibility(map, {
+    satellite: enabled,
+    boundaries: state.showBoundariesLayer,
+    roads: state.showRoadsLayer
+  });
 
-  dom.styleToggleEl.textContent = enabled ? "🗺 Карта" : "🛰 Спутник";
-  syncSatelliteModeToUrl(enabled);
+  syncMapLayerButtons();
+
+  if (syncUrl) {
+    syncSatelliteModeToUrl(enabled);
+  }
+}
+
+function toggleBoundariesLayer() {
+  state.showBoundariesLayer = !state.showBoundariesLayer;
+  syncMapLayerVisibility();
+  syncReferenceLayerStateToUrl({
+    boundaries: state.showBoundariesLayer,
+    roads: state.showRoadsLayer
+  });
+}
+
+function toggleRoadsLayer() {
+  state.showRoadsLayer = !state.showRoadsLayer;
+  syncMapLayerVisibility();
+  syncReferenceLayerStateToUrl({
+    boundaries: state.showBoundariesLayer,
+    roads: state.showRoadsLayer
+  });
 }
 
 function getActiveFilterCount() {
@@ -707,7 +781,7 @@ function updateUserMarker() {
 function setGeoButtonLoading(isLoading) {
   dom.geoBtnEl.disabled = isLoading;
   dom.nearestBtnEl.disabled = isLoading;
-  dom.geoBtnEl.textContent = isLoading ? "⏳" : "📍 Гео";
+  dom.geoBtnEl.textContent = isLoading ? "Ищем..." : "Гео";
   dom.nearestBtnEl.textContent = isLoading ? "Ищем..." : "Ближайшие";
 }
 
@@ -771,6 +845,14 @@ function attachUi() {
     setSatelliteMode(!isSatelliteVisible());
   };
 
+  if (dom.boundariesToggleEl) {
+    dom.boundariesToggleEl.onclick = toggleBoundariesLayer;
+  }
+
+  if (dom.roadsToggleEl) {
+    dom.roadsToggleEl.onclick = toggleRoadsLayer;
+  }
+
   dom.geoBtnEl.onclick = () => {
     requestUserLocation();
   };
@@ -799,7 +881,7 @@ async function init() {
     await new Promise((resolve) => (map.loaded() ? resolve() : map.once("load", resolve)));
 
     ensureSatelliteLayer(map);
-    setSatelliteMode(getSatelliteModeFromUrl());
+    setSatelliteMode(getSatelliteModeFromUrl(true), { syncUrl: false });
 
     setProgress(25, "Загружаем КПП...");
     state.allFeatures = await loadFeatures({ setProgress });

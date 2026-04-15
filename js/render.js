@@ -8,6 +8,19 @@ import { buildReportUrl } from "./report.js";
 export function buildLegend(legendEl) {
   legendEl.innerHTML = `
     <div class="legend__section">
+      <div class="legend__title">Картографическая основа</div>
+      <div class="legend__grid legend__grid--special">
+        <div class="legend__item">
+          <span class="legend__marker legend__marker--imagery" aria-hidden="true"></span>
+          Спутниковая подложка
+        </div>
+        <div class="legend__item">
+          <span class="legend__marker legend__marker--reference" aria-hidden="true"></span>
+          Границы, города и дороги
+        </div>
+      </div>
+    </div>
+    <div class="legend__section">
       <div class="legend__title">Тип КПП</div>
       <div class="legend__grid">
         ${Object.entries(TYPE_COLORS)
