@@ -1,4 +1,4 @@
-const CACHE_NAME = "russia-border-checkpoints-app-shell-v1";
+const CACHE_NAME = "russia-border-checkpoints-app-shell-v2";
 
 const APP_SHELL_URLS = [
   "./",
@@ -6,6 +6,7 @@ const APP_SHELL_URLS = [
   "./versions.html",
   "./manifest.webmanifest",
   "./style.css",
+  "./map-ui.css",
   "./app.js",
   "./sw.js",
   "./icons/icon.svg",
