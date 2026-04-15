@@ -224,7 +224,7 @@ globalThis.fetch = async () => ({
             status: "функционирует",
             subject_name: "Приморский край",
             foreign_country: "Китай",
-            source: "https://example.test/source",
+            source: "https://rosgranstroy.ru/api/map_data",
             confidence_level: "high",
             last_updated: "2026-01-19T09:56:39.000000Z"
           }
@@ -689,7 +689,7 @@ if (!listHtml.includes("freshness freshness--fresh") || !listHtml.includes("Св
 if (
   !listHtml.includes("Высокая достоверность") ||
   !listHtml.includes("item__source") ||
-  !listHtml.includes("https://example.test/source")
+  !listHtml.includes("https://rosgranstroy.ru/api/map_data")
 ) {
   throw new Error("Source and confidence indicators were not rendered.");
 }
@@ -811,9 +811,12 @@ if (
   !passportHtml.includes("Паспорт КПП") ||
   !passportHtml.includes("Тестовый КПП") ||
   !passportHtml.includes("Высокая достоверность") ||
+  !passportHtml.includes("Откуда данные") ||
+  !passportHtml.includes("ФГКУ Росгранстрой") ||
+  !passportHtml.includes("Сверить с перечнем Минтранса") ||
   !passportHtml.includes("checkpoint-passport__favorite is-active") ||
   !passportHtml.includes("checkpoint-passport__copy") ||
-  !passportHtml.includes("https://example.test/source") ||
+  !passportHtml.includes("https://rosgranstroy.ru/api/map_data") ||
   !passportHtml.includes("issues/new")
 ) {
   throw new Error("Selected checkpoint passport was not rendered with actions and data quality.");

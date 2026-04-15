@@ -70,6 +70,8 @@ russia-border-checkpoints-map/
 - `data/dataset_changelog.json` — история версий датасета;
 - `data/data_quality_report.json` — отчет расширенной проверки качества данных.
 
+План обогащения и матрица доверия к источникам зафиксированы в [`docs/data-enrichment-sources.md`](docs/data-enrichment-sources.md).
+
 Фронтенд читает `data/checkpoints.geojson`, а страница версий дополнительно использует `data/dataset_changelog.json`. Quality report пока нужен для CI и обслуживания данных.
 
 ## Локальный запуск

@@ -2,6 +2,7 @@ import { getFreshnessInfo } from "./freshness.js";
 import { haversine, mapPointUrl, routeUrl } from "./geo.js";
 import { getQualityFlags } from "./quality.js";
 import { buildReportUrl } from "./report.js";
+import { buildFeatureSourceAudit } from "./sourceTrust.js";
 
 function escapeHtml(value) {
   return String(value || "")
@@ -74,6 +75,12 @@ function qualityFlagsHtml(flags) {
     .join("");
 }
 
+function sourceEvidenceHtml(items) {
+  return items
+    .map((item) => `<span class="checkpoint-passport__sourcePill">${escapeHtml(item)}</span>`)
+    .join("");
+}
+
 function buildDetailRows(props, extra) {
   return [
     ["ID", props.__id],
@@ -117,6 +124,7 @@ export function renderCheckpointPassport({
   const freshness = getFreshnessInfo(extra.updatedAt);
   const confidence = confidenceInfo(extra.confidence);
   const qualityFlags = getQualityFlags(feature);
+  const sourceAudit = buildFeatureSourceAudit(feature);
   const distance = userLocation
     ? `${haversine(userLocation, coords).toFixed(1)} км`
     : "Гео не включена";
@@ -153,6 +161,29 @@ export function renderCheckpointPassport({
       <section class="checkpoint-passport__quality" aria-label="Качество данных">
         <div class="checkpoint-passport__sectionTitle">Качество данных</div>
         <div class="checkpoint-passport__flags">${qualityFlagsHtml(qualityFlags)}</div>
+      </section>
+
+      <section class="checkpoint-passport__source" aria-label="Происхождение данных">
+        <div class="checkpoint-passport__sectionTitle">Откуда данные</div>
+        <div class="checkpoint-passport__sourceCard checkpoint-passport__sourceCard--${sourceAudit.trustLevel}">
+          <div class="checkpoint-passport__sourceTop">
+            <div>
+              <b>${escapeHtml(sourceAudit.title)}</b>
+              <span>${escapeHtml(sourceAudit.badge)}</span>
+            </div>
+            <strong>${escapeHtml(sourceAudit.trustLabel)}</strong>
+          </div>
+          <p>${escapeHtml(sourceAudit.summary)}</p>
+          <div class="checkpoint-passport__sourceEvidence">${sourceEvidenceHtml(sourceAudit.evidence)}</div>
+          <div class="checkpoint-passport__sourceLinks">
+            ${
+              sourceAudit.sourceUrl
+                ? `<a href="${escapeHtml(sourceAudit.sourceUrl)}" target="_blank" rel="noreferrer">Открыть источник</a>`
+                : "<span>Исходная ссылка отсутствует</span>"
+            }
+            <a href="${escapeHtml(sourceAudit.verificationUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceAudit.verificationLabel)}</a>
+          </div>
+        </div>
       </section>
 
       <section class="checkpoint-passport__details" aria-label="Атрибуты КПП">

@@ -457,6 +457,7 @@
 }
 
 .app--research .checkpoint-passport__quality,
+.app--research .checkpoint-passport__source,
 .app--research .checkpoint-passport__details {
   margin-top: 14px;
 }
@@ -496,6 +497,102 @@
 }
 
 .app--research .checkpoint-passport__flag--critical {
+  border-color: rgba(220, 38, 38, 0.26);
+  background: rgba(254, 226, 226, 0.74);
+  color: #991b1b;
+}
+
+.app--research .checkpoint-passport__sourceCard {
+  border: 1px solid rgba(26, 58, 49, 0.1);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(245, 158, 11, 0.05)),
+    rgba(255, 255, 255, 0.72);
+  padding: 12px;
+}
+
+.app--research .checkpoint-passport__sourceTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.app--research .checkpoint-passport__sourceTop b,
+.app--research .checkpoint-passport__sourceTop span,
+.app--research .checkpoint-passport__sourceTop strong {
+  display: block;
+}
+
+.app--research .checkpoint-passport__sourceTop b {
+  color: #10251f;
+  font-size: 14px;
+}
+
+.app--research .checkpoint-passport__sourceTop span {
+  margin-top: 3px;
+  color: #64746d;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.app--research .checkpoint-passport__sourceTop strong {
+  flex: 0 0 auto;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+  border-radius: 999px;
+  background: rgba(220, 252, 231, 0.7);
+  color: #166534;
+  padding: 5px 8px;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.app--research .checkpoint-passport__sourceCard p {
+  margin: 9px 0 0;
+}
+
+.app--research .checkpoint-passport__sourceEvidence,
+.app--research .checkpoint-passport__sourceLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.app--research .checkpoint-passport__sourcePill,
+.app--research .checkpoint-passport__sourceLinks a,
+.app--research .checkpoint-passport__sourceLinks span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border: 1px solid rgba(26, 58, 49, 0.1);
+  border-radius: 999px;
+  background: rgba(248, 250, 246, 0.74);
+  color: #1f312b;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.app--research .checkpoint-passport__sourceLinks a {
+  border-color: rgba(15, 118, 110, 0.18);
+  background: rgba(15, 118, 110, 0.08);
+  color: #123029;
+}
+
+.app--research .checkpoint-passport__sourceLinks a:hover {
+  border-color: rgba(15, 118, 110, 0.32);
+  background: rgba(15, 118, 110, 0.14);
+}
+
+.app--research .checkpoint-passport__sourceCard--medium .checkpoint-passport__sourceTop strong {
+  border-color: rgba(217, 119, 6, 0.24);
+  background: rgba(254, 243, 199, 0.72);
+  color: #92400e;
+}
+
+.app--research .checkpoint-passport__sourceCard--low .checkpoint-passport__sourceTop strong {
   border-color: rgba(220, 38, 38, 0.26);
   background: rgba(254, 226, 226, 0.74);
   color: #991b1b;
@@ -689,7 +786,11 @@ html[data-theme="dark"] .app--research .badge,
 html[data-theme="dark"] .app--research .checkpoint-passport__metric,
 html[data-theme="dark"] .app--research .checkpoint-passport__detail,
 html[data-theme="dark"] .app--research .checkpoint-passport__chips span,
-html[data-theme="dark"] .app--research .checkpoint-passport__flag {
+html[data-theme="dark"] .app--research .checkpoint-passport__flag,
+html[data-theme="dark"] .app--research .checkpoint-passport__sourceCard,
+html[data-theme="dark"] .app--research .checkpoint-passport__sourcePill,
+html[data-theme="dark"] .app--research .checkpoint-passport__sourceLinks a,
+html[data-theme="dark"] .app--research .checkpoint-passport__sourceLinks span {
   border-color: rgba(183, 205, 195, 0.12);
   background: rgba(9, 25, 21, 0.7);
   color: #e7f0eb;
@@ -704,7 +805,8 @@ html[data-theme="dark"] .app--research .item__favorite,
 html[data-theme="dark"] .app--research .badge,
 html[data-theme="dark"] .app--research .legend__item,
 html[data-theme="dark"] .app--research .checkpoint-passport__metric b,
-html[data-theme="dark"] .app--research .checkpoint-passport__detail b {
+html[data-theme="dark"] .app--research .checkpoint-passport__detail b,
+html[data-theme="dark"] .app--research .checkpoint-passport__sourceTop b {
   color: #e7f0eb;
 }
 
@@ -763,6 +865,42 @@ html[data-theme="dark"] .app--research .checkpoint-passport__flag--warning {
 }
 
 html[data-theme="dark"] .app--research .checkpoint-passport__flag--critical {
+  border-color: rgba(248, 113, 113, 0.28);
+  background: rgba(127, 29, 29, 0.25);
+  color: #fecaca;
+}
+
+html[data-theme="dark"] .app--research .checkpoint-passport__sourceCard {
+  background:
+    linear-gradient(135deg, rgba(20, 184, 166, 0.11), rgba(245, 158, 11, 0.06)),
+    rgba(9, 25, 21, 0.72);
+}
+
+html[data-theme="dark"] .app--research .checkpoint-passport__sourceTop span {
+  color: #9fb4aa;
+}
+
+html[data-theme="dark"] .app--research .checkpoint-passport__sourceTop strong {
+  border-color: rgba(74, 222, 128, 0.22);
+  background: rgba(22, 101, 52, 0.22);
+  color: #bbf7d0;
+}
+
+html[data-theme="dark"]
+  .app--research
+  .checkpoint-passport__sourceCard--medium
+  .checkpoint-passport__sourceTop
+  strong {
+  border-color: rgba(251, 191, 36, 0.28);
+  background: rgba(120, 53, 15, 0.24);
+  color: #fde68a;
+}
+
+html[data-theme="dark"]
+  .app--research
+  .checkpoint-passport__sourceCard--low
+  .checkpoint-passport__sourceTop
+  strong {
   border-color: rgba(248, 113, 113, 0.28);
   background: rgba(127, 29, 29, 0.25);
   color: #fecaca;
