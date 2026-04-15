@@ -83,9 +83,14 @@ assert(
 assert(swSource.includes('"./map-ui.css"'), "Service worker should precache map-ui.css.");
 assert(swSource.includes('"./js/theme.js"'), "Service worker should precache theme.js.");
 assert(swSource.includes('"./js/passport.js"'), "Service worker should precache passport.js.");
+assert(swSource.includes('"./js/enrichment.js"'), "Service worker should precache enrichment.js.");
 assert(
   swSource.includes('"./js/sourceTrust.js"'),
   "Service worker should precache sourceTrust.js."
+);
+assert(
+  swSource.includes('"./data/checkpoint_enrichment.json"'),
+  "Service worker should precache checkpoint enrichment data."
 );
 
 console.log("layout structure smoke test passed");

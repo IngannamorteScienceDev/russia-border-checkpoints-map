@@ -81,6 +81,72 @@ function sourceEvidenceHtml(items) {
     .join("");
 }
 
+function enrichmentConfidenceLabel(value) {
+  if (value === "high") return "Подтверждено";
+  if (value === "low") return "Низкая уверенность";
+  return "Нужна сверка";
+}
+
+function enrichmentTagsHtml(tags = []) {
+  return tags
+    .map((tag) => `<span class="checkpoint-passport__insightTag">${escapeHtml(tag)}</span>`)
+    .join("");
+}
+
+function enrichmentRecordHtml(record) {
+  const sourceUrl = safeExternalUrl(record.sourceUrl);
+  const dateLabel = record.date ? `<span>${escapeHtml(record.date)}</span>` : "";
+  const tagsHtml = enrichmentTagsHtml(record.tags);
+  const sourceHtml = sourceUrl
+    ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(record.sourceTitle || "Открыть источник")}</a>`
+    : record.sourceTitle
+      ? `<span>${escapeHtml(record.sourceTitle)}</span>`
+      : "";
+
+  return `
+    <article class="checkpoint-passport__insight checkpoint-passport__insight--${record.confidence}">
+      <div class="checkpoint-passport__insightTop">
+        <span>${escapeHtml(record.kindLabel)}</span>
+        ${dateLabel}
+        <strong>${escapeHtml(enrichmentConfidenceLabel(record.confidence))}</strong>
+      </div>
+      <h3>${escapeHtml(record.title)}</h3>
+      ${record.summary ? `<p>${escapeHtml(record.summary)}</p>` : ""}
+      ${tagsHtml ? `<div class="checkpoint-passport__insightTags">${tagsHtml}</div>` : ""}
+      ${sourceHtml ? `<div class="checkpoint-passport__insightSource">${sourceHtml}</div>` : ""}
+    </article>
+  `;
+}
+
+function enrichmentHtml(enrichment) {
+  const records = enrichment?.records || [];
+
+  if (!records.length) {
+    return `
+      <section class="checkpoint-passport__enrichment" aria-label="События и сверка">
+        <div class="checkpoint-passport__sectionTitle">События и сверка</div>
+        <div class="checkpoint-passport__emptyInsight">
+          <b>Подтвержденных событий пока нет</b>
+          <p>Файл обогащений подключен. Сюда будут попадать реконструкции, электронные очереди, официальные сверки и другие факты только после привязки к источнику.</p>
+        </div>
+      </section>
+    `;
+  }
+
+  const verificationRecords = enrichment.verificationRecords || [];
+  const eventRecords = enrichment.eventRecords || [];
+
+  return `
+    <section class="checkpoint-passport__enrichment" aria-label="События и сверка">
+      <div class="checkpoint-passport__sectionTitle">События и сверка</div>
+      <div class="checkpoint-passport__insights">
+        ${verificationRecords.map(enrichmentRecordHtml).join("")}
+        ${eventRecords.map(enrichmentRecordHtml).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function buildDetailRows(props, extra) {
   return [
     ["ID", props.__id],
@@ -101,6 +167,7 @@ export function renderCheckpointPassport({
   passportEl,
   feature,
   userLocation,
+  enrichment,
   favoriteIds = new Set(),
   compareIds = [],
   onClose,
@@ -185,6 +252,8 @@ export function renderCheckpointPassport({
           </div>
         </div>
       </section>
+
+      ${enrichmentHtml(enrichment)}
 
       <section class="checkpoint-passport__details" aria-label="Атрибуты КПП">
         <div class="checkpoint-passport__sectionTitle">Атрибуты</div>

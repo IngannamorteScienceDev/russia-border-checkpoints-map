@@ -205,9 +205,41 @@ Object.defineProperty(globalThis, "navigator", {
   }
 });
 
-globalThis.fetch = async () => ({
+globalThis.fetch = async (resource) => ({
   ok: true,
   async json() {
+    if (String(resource).includes("checkpoint_enrichment.json")) {
+      return {
+        schemaVersion: 1,
+        generatedAt: "2026-04-15T00:00:00.000Z",
+        sources: [],
+        records: [
+          {
+            checkpointId: "100",
+            kind: "official_verification",
+            title: "Сверено с тестовым перечнем",
+            summary: "Запись совпадает с контрольным тестовым источником.",
+            date: "2026-04-15",
+            sourceTitle: "Минтранс России",
+            sourceUrl: "https://mintrans.gov.ru/activities/168",
+            confidence: "high",
+            tags: ["сверка", "официально"]
+          },
+          {
+            checkpointId: "100",
+            kind: "infrastructure",
+            title: "Тестовое инфраструктурное событие",
+            summary: "Событие привязано к КПП через enrichment-файл и отображается в паспорте.",
+            date: "2026-04-10",
+            sourceTitle: "ФГКУ Росгранстрой",
+            sourceUrl: "https://www.rosgranstroy.ru/press-center/news/test",
+            confidence: "medium",
+            tags: ["инфраструктура"]
+          }
+        ]
+      };
+    }
+
     return {
       type: "FeatureCollection",
       features: [
@@ -814,6 +846,10 @@ if (
   !passportHtml.includes("Откуда данные") ||
   !passportHtml.includes("ФГКУ Росгранстрой") ||
   !passportHtml.includes("Сверить с перечнем Минтранса") ||
+  !passportHtml.includes("События и сверка") ||
+  !passportHtml.includes("Сверено с тестовым перечнем") ||
+  !passportHtml.includes("Тестовое инфраструктурное событие") ||
+  !passportHtml.includes("https://www.rosgranstroy.ru/press-center/news/test") ||
   !passportHtml.includes("checkpoint-passport__favorite is-active") ||
   !passportHtml.includes("checkpoint-passport__copy") ||
   !passportHtml.includes("https://rosgranstroy.ru/api/map_data") ||

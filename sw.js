@@ -1,4 +1,4 @@
-const CACHE_NAME = "russia-border-checkpoints-app-shell-v5";
+const CACHE_NAME = "russia-border-checkpoints-app-shell-v6";
 
 const APP_SHELL_URLS = [
   "./",
@@ -12,6 +12,7 @@ const APP_SHELL_URLS = [
   "./icons/icon.svg",
   "./icons/maskable-icon.svg",
   "./data/checkpoints.geojson",
+  "./data/checkpoint_enrichment.json",
   "./data/dataset_changelog.json",
   "./data/data_quality_report.json",
   "./js/compare.js",
@@ -19,6 +20,7 @@ const APP_SHELL_URLS = [
   "./js/data.js",
   "./js/datasetChanges.js",
   "./js/dom.js",
+  "./js/enrichment.js",
   "./js/export.js",
   "./js/favorites.js",
   "./js/freshness.js",

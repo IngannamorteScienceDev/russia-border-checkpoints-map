@@ -8,6 +8,7 @@ import {
   summarizeDatasetChanges
 } from "./js/datasetChanges.js";
 import { getDomElements } from "./js/dom.js";
+import { getFeatureEnrichment, loadCheckpointEnrichment } from "./js/enrichment.js";
 import { exportFeaturesAsCsv, exportFeaturesAsGeoJson } from "./js/export.js";
 import { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } from "./js/favorites.js";
 import { haversine } from "./js/geo.js";
@@ -70,6 +71,7 @@ const state = {
   viewFeatures: [],
   datasetMeta: null,
   datasetChangeSummary: null,
+  checkpointEnrichment: null,
   favoriteIds: loadFavoriteIds(),
   recentIds: loadRecentIds(),
   compareIds: [],
@@ -312,6 +314,7 @@ function renderAll() {
     passportEl: dom.passportEl,
     feature: state.selectedFeature,
     userLocation: state.userLocation,
+    enrichment: getFeatureEnrichment(state.checkpointEnrichment, state.selectedFeature),
     favoriteIds: state.favoriteIds,
     compareIds: state.compareIds,
     onClose: closeSelectedCheckpoint,
@@ -911,6 +914,10 @@ async function init() {
     state.allFeatures = await loadFeatures({ setProgress });
     state.viewFeatures = state.allFeatures;
     state.datasetMeta = buildDatasetMeta(state.allFeatures);
+
+    setProgress(42, "Р—Р°РіСЂСѓР¶Р°РµРј СЃР»РѕР№ РѕР±РѕРіР°С‰РµРЅРёР№...");
+    state.checkpointEnrichment = await loadCheckpointEnrichment();
+
     const currentSnapshot = buildDatasetSnapshot(state.allFeatures, state.datasetMeta);
     state.datasetChangeSummary = summarizeDatasetChanges(loadDatasetSnapshot(), currentSnapshot);
     saveDatasetSnapshot(currentSnapshot);

@@ -20,6 +20,10 @@ assert(
   "App shell should include GeoJSON data."
 );
 assert(
+  appShellUrls.includes("./data/checkpoint_enrichment.json"),
+  "App shell should include checkpoint enrichment data."
+);
+assert(
   appShellUrls.includes("./data/dataset_changelog.json"),
   "App shell should include dataset changelog."
 );

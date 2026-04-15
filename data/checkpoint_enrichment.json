@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-04-15T00:00:00.000Z",
+  "description": "Verified per-checkpoint enrichment records. Keep this file conservative: every record must point to a source and carry a confidence level.",
+  "sources": [
+    {
+      "id": "rosgranstroy-map-api",
+      "title": "ФГКУ Росгранстрой: карта пунктов пропуска",
+      "url": "https://rosgranstroy.ru/api/map_data",
+      "kind": "official"
+    },
+    {
+      "id": "mintrans-checkpoints",
+      "title": "Минтранс России: пункты пропуска через государственную границу РФ",
+      "url": "https://mintrans.gov.ru/activities/168",
+      "kind": "official"
+    },
+    {
+      "id": "rosgranstroy-news",
+      "title": "ФГКУ Росгранстрой: новости",
+      "url": "https://www.rosgranstroy.ru/press-center/news",
+      "kind": "news"
+    },
+    {
+      "id": "mintrans-news",
+      "title": "Минтранс России: новости",
+      "url": "https://mintrans.gov.ru/press-center/news",
+      "kind": "news"
+    }
+  ],
+  "records": []
+}

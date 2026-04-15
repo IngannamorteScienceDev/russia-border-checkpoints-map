@@ -43,6 +43,7 @@ russia-border-checkpoints-map/
 |-- icons/
 |-- data/
 |   |-- checkpoints.geojson
+|   |-- checkpoint_enrichment.json
 |   |-- checkpoints_v1.csv
 |   |-- dataset_changelog.json
 |   `-- data_quality_report.json
@@ -67,6 +68,7 @@ russia-border-checkpoints-map/
 
 - `raw_data/rosgranstroy_map_data.json` — сырой ответ API;
 - `data/checkpoints_v1.csv` — нормализованный табличный слой перед сборкой GeoJSON.
+- `data/checkpoint_enrichment.json` — проверяемый слой событий, сверок и дополнительных фактов по отдельным КПП;
 - `data/dataset_changelog.json` — история версий датасета;
 - `data/data_quality_report.json` — отчет расширенной проверки качества данных.
 

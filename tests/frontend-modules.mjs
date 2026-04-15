@@ -64,6 +64,9 @@ const { registerAppShellServiceWorker } = await import(
   new URL("../js/serviceWorker.js", import.meta.url)
 );
 const { renderList } = await import(new URL("../js/render.js", import.meta.url));
+const { buildCheckpointEnrichmentIndex, getFeatureEnrichment } = await import(
+  new URL("../js/enrichment.js", import.meta.url)
+);
 
 const manifest = JSON.parse(
   await readFile(new URL("../manifest.webmanifest", import.meta.url), "utf-8")
@@ -290,6 +293,42 @@ renderList({
 assert(
   listEl.innerHTML.indexOf("Alpha") < listEl.innerHTML.indexOf("Beta"),
   "Distance sorting did not place the closest checkpoint first."
+);
+
+const enrichmentIndex = buildCheckpointEnrichmentIndex({
+  schemaVersion: 1,
+  records: [
+    {
+      checkpointId: "alpha",
+      kind: "official_verification",
+      title: "Verified alpha",
+      summary: "Alpha was matched to an official source.",
+      confidence: "high",
+      tags: ["official"]
+    },
+    {
+      checkpointId: "alpha",
+      kind: "unexpected_kind",
+      title: "Normalized event",
+      confidence: "unexpected"
+    },
+    {
+      checkpointId: "",
+      title: "Skipped"
+    }
+  ]
+});
+const alphaEnrichment = getFeatureEnrichment(enrichmentIndex, features[1]);
+
+assert(alphaEnrichment.records.length === 2, "Enrichment records were not grouped by checkpoint.");
+assert(
+  alphaEnrichment.verificationRecords.length === 1 && alphaEnrichment.eventRecords.length === 1,
+  "Enrichment records were not split into verification and event groups."
+);
+assert(
+  alphaEnrichment.eventRecords[0].kind === "data_note" &&
+    alphaEnrichment.eventRecords[0].confidence === "medium",
+  "Unknown enrichment values should fall back to safe defaults."
 );
 
 console.log("frontend module tests passed");
