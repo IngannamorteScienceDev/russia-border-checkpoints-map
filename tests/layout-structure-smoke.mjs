@@ -45,12 +45,20 @@ assert(!panelHtml.includes('id="layers"'), "Layer controls should not live in th
 assert(!panelHtml.includes('id="tools"'), "Tool controls should not live in the left panel.");
 assert(!panelHtml.includes('id="legend"'), "Legend should not live in the left panel.");
 assert(!panelHtml.includes('id="themeToggle"'), "Theme toggle should not live in the left panel.");
+assert(
+  !panelHtml.includes('id="checkpointPassport"'),
+  "Checkpoint passport should not live in the left panel."
+);
 
 assert(mapHtml.includes('class="map-side"'), "Map tools dock should live inside the map wrapper.");
 assert(mapHtml.includes('id="layers"'), "Layer controls should live in the map tools dock.");
 assert(mapHtml.includes('id="tools"'), "Tool controls should live in the map tools dock.");
 assert(mapHtml.includes('id="legend"'), "Legend should live in the map tools dock.");
 assert(mapHtml.includes('id="themeToggle"'), "Theme toggle should live in the map tools dock.");
+assert(
+  mapHtml.includes('id="checkpointPassport"'),
+  "Checkpoint passport should live in the map wrapper."
+);
 assert(
   mapHtml.indexOf('class="map-side"') < mapHtml.indexOf('id="map"'),
   "Map dock should render before the map canvas."
@@ -63,6 +71,7 @@ assert(
 assert(
   mapUiCss.includes(".app--research .map-side") &&
     mapUiCss.includes(".app--research .tool-grid") &&
+    mapUiCss.includes(".app--research .checkpoint-passport") &&
     mapUiCss.includes('html[data-theme="dark"]') &&
     mapUiCss.includes("@media (max-width: 900px)"),
   "Dedicated map UI stylesheet should own desktop and mobile map layout."
@@ -73,5 +82,6 @@ assert(
 );
 assert(swSource.includes('"./map-ui.css"'), "Service worker should precache map-ui.css.");
 assert(swSource.includes('"./js/theme.js"'), "Service worker should precache theme.js.");
+assert(swSource.includes('"./js/passport.js"'), "Service worker should precache passport.js.");
 
 console.log("layout structure smoke test passed");

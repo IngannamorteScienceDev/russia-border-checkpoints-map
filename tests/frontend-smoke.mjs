@@ -25,7 +25,19 @@ function parseNodes(html, selector) {
     ".recent__item": ["button", "recent__item", "id"],
     ".compare__pill": ["button", "compare__pill", "id"],
     ".nearest-open__card": ["button", "nearest-open__card", "id"],
-    ".share-sheet__close": ["button", "share-sheet__close", ""]
+    ".share-sheet__close": ["button", "share-sheet__close", ""],
+    ".checkpoint-passport__close": ["button", "checkpoint-passport__close", ""],
+    ".checkpoint-passport__favorite": [
+      "button",
+      "checkpoint-passport__favorite",
+      "passport-favorite-id"
+    ],
+    ".checkpoint-passport__compare": [
+      "button",
+      "checkpoint-passport__compare",
+      "passport-compare-id"
+    ],
+    ".checkpoint-passport__copy": ["button", "checkpoint-passport__copy", "passport-copy-id"]
   };
 
   const selectorConfig = selectorMap[selector];
@@ -545,6 +557,7 @@ const recentHtml = elements.get("recent")?.innerHTML || "";
 const compareHtml = elements.get("compare")?.innerHTML || "";
 const datasetChangesHtml = elements.get("datasetChanges")?.innerHTML || "";
 const legendHtml = elements.get("legend")?.innerHTML || "";
+const passportHtml = elements.get("checkpointPassport")?.innerHTML || "";
 const countryFilterHtml = elements.get("countryFilter")?.innerHTML || "";
 const subjectFilterHtml = elements.get("subjectFilter")?.innerHTML || "";
 const typeFilterHtml = elements.get("typeFilter")?.innerHTML || "";
@@ -556,6 +569,7 @@ const favoritesOnlyButton = elements.get("favoritesOnly");
 const offlineStatus = elements.get("offlineStatus");
 const fitResultsButton = elements.get("fitResults");
 const viewportOnlyButton = elements.get("viewportOnly");
+const passportEl = elements.get("checkpointPassport");
 const quickPresets = elements.get("quickPresets");
 const searchInput = elements.get("searchInput");
 const typeFilter = elements.get("typeFilter");
@@ -793,6 +807,28 @@ if (
 }
 
 if (
+  passportEl?.hidden !== false ||
+  !passportHtml.includes("Паспорт КПП") ||
+  !passportHtml.includes("Тестовый КПП") ||
+  !passportHtml.includes("Высокая достоверность") ||
+  !passportHtml.includes("checkpoint-passport__favorite is-active") ||
+  !passportHtml.includes("checkpoint-passport__copy") ||
+  !passportHtml.includes("https://example.test/source") ||
+  !passportHtml.includes("issues/new")
+) {
+  throw new Error("Selected checkpoint passport was not rendered with actions and data quality.");
+}
+
+if (
+  typeof passportEl?.querySelector(".checkpoint-passport__favorite")?.onclick !== "function" ||
+  typeof passportEl?.querySelector(".checkpoint-passport__compare")?.onclick !== "function" ||
+  typeof passportEl?.querySelector(".checkpoint-passport__copy")?.onclick !== "function" ||
+  typeof passportEl?.querySelector(".checkpoint-passport__close")?.onclick !== "function"
+) {
+  throw new Error("Checkpoint passport actions were not wired.");
+}
+
+if (
   typeof exportCsvButton?.onclick !== "function" ||
   typeof exportGeoJsonButton?.onclick !== "function"
 ) {
@@ -903,6 +939,13 @@ if (lastMapInstance?.getLayoutProperty("esri-transportation-layer", "visibility"
 lastPopupRef?.remove();
 if (new URL(window.location.href).searchParams.get("checkpoint") !== null) {
   throw new Error("Closing popup did not clear checkpoint from URL.");
+}
+
+if (
+  elements.get("checkpointPassport")?.hidden !== true ||
+  elements.get("checkpointPassport")?.innerHTML !== ""
+) {
+  throw new Error("Closing popup did not hide the checkpoint passport.");
 }
 
 lastMapInstance?.easeTo({ center: [37.6176, 55.7558], zoom: 6.5 });

@@ -16,6 +16,7 @@ import {
   ensureSatelliteLayer,
   setMapReferenceVisibility
 } from "./js/mapLayers.js";
+import { renderCheckpointPassport } from "./js/passport.js";
 import { createPopupController } from "./js/popup.js";
 import { getQualityFlags } from "./js/quality.js";
 import {
@@ -72,6 +73,7 @@ const state = {
   favoriteIds: loadFavoriteIds(),
   recentIds: loadRecentIds(),
   compareIds: [],
+  selectedFeature: null,
   showFavoritesOnly: false,
   showViewportOnly: false,
   showBoundariesLayer: initialReferenceLayerState.boundaries,
@@ -193,7 +195,9 @@ const popupController = createPopupController({
   map,
   getUserLocation: () => state.userLocation,
   onPopupChange: (feature) => {
+    state.selectedFeature = feature || null;
     syncSelectedCheckpointToUrl(feature?.properties?.__id || "");
+    renderAll();
   }
 });
 
@@ -301,6 +305,19 @@ function renderAll() {
   renderDatasetChanges({
     changesEl: dom.datasetChangesEl,
     summary: state.datasetChangeSummary
+  });
+
+  dom.mapWrapEl?.classList.toggle("mapWrap--passport-open", Boolean(state.selectedFeature));
+  renderCheckpointPassport({
+    passportEl: dom.passportEl,
+    feature: state.selectedFeature,
+    userLocation: state.userLocation,
+    favoriteIds: state.favoriteIds,
+    compareIds: state.compareIds,
+    onClose: closeSelectedCheckpoint,
+    onFavoriteToggle: toggleFavorite,
+    onCopyCoordinates: copyCheckpointCoordinates,
+    onCompareToggle: toggleCompare
   });
 
   syncFavoritesButton();
@@ -641,7 +658,7 @@ function getFeatureById(id, features = state.allFeatures) {
 }
 
 function closePopupIfHidden() {
-  const selectedFeature = popupController.getLastPopupFeature();
+  const selectedFeature = state.selectedFeature || popupController.getLastPopupFeature();
   if (!selectedFeature) return;
 
   const isVisible = state.viewFeatures.some(
@@ -651,6 +668,10 @@ function closePopupIfHidden() {
   if (!isVisible) {
     popupController.closePopup();
   }
+}
+
+function closeSelectedCheckpoint() {
+  popupController.closePopup();
 }
 
 function restoreSelectedCheckpointFromUrl() {
@@ -719,6 +740,7 @@ function trackRecentCheckpoint(id) {
 function openFeaturePopup(feature, lngLat) {
   if (!feature) return;
 
+  state.selectedFeature = feature;
   trackRecentCheckpoint(feature.properties.__id);
   renderAll();
   popupController.openPopup(feature, lngLat || feature.geometry.coordinates);

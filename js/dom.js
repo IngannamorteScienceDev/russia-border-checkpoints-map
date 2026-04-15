@@ -23,6 +23,7 @@ export function getDomElements() {
     exportGeoJsonEl: el("exportGeoJson"),
     shareLinkEl: el("shareLink"),
     shareSheetEl: el("shareSheet"),
+    passportEl: el("checkpointPassport"),
     datasetChangesEl: el("datasetChanges"),
     recentEl: el("recent"),
     nearestOpenEl: el("nearestOpen"),
