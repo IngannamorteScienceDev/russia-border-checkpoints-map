@@ -308,6 +308,218 @@
   margin-right: 352px;
 }
 
+html[data-theme="dark"] body {
+  background: #06100d;
+  color: #e7f0eb;
+}
+
+html[data-theme="dark"] .app--research {
+  background:
+    radial-gradient(900px 520px at 76% 14%, rgba(20, 184, 166, 0.16), transparent 58%),
+    linear-gradient(135deg, #06100d, #0c1915 48%, #11160f);
+}
+
+html[data-theme="dark"] .app--research .panel,
+html[data-theme="dark"] .app--research .map-dock,
+html[data-theme="dark"] .app--research .map-legend,
+html[data-theme="dark"] .app--research .share-sheet {
+  border-color: rgba(183, 205, 195, 0.16);
+  background: rgba(7, 20, 17, 0.92);
+  color: #e7f0eb;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+}
+
+html[data-theme="dark"] .app--research .panel__hero,
+html[data-theme="dark"] .app--research .panel-card,
+html[data-theme="dark"] .app--research .results-shell,
+html[data-theme="dark"] .app--research .stats,
+html[data-theme="dark"] .app--research .help,
+html[data-theme="dark"] .app--research .dataset-changes,
+html[data-theme="dark"] .app--research .recent,
+html[data-theme="dark"] .app--research .nearest-open,
+html[data-theme="dark"] .app--research .compare {
+  border-color: rgba(183, 205, 195, 0.13);
+  background: rgba(11, 30, 25, 0.82);
+  color: #e7f0eb;
+}
+
+html[data-theme="dark"] .app--research .panel__hero {
+  background:
+    linear-gradient(135deg, rgba(20, 184, 166, 0.18), rgba(245, 158, 11, 0.1)),
+    rgba(11, 30, 25, 0.86);
+}
+
+html[data-theme="dark"] .app--research .panel__eyebrow,
+html[data-theme="dark"] .app--research .panel-card__kicker {
+  color: #5eead4;
+}
+
+html[data-theme="dark"] .app--research .panel__title,
+html[data-theme="dark"] .app--research .panel-card h2,
+html[data-theme="dark"] .app--research .results-shell h2,
+html[data-theme="dark"] .app--research .map-dock h2,
+html[data-theme="dark"] .app--research .help__title,
+html[data-theme="dark"] .app--research .recent__title,
+html[data-theme="dark"] .app--research .nearest-open__title,
+html[data-theme="dark"] .app--research .compare__title,
+html[data-theme="dark"] .app--research .legend__title,
+html[data-theme="dark"] .app--research .empty__title {
+  color: #f2fbf6;
+}
+
+html[data-theme="dark"] .app--research .panel__subtitle,
+html[data-theme="dark"] .app--research .field span,
+html[data-theme="dark"] .app--research .stats__label,
+html[data-theme="dark"] .app--research .stats__meta,
+html[data-theme="dark"] .app--research .help__item,
+html[data-theme="dark"] .app--research .legend__note,
+html[data-theme="dark"] .app--research .item__meta,
+html[data-theme="dark"] .app--research .recent__item small,
+html[data-theme="dark"] .app--research .nearest-open__text,
+html[data-theme="dark"] .app--research .compare__hint,
+html[data-theme="dark"] .app--research .dataset-changes__meta,
+html[data-theme="dark"] .app--research .share-sheet__hint,
+html[data-theme="dark"] .app--research .share-sheet__note {
+  color: #9fb4aa;
+}
+
+html[data-theme="dark"] .app--research .input,
+html[data-theme="dark"] .app--research .select,
+html[data-theme="dark"] .app--research .btn,
+html[data-theme="dark"] .app--research .layer-toggle,
+html[data-theme="dark"] .app--research .preset,
+html[data-theme="dark"] .app--research .item__favorite,
+html[data-theme="dark"] .app--research .item__action,
+html[data-theme="dark"] .app--research .compare__clear,
+html[data-theme="dark"] .app--research .share-sheet__button {
+  border-color: rgba(183, 205, 195, 0.15);
+  background: rgba(16, 39, 33, 0.9);
+  color: #e7f0eb;
+}
+
+html[data-theme="dark"] .app--research .input::placeholder {
+  color: rgba(231, 240, 235, 0.46);
+}
+
+html[data-theme="dark"] .app--research .input:focus,
+html[data-theme="dark"] .app--research .select:focus {
+  border-color: rgba(94, 234, 212, 0.52);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.18);
+}
+
+html[data-theme="dark"] .app--research .btn--ghost {
+  background: rgba(20, 184, 166, 0.1);
+  color: #d9fff7;
+}
+
+html[data-theme="dark"] .app--research .btn:hover,
+html[data-theme="dark"] .app--research .layer-toggle:hover,
+html[data-theme="dark"] .app--research .preset:hover,
+html[data-theme="dark"] .app--research .item__action:hover {
+  border-color: rgba(94, 234, 212, 0.36);
+  background: rgba(20, 184, 166, 0.14);
+}
+
+html[data-theme="dark"] .app--research .btn.is-active,
+html[data-theme="dark"] .app--research .preset.is-active,
+html[data-theme="dark"] .app--research .layer-toggle.is-active {
+  border-color: rgba(94, 234, 212, 0.48);
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.22), rgba(245, 158, 11, 0.1));
+  color: #effffb;
+}
+
+html[data-theme="dark"] .app--research .theme-toggle.is-active {
+  border-color: rgba(251, 191, 36, 0.44);
+  background: rgba(251, 191, 36, 0.12);
+  color: #fde68a;
+}
+
+html[data-theme="dark"] .app--research .stats__card,
+html[data-theme="dark"] .app--research .help__item,
+html[data-theme="dark"] .app--research .recent__item,
+html[data-theme="dark"] .app--research .nearest-open__card,
+html[data-theme="dark"] .app--research .compare__pill,
+html[data-theme="dark"] .app--research .compare__row,
+html[data-theme="dark"] .app--research .dataset-changes__grid div,
+html[data-theme="dark"] .app--research .share-sheet__url,
+html[data-theme="dark"] .app--research .item,
+html[data-theme="dark"] .app--research .badge {
+  border-color: rgba(183, 205, 195, 0.12);
+  background: rgba(9, 25, 21, 0.7);
+  color: #e7f0eb;
+}
+
+html[data-theme="dark"] .app--research .stats__value,
+html[data-theme="dark"] .app--research .dataset-changes__grid b,
+html[data-theme="dark"] .app--research .group,
+html[data-theme="dark"] .app--research .item__meta,
+html[data-theme="dark"] .app--research .item__action,
+html[data-theme="dark"] .app--research .item__favorite,
+html[data-theme="dark"] .app--research .badge,
+html[data-theme="dark"] .app--research .legend__item {
+  color: #e7f0eb;
+}
+
+html[data-theme="dark"] .app--research .item:hover {
+  border-color: rgba(94, 234, 212, 0.25);
+  background: rgba(15, 43, 36, 0.84);
+}
+
+html[data-theme="dark"] .app--research .empty {
+  border-color: rgba(183, 205, 195, 0.18);
+  background: rgba(9, 25, 21, 0.58);
+  color: #9fb4aa;
+}
+
+html[data-theme="dark"] .app--research .map-chrome {
+  border-color: rgba(183, 205, 195, 0.16);
+  background: rgba(5, 16, 13, 0.78);
+  color: #e7f0eb;
+}
+
+html[data-theme="dark"] .app--research .maplibregl-popup-content {
+  border-color: rgba(183, 205, 195, 0.16) !important;
+  background: rgba(7, 20, 17, 0.96) !important;
+  color: #e7f0eb !important;
+}
+
+html[data-theme="dark"] .app--research .maplibregl-popup-close-button {
+  color: #e7f0eb !important;
+}
+
+html[data-theme="dark"] .app--research .checkpoint-popup,
+html[data-theme="dark"] .app--research .checkpoint-popup h3,
+html[data-theme="dark"] .app--research .checkpoint-popup__row b {
+  color: #e7f0eb;
+}
+
+html[data-theme="dark"] .app--research .checkpoint-popup p,
+html[data-theme="dark"] .app--research .checkpoint-popup__row span {
+  color: #9fb4aa;
+}
+
+html[data-theme="dark"] .app--research .checkpoint-popup__section,
+html[data-theme="dark"] .app--research .checkpoint-popup__flag,
+html[data-theme="dark"] .app--research .checkpoint-popup__confidence,
+html[data-theme="dark"] .app--research .checkpoint-popup__actions a {
+  border-color: rgba(183, 205, 195, 0.12);
+  background: rgba(9, 25, 21, 0.72);
+  color: #e7f0eb;
+}
+
+html[data-theme="dark"] .app--research .checkpoint-popup__type {
+  border-color: rgba(94, 234, 212, 0.26);
+  background: rgba(20, 184, 166, 0.12);
+  color: #99f6e4;
+}
+
+html[data-theme="dark"] .app--research .mobile-fab,
+html[data-theme="dark"] .app--research .panel__burger {
+  border-color: rgba(183, 205, 195, 0.16);
+  background: rgba(7, 20, 17, 0.88);
+  color: #e7f0eb;
+}
+
 @media (max-width: 1100px) {
   .app--research .map-side {
     width: 290px;

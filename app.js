@@ -32,6 +32,7 @@ import {
 import { loadRecentIds, prependRecentId, saveRecentIds } from "./js/recent.js";
 import { registerAppShellServiceWorker } from "./js/serviceWorker.js";
 import { copyText } from "./js/share.js";
+import { setupThemeToggle } from "./js/theme.js";
 import {
   applyFilterStateFromUrl,
   getMapViewStateFromUrl,
@@ -46,6 +47,7 @@ import {
 } from "./js/urlState.js";
 
 const dom = getDomElements();
+setupThemeToggle({ button: dom.themeToggleEl });
 registerAppShellServiceWorker();
 
 const DEFAULT_MAP_VIEW = {

@@ -38,6 +38,7 @@ export function getDomElements() {
     styleToggleEl: el("styleToggle"),
     boundariesToggleEl: el("boundariesToggle"),
     roadsToggleEl: el("roadsToggle"),
+    themeToggleEl: el("themeToggle"),
     geoBtnEl: el("geoBtn")
   };
 }

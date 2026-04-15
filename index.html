@@ -3,12 +3,23 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#123029" />
+    <meta id="themeColorMeta" name="theme-color" content="#123029" />
     <meta name="application-name" content="КПП РФ" />
     <title>КПП РФ</title>
 
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <script>
+      (() => {
+        try {
+          const savedTheme = localStorage.getItem("kpp-map-theme");
+          const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.dataset.theme = savedTheme || (prefersDark ? "dark" : "light");
+        } catch (_error) {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
     <link rel="stylesheet" href="./style.css" />
     <link rel="stylesheet" href="./map-ui.css" />
@@ -189,6 +200,14 @@
               <button id="shareLink" class="btn btn--ghost" type="button">Ссылка</button>
               <button id="exportCsv" class="btn btn--ghost" type="button">CSV</button>
               <button id="exportGeoJson" class="btn btn--ghost" type="button">GeoJSON</button>
+              <button
+                id="themeToggle"
+                class="btn btn--ghost theme-toggle"
+                type="button"
+                aria-pressed="false"
+              >
+                Темная тема
+              </button>
               <a class="btn btn--ghost" href="./versions.html">Версии</a>
             </div>
           </section>
