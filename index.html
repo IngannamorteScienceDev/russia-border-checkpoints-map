@@ -40,13 +40,6 @@
           </div>
         </header>
 
-        <nav class="panel__nav" aria-label="Разделы панели">
-          <a href="#controls">Поиск</a>
-          <a href="#layers">Слои</a>
-          <a href="#tools">Инструменты</a>
-          <a href="#list">Результаты</a>
-        </nav>
-
         <section id="controls" class="panel-card panel-card--search">
           <div class="panel-card__header">
             <div>
@@ -101,65 +94,7 @@
           </div>
         </section>
 
-        <section id="layers" class="panel-card panel-card--layers">
-          <div class="panel-card__header">
-            <div>
-              <div class="panel-card__kicker">Картография</div>
-              <h2>Слои карты</h2>
-            </div>
-          </div>
-          <div class="layer-actions" aria-label="Управление слоями карты">
-            <button id="styleToggle" class="layer-toggle" type="button" aria-pressed="true">
-              Спутник включен
-            </button>
-            <button id="boundariesToggle" class="layer-toggle" type="button" aria-pressed="true">
-              Границы и города
-            </button>
-            <button id="roadsToggle" class="layer-toggle" type="button" aria-pressed="true">
-              Дороги
-            </button>
-          </div>
-          <p class="panel-card__note">
-            Спутник показывает местность, а референсные слои поверх него добавляют границы, города и
-            дорожную сеть.
-          </p>
-        </section>
-
-        <section id="tools" class="panel-card panel-card--tools">
-          <div class="panel-card__header">
-            <div>
-              <div class="panel-card__kicker">Действия</div>
-              <h2>Инструменты</h2>
-            </div>
-          </div>
-
-          <div class="tool-grid">
-            <label class="field field--wide">
-              <span>Сортировка</span>
-              <select id="sortOrder" class="select">
-                <option value="country">По стране</option>
-                <option value="name">По названию</option>
-                <option value="distance">По расстоянию</option>
-              </select>
-            </label>
-
-            <button id="nearestBtn" class="btn" type="button">Ближайшие</button>
-            <button id="geoBtn" class="btn" type="button">Гео</button>
-            <button id="fitResults" class="btn btn--ghost" type="button">Показать на карте</button>
-            <button id="viewportOnly" class="btn btn--ghost" type="button" aria-pressed="false">
-              Только видимые
-            </button>
-            <button id="favoritesOnly" class="btn btn--ghost" type="button" aria-pressed="false">
-              ★ Избранные (0)
-            </button>
-            <button id="shareLink" class="btn btn--ghost" type="button">Поделиться</button>
-            <button id="exportCsv" class="btn btn--ghost" type="button">CSV</button>
-            <button id="exportGeoJson" class="btn btn--ghost" type="button">GeoJSON</button>
-            <a class="btn btn--ghost" href="./versions.html">Версии данных</a>
-          </div>
-        </section>
-
-        <div id="shareSheet" class="share-sheet"></div>
+        <div id="stats" class="stats"></div>
         <div id="datasetChanges" class="dataset-changes"></div>
         <div id="nearestOpen" class="nearest-open"></div>
         <div id="recent" class="recent"></div>
@@ -182,11 +117,6 @@
             </div>
           </div>
         </section>
-
-        <div id="legend" class="legend"></div>
-
-        <div id="stats" class="stats"></div>
-
         <section class="results-shell" aria-label="Результаты поиска">
           <div class="results-shell__header">
             <div>
@@ -206,6 +136,66 @@
           <div class="map-chrome__title">Спутник + границы + дороги</div>
           <div class="map-chrome__text">Выберите КПП на карте или уточните поиск слева</div>
         </div>
+
+        <div class="map-side" aria-label="Инструменты карты">
+          <section id="layers" class="map-dock map-dock--layers">
+            <div class="panel-card__header">
+              <div>
+                <div class="panel-card__kicker">Картография</div>
+                <h2>Слои</h2>
+              </div>
+            </div>
+            <div class="layer-actions" aria-label="Управление слоями карты">
+              <button id="styleToggle" class="layer-toggle" type="button" aria-pressed="true">
+                Спутник включен
+              </button>
+              <button id="boundariesToggle" class="layer-toggle" type="button" aria-pressed="true">
+                Границы и города
+              </button>
+              <button id="roadsToggle" class="layer-toggle" type="button" aria-pressed="true">
+                Дороги
+              </button>
+            </div>
+          </section>
+
+          <section id="tools" class="map-dock map-dock--tools">
+            <div class="panel-card__header">
+              <div>
+                <div class="panel-card__kicker">Действия</div>
+                <h2>Инструменты</h2>
+              </div>
+            </div>
+
+            <div class="tool-grid">
+              <label class="field field--wide">
+                <span>Сортировка</span>
+                <select id="sortOrder" class="select">
+                  <option value="country">По стране</option>
+                  <option value="name">По названию</option>
+                  <option value="distance">По расстоянию</option>
+                </select>
+              </label>
+
+              <button id="nearestBtn" class="btn" type="button">Ближайшие</button>
+              <button id="geoBtn" class="btn" type="button">Гео</button>
+              <button id="fitResults" class="btn btn--ghost" type="button">Показать</button>
+              <button id="viewportOnly" class="btn btn--ghost" type="button" aria-pressed="false">
+                В области
+              </button>
+              <button id="favoritesOnly" class="btn btn--ghost" type="button" aria-pressed="false">
+                ★ Избранные (0)
+              </button>
+              <button id="shareLink" class="btn btn--ghost" type="button">Ссылка</button>
+              <button id="exportCsv" class="btn btn--ghost" type="button">CSV</button>
+              <button id="exportGeoJson" class="btn btn--ghost" type="button">GeoJSON</button>
+              <a class="btn btn--ghost" href="./versions.html">Версии</a>
+            </div>
+          </section>
+
+          <div id="shareSheet" class="share-sheet"></div>
+          <div id="legend" class="map-legend legend"></div>
+        </div>
+
         <div id="map" class="map"></div>
         <div id="mapFallback" class="map-fallback" role="status" hidden>
           <div>
