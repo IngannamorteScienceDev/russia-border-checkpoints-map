@@ -96,7 +96,12 @@ function buildPopupHtml(feature, userLocation) {
   `;
 }
 
-export function createPopupController({ map, getUserLocation, onPopupChange }) {
+export function createPopupController({
+  map,
+  getUserLocation,
+  onPopupChange,
+  showMapPopup = false
+}) {
   let popupRef = null;
   let lastPopupFeature = null;
   let suppressCloseNotify = false;
@@ -132,7 +137,7 @@ export function createPopupController({ map, getUserLocation, onPopupChange }) {
 
     lastPopupFeature = feature;
 
-    if (!globalThis.maplibregl?.Popup) {
+    if (!showMapPopup || !globalThis.maplibregl?.Popup) {
       notifyPopupChange(feature);
       map.easeTo({ center: feature.geometry.coordinates, zoom: Math.max(map.getZoom(), 7) });
       return;

@@ -114,7 +114,6 @@ const elements = new Map();
 let lastDownload = null;
 let lastClipboardText = "";
 let lastMapInstance = null;
-let lastPopupRef = null;
 let initialMapOptions = null;
 let replaceStateCalls = 0;
 const storage = new Map();
@@ -439,7 +438,6 @@ class FakeMarker {
 class FakePopup {
   constructor() {
     this.listeners = new Map();
-    lastPopupRef = this;
   }
 
   setLngLat() {
@@ -975,16 +973,16 @@ if (lastMapInstance?.getLayoutProperty("esri-transportation-layer", "visibility"
   throw new Error("Roads overlay layer was not hidden after toggling off.");
 }
 
-lastPopupRef?.remove();
+elements.get("checkpointPassport")?.querySelector(".checkpoint-passport__close")?.onclick?.();
 if (new URL(window.location.href).searchParams.get("checkpoint") !== null) {
-  throw new Error("Closing popup did not clear checkpoint from URL.");
+  throw new Error("Closing checkpoint passport did not clear checkpoint from URL.");
 }
 
 if (
   elements.get("checkpointPassport")?.hidden !== true ||
   elements.get("checkpointPassport")?.innerHTML !== ""
 ) {
-  throw new Error("Closing popup did not hide the checkpoint passport.");
+  throw new Error("Closing checkpoint passport did not hide the checkpoint passport.");
 }
 
 lastMapInstance?.easeTo({ center: [37.6176, 55.7558], zoom: 6.5 });

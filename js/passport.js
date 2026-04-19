@@ -123,13 +123,13 @@ function enrichmentHtml(enrichment) {
 
   if (!records.length) {
     return `
-      <section class="checkpoint-passport__enrichment" aria-label="События и сверка">
-        <div class="checkpoint-passport__sectionTitle">События и сверка</div>
+      <details class="checkpoint-passport__fold checkpoint-passport__enrichment">
+        <summary>События и сверка</summary>
         <div class="checkpoint-passport__emptyInsight">
           <b>Подтвержденных событий пока нет</b>
           <p>Файл обогащений подключен. Сюда будут попадать реконструкции, электронные очереди, официальные сверки и другие факты только после привязки к источнику.</p>
         </div>
-      </section>
+      </details>
     `;
   }
 
@@ -137,13 +137,13 @@ function enrichmentHtml(enrichment) {
   const eventRecords = enrichment.eventRecords || [];
 
   return `
-    <section class="checkpoint-passport__enrichment" aria-label="События и сверка">
-      <div class="checkpoint-passport__sectionTitle">События и сверка</div>
+    <details class="checkpoint-passport__fold checkpoint-passport__enrichment">
+      <summary>События и сверка</summary>
       <div class="checkpoint-passport__insights">
         ${verificationRecords.map(enrichmentRecordHtml).join("")}
         ${eventRecords.map(enrichmentRecordHtml).join("")}
       </div>
-    </section>
+    </details>
   `;
 }
 
@@ -230,8 +230,8 @@ export function renderCheckpointPassport({
         <div class="checkpoint-passport__flags">${qualityFlagsHtml(qualityFlags)}</div>
       </section>
 
-      <section class="checkpoint-passport__source" aria-label="Происхождение данных">
-        <div class="checkpoint-passport__sectionTitle">Откуда данные</div>
+      <details class="checkpoint-passport__fold checkpoint-passport__source">
+        <summary>Откуда данные</summary>
         <div class="checkpoint-passport__sourceCard checkpoint-passport__sourceCard--${sourceAudit.trustLevel}">
           <div class="checkpoint-passport__sourceTop">
             <div>
@@ -251,14 +251,14 @@ export function renderCheckpointPassport({
             <a href="${escapeHtml(sourceAudit.verificationUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceAudit.verificationLabel)}</a>
           </div>
         </div>
-      </section>
+      </details>
 
       ${enrichmentHtml(enrichment)}
 
-      <section class="checkpoint-passport__details" aria-label="Атрибуты КПП">
-        <div class="checkpoint-passport__sectionTitle">Атрибуты</div>
+      <details class="checkpoint-passport__fold checkpoint-passport__details">
+        <summary>Атрибуты</summary>
         ${buildDetailRows(props, extra)}
-      </section>
+      </details>
 
       <footer class="checkpoint-passport__actions" aria-label="Действия с КПП">
         <button

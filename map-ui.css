@@ -7,7 +7,7 @@
   left: 18px;
   top: 18px;
   bottom: 18px;
-  width: 400px;
+  width: 372px;
   max-width: calc(100vw - 40px);
   display: flex;
   flex-direction: column;
@@ -17,7 +17,7 @@
   background: rgba(255, 252, 244, 0.96);
   color: #17231f;
   box-shadow: 0 24px 70px rgba(8, 20, 17, 0.24);
-  padding: 14px;
+  padding: 12px;
   overflow: auto;
 }
 
@@ -46,7 +46,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
-  padding: 16px;
+  padding: 14px;
   background: linear-gradient(135deg, rgba(15, 118, 110, 0.16), rgba(217, 119, 6, 0.08));
 }
 
@@ -59,7 +59,7 @@
 .app--research .panel__title {
   margin: 4px 0 0;
   color: #10251f;
-  font-size: 28px;
+  font-size: 25px;
   line-height: 1.05;
 }
 
@@ -67,7 +67,7 @@
   max-width: 310px;
   margin: 8px 0 0;
   color: #52625b;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -213,15 +213,15 @@
 
 .app--research .map-side {
   position: absolute;
-  top: 18px;
-  right: 18px;
-  bottom: 18px;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
   z-index: 4;
   display: flex;
-  width: 320px;
+  width: 300px;
   max-width: calc(100vw - 460px);
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   pointer-events: none;
 }
 
@@ -234,18 +234,18 @@
 .app--research .share-sheet {
   margin: 0;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  background: rgba(255, 252, 244, 0.94);
+  border-radius: 18px;
+  background: rgba(255, 252, 244, 0.9);
   color: #17231f;
   box-shadow: 0 18px 50px rgba(8, 20, 17, 0.22);
-  padding: 13px;
+  padding: 12px;
   backdrop-filter: blur(16px);
 }
 
 .app--research .map-dock h2 {
-  margin: 3px 0 0;
+  margin: 2px 0 0;
   color: #10251f;
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .app--research .map-dock {
@@ -260,7 +260,7 @@
 .app--research .tool-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 7px;
 }
 
 .app--research .tool-grid .field--wide {
@@ -270,37 +270,58 @@
 .app--research .tool-grid .btn,
 .app--research .tool-grid a.btn {
   display: inline-flex;
-  min-height: 42px;
+  min-height: 38px;
   align-items: center;
   justify-content: center;
-  padding: 9px 10px;
+  padding: 8px 9px;
   text-align: center;
 }
 
 .app--research .map-legend {
-  flex: 1 1 auto;
-  min-height: 120px;
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 260px;
   overflow: auto;
 }
 
 .app--research .legend__grid {
   grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .app--research .legend__item {
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
   color: #1f312b;
+  box-shadow: none;
+  font-size: 13px;
 }
 
 .app--research .legend__note {
   color: #64746d;
 }
 
+.app--research .legend__section + .legend__section {
+  margin-top: 11px;
+  padding-top: 11px;
+}
+
+.app--research .legend__title {
+  margin-bottom: 8px;
+  color: #10251f;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .app--research .map-chrome {
   top: auto;
   right: auto;
   bottom: 18px;
-  left: 438px;
-  width: min(380px, calc(100vw - 800px));
+  left: 408px;
+  width: min(360px, calc(100vw - 760px));
   background: rgba(18, 48, 41, 0.72);
 }
 
@@ -310,9 +331,9 @@
 
 .app--research .checkpoint-passport {
   position: absolute;
-  left: 438px;
-  right: 358px;
-  bottom: 18px;
+  left: 408px;
+  right: 332px;
+  bottom: 16px;
   z-index: 6;
   max-height: min(560px, calc(100dvh - 52px));
   overflow: auto;
@@ -460,21 +481,66 @@
 .app--research .checkpoint-passport__source,
 .app--research .checkpoint-passport__enrichment,
 .app--research .checkpoint-passport__details {
-  margin-top: 14px;
+  margin-top: 10px;
 }
 
 .app--research .checkpoint-passport__sectionTitle {
   margin-bottom: 8px;
 }
 
-.app--research .checkpoint-passport__details {
+.app--research .checkpoint-passport__fold {
+  border: 1px solid rgba(26, 58, 49, 0.1);
+  border-radius: 18px;
+  background: rgba(248, 250, 246, 0.56);
+  padding: 0;
+}
+
+.app--research .checkpoint-passport__fold summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+  color: #0f766e;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  list-style: none;
+  padding: 0 12px;
+  text-transform: uppercase;
+}
+
+.app--research .checkpoint-passport__fold summary::-webkit-details-marker {
+  display: none;
+}
+
+.app--research .checkpoint-passport__fold summary::after {
+  content: "+";
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.08);
+  color: #0f766e;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.app--research .checkpoint-passport__fold[open] summary::after {
+  content: "−";
+}
+
+.app--research .checkpoint-passport__details[open] {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  padding: 0 10px 10px;
 }
 
-.app--research .checkpoint-passport__details .checkpoint-passport__sectionTitle {
+.app--research .checkpoint-passport__details > summary {
   grid-column: 1 / -1;
+  margin: 0 -10px;
 }
 
 .app--research .checkpoint-passport__detail {
@@ -504,8 +570,9 @@
 }
 
 .app--research .checkpoint-passport__sourceCard {
+  margin: 0 10px 10px;
   border: 1px solid rgba(26, 58, 49, 0.1);
-  border-radius: 18px;
+  border-radius: 16px;
   background:
     linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(245, 158, 11, 0.05)),
     rgba(255, 255, 255, 0.72);
@@ -602,6 +669,7 @@
 .app--research .checkpoint-passport__insights {
   display: grid;
   gap: 8px;
+  margin: 0 10px 10px;
 }
 
 .app--research .checkpoint-passport__insight,
@@ -610,6 +678,10 @@
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.72);
   padding: 12px;
+}
+
+.app--research .checkpoint-passport__emptyInsight {
+  margin: 0 10px 10px;
 }
 
 .app--research .checkpoint-passport__emptyInsight b {
@@ -737,7 +809,7 @@
 }
 
 .app--research .maplibregl-ctrl-bottom-right .maplibregl-ctrl {
-  margin-right: 352px;
+  margin-right: 326px;
 }
 
 html[data-theme="dark"] body {
@@ -896,7 +968,8 @@ html[data-theme="dark"] .app--research .checkpoint-passport__emptyInsight,
 html[data-theme="dark"] .app--research .checkpoint-passport__insightTop span,
 html[data-theme="dark"] .app--research .checkpoint-passport__insightTag,
 html[data-theme="dark"] .app--research .checkpoint-passport__insightSource a,
-html[data-theme="dark"] .app--research .checkpoint-passport__insightSource span {
+html[data-theme="dark"] .app--research .checkpoint-passport__insightSource span,
+html[data-theme="dark"] .app--research .checkpoint-passport__fold {
   border-color: rgba(183, 205, 195, 0.12);
   background: rgba(9, 25, 21, 0.7);
   color: #e7f0eb;
@@ -941,8 +1014,14 @@ html[data-theme="dark"] .app--research .checkpoint-passport__card {
 }
 
 html[data-theme="dark"] .app--research .checkpoint-passport__eyebrow,
-html[data-theme="dark"] .app--research .checkpoint-passport__sectionTitle {
+html[data-theme="dark"] .app--research .checkpoint-passport__sectionTitle,
+html[data-theme="dark"] .app--research .checkpoint-passport__fold summary {
   color: #5eead4;
+}
+
+html[data-theme="dark"] .app--research .checkpoint-passport__fold summary::after {
+  background: rgba(20, 184, 166, 0.12);
+  color: #99f6e4;
 }
 
 html[data-theme="dark"] .app--research .checkpoint-passport__metric--high {
@@ -1097,16 +1176,16 @@ html[data-theme="dark"] .app--research .panel__burger {
 
 @media (max-width: 1100px) {
   .app--research .map-side {
-    width: 290px;
+    width: 280px;
     max-width: calc(100vw - 440px);
   }
 
   .app--research .checkpoint-passport {
-    right: 320px;
+    right: 308px;
   }
 
   .app--research .checkpoint-passport__metrics,
-  .app--research .checkpoint-passport__details {
+  .app--research .checkpoint-passport__details[open] {
     grid-template-columns: 1fr;
   }
 
@@ -1120,8 +1199,8 @@ html[data-theme="dark"] .app--research .panel__burger {
     left: 0;
     top: 0;
     bottom: 0;
-    width: min(520px, 90vw);
-    max-width: 90vw;
+    width: min(460px, 88vw);
+    max-width: 88vw;
     border-radius: 0 22px 22px 0;
     transform: translateX(-105%);
     transition: transform 0.22s ease;
@@ -1147,26 +1226,55 @@ html[data-theme="dark"] .app--research .panel__burger {
   }
 
   .app--research .map-side {
-    left: 12px;
-    right: 12px;
-    top: auto;
-    bottom: 12px;
-    width: auto;
-    max-width: none;
-    max-height: 48dvh;
-    overflow: auto;
-  }
-
-  .app--research .checkpoint-passport {
-    left: 12px;
+    left: 64px;
     right: 12px;
     top: 12px;
     bottom: auto;
+    width: auto;
+    max-width: none;
     max-height: 42dvh;
+    overflow: auto;
+  }
+
+  .app--research .mapWrap--passport-open .map-side {
+    display: none;
+  }
+
+  .app--research .layer-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app--research .layer-toggle {
+    min-height: 36px;
+    padding: 8px;
+    font-size: 11px;
+  }
+
+  .app--research .tool-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app--research .tool-grid .field--wide {
+    grid-column: 1 / -1;
+  }
+
+  .app--research .tool-grid .btn,
+  .app--research .tool-grid a.btn {
+    min-height: 36px;
+    font-size: 11px;
+  }
+
+  .app--research .checkpoint-passport {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    max-height: 72dvh;
+    border-radius: 22px 22px 0 0;
   }
 
   .app--research .checkpoint-passport__card {
-    border-radius: 20px;
+    border-radius: 22px 22px 0 0;
     padding: 13px;
   }
 
@@ -1177,6 +1285,10 @@ html[data-theme="dark"] .app--research .panel__burger {
   .app--research .checkpoint-passport__actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app--research .checkpoint-passport__metrics {
+    grid-template-columns: 1fr;
   }
 
   .app--research .map-dock,
