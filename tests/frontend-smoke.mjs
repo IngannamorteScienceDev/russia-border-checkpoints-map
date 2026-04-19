@@ -250,6 +250,15 @@ globalThis.fetch = async (resource) => ({
         records: [
           {
             checkpointId: "100",
+            kind: "description",
+            title: "Описание КПП",
+            summary: "Тестовое исследовательское описание КПП из markdown-отчета.",
+            sourceTitle: "Deep research report: карточки КПП",
+            confidence: "medium",
+            tags: ["описание", "исследование"]
+          },
+          {
+            checkpointId: "100",
             kind: "official_verification",
             title: "Сверено с тестовым перечнем",
             summary: "Запись совпадает с контрольным тестовым источником.",
@@ -977,6 +986,9 @@ const requiredPassportSnippets = [
   "круглосуточно",
   "Правовой режим",
   "Многосторонний",
+  "checkpoint-passport__description",
+  "Тестовое исследовательское описание КПП из markdown-отчета.",
+  "Deep research report: карточки КПП",
   "Грузо-пассажирский",
   "Дальневосточный",
   "Тестовый сопредельный пункт",

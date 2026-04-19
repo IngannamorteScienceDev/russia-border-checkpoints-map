@@ -118,10 +118,33 @@ function enrichmentRecordHtml(record) {
   `;
 }
 
-function enrichmentHtml(enrichment) {
-  const records = enrichment?.records || [];
+function descriptionHtml(enrichment) {
+  const record = enrichment?.descriptionRecords?.[0];
+  if (!record?.summary) return "";
 
-  if (!records.length) {
+  const sourceUrl = safeExternalUrl(record.sourceUrl);
+  const sourceLabel = record.sourceTitle || "Исследовательское описание";
+  const sourceHtml = sourceUrl
+    ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceLabel)}</a>`
+    : `<span>${escapeHtml(sourceLabel)}</span>`;
+
+  return `
+    <section class="checkpoint-passport__description" aria-label="Описание КПП">
+      <div class="checkpoint-passport__sectionTitle">Описание</div>
+      <p>${escapeHtml(record.summary)}</p>
+      <div class="checkpoint-passport__descriptionMeta">
+        <span>${escapeHtml(enrichmentConfidenceLabel(record.confidence))}</span>
+        ${sourceHtml}
+      </div>
+    </section>
+  `;
+}
+
+function enrichmentHtml(enrichment) {
+  const verificationRecords = enrichment?.verificationRecords || [];
+  const eventRecords = enrichment?.eventRecords || [];
+
+  if (!verificationRecords.length && !eventRecords.length) {
     return `
       <details class="checkpoint-passport__fold checkpoint-passport__enrichment">
         <summary>События и сверка</summary>
@@ -132,9 +155,6 @@ function enrichmentHtml(enrichment) {
       </details>
     `;
   }
-
-  const verificationRecords = enrichment.verificationRecords || [];
-  const eventRecords = enrichment.eventRecords || [];
 
   return `
     <details class="checkpoint-passport__fold checkpoint-passport__enrichment">
@@ -274,6 +294,8 @@ export function renderCheckpointPassport({
       </div>
 
       ${factsHtml(extra)}
+
+      ${descriptionHtml(enrichment)}
 
       ${branchHtml(extra)}
 

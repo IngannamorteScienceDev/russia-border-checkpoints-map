@@ -73,6 +73,9 @@ const manifest = JSON.parse(
 );
 const indexHtml = await readFile(new URL("../index.html", import.meta.url), "utf-8");
 const versionsHtml = await readFile(new URL("../versions.html", import.meta.url), "utf-8");
+const checkpointEnrichmentPayload = JSON.parse(
+  await readFile(new URL("../data/checkpoint_enrichment.json", import.meta.url), "utf-8")
+);
 
 assert(manifest.display === "standalone", "PWA manifest should use standalone display.");
 assert(manifest.start_url === "./", "PWA manifest should start at the app root.");
@@ -84,6 +87,23 @@ assert(
 assert(
   indexHtml.includes('rel="manifest"') && versionsHtml.includes('rel="manifest"'),
   "HTML pages should link to the PWA manifest."
+);
+assert(
+  checkpointEnrichmentPayload.importSummary?.matchedDescriptions === 132,
+  "Checkpoint descriptions should be imported from the deep research report."
+);
+assert(
+  checkpointEnrichmentPayload.importSummary?.source === "deep-research-report.md",
+  "Checkpoint enrichment metadata should not expose a local filesystem path."
+);
+assert(
+  checkpointEnrichmentPayload.records.filter((record) => record.kind === "description").length ===
+    132,
+  "Checkpoint enrichment should include one description record per matched checkpoint."
+);
+assert(
+  !JSON.stringify(checkpointEnrichmentPayload).match(/[\ue200-\ue2ff]/u),
+  "Imported checkpoint descriptions should not contain research citation markup."
 );
 
 let registeredWorkerUrl = "";
@@ -387,6 +407,14 @@ const enrichmentIndex = buildCheckpointEnrichmentIndex({
     },
     {
       checkpointId: "alpha",
+      kind: "description",
+      title: "Alpha description",
+      summary: "Research description for alpha.",
+      confidence: "medium",
+      tags: ["description"]
+    },
+    {
+      checkpointId: "alpha",
       kind: "unexpected_kind",
       title: "Normalized event",
       confidence: "unexpected"
@@ -399,7 +427,12 @@ const enrichmentIndex = buildCheckpointEnrichmentIndex({
 });
 const alphaEnrichment = getFeatureEnrichment(enrichmentIndex, features[1]);
 
-assert(alphaEnrichment.records.length === 2, "Enrichment records were not grouped by checkpoint.");
+assert(alphaEnrichment.records.length === 3, "Enrichment records were not grouped by checkpoint.");
+assert(
+  alphaEnrichment.descriptionRecords.length === 1 &&
+    alphaEnrichment.descriptionRecords[0].summary === "Research description for alpha.",
+  "Description enrichment records were not exposed separately."
+);
 assert(
   alphaEnrichment.verificationRecords.length === 1 && alphaEnrichment.eventRecords.length === 1,
   "Enrichment records were not split into verification and event groups."

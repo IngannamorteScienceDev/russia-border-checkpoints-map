@@ -493,6 +493,45 @@
   grid-column: 1 / -1;
 }
 
+.app--research .checkpoint-passport__description {
+  margin-top: 12px;
+  border: 1px solid rgba(15, 118, 110, 0.14);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(217, 119, 6, 0.05)),
+    rgba(255, 255, 255, 0.66);
+  padding: 13px;
+}
+
+.app--research .checkpoint-passport__description p {
+  margin: 0;
+  color: #34463e;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.app--research .checkpoint-passport__descriptionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.app--research .checkpoint-passport__descriptionMeta span,
+.app--research .checkpoint-passport__descriptionMeta a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border: 1px solid rgba(26, 58, 49, 0.1);
+  border-radius: 999px;
+  background: rgba(248, 250, 246, 0.74);
+  color: #52625b;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
 .app--research .checkpoint-passport__metric {
   min-width: 0;
   border: 1px solid rgba(26, 58, 49, 0.1);
@@ -1031,6 +1070,7 @@ html[data-theme="dark"] .app--research .dataset-changes__grid div,
 html[data-theme="dark"] .app--research .share-sheet__url,
 html[data-theme="dark"] .app--research .item,
 html[data-theme="dark"] .app--research .badge,
+html[data-theme="dark"] .app--research .checkpoint-passport__description,
 html[data-theme="dark"] .app--research .checkpoint-passport__metric,
 html[data-theme="dark"] .app--research .checkpoint-passport__detail,
 html[data-theme="dark"] .app--research .checkpoint-passport__chips span,
@@ -1042,6 +1082,8 @@ html[data-theme="dark"] .app--research .checkpoint-passport__sourceLinks span,
 html[data-theme="dark"] .app--research .checkpoint-passport__insight,
 html[data-theme="dark"] .app--research .checkpoint-passport__emptyInsight,
 html[data-theme="dark"] .app--research .checkpoint-passport__insightTop span,
+html[data-theme="dark"] .app--research .checkpoint-passport__descriptionMeta span,
+html[data-theme="dark"] .app--research .checkpoint-passport__descriptionMeta a,
 html[data-theme="dark"] .app--research .checkpoint-passport__insightTag,
 html[data-theme="dark"] .app--research .checkpoint-passport__insightSource a,
 html[data-theme="dark"] .app--research .checkpoint-passport__insightSource span,

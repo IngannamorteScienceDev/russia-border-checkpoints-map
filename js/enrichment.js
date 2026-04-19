@@ -1,6 +1,7 @@
 const ENRICHMENT_PATH = "./data/checkpoint_enrichment.json";
 const VALID_CONFIDENCE = new Set(["high", "medium", "low"]);
 const KNOWN_KINDS = new Set([
+  "description",
   "official_verification",
   "news",
   "infrastructure",
@@ -10,6 +11,7 @@ const KNOWN_KINDS = new Set([
 ]);
 
 const KIND_LABELS = {
+  description: "Описание",
   official_verification: "Сверка",
   news: "Новость",
   infrastructure: "Инфраструктура",
@@ -122,8 +124,11 @@ export function getFeatureEnrichment(index, feature) {
   return {
     meta: index?.meta || emptyIndex().meta,
     records,
+    descriptionRecords: records.filter((record) => record.kind === "description"),
     verificationRecords: records.filter((record) => record.kind === "official_verification"),
-    eventRecords: records.filter((record) => record.kind !== "official_verification"),
+    eventRecords: records.filter(
+      (record) => !["description", "official_verification"].includes(record.kind)
+    ),
     hasRecords: records.length > 0
   };
 }
