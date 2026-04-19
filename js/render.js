@@ -294,6 +294,9 @@ function compareValue(feature, key) {
   if (key === "type") return props.__type || "—";
   if (key === "status") return props.__status || "—";
   if (key === "coords") return props.__coords || "—";
+  if (key === "address") return extra.address || "—";
+  if (key === "workingTime") return extra.workingTime || "—";
+  if (key === "legalStatus") return extra.legalStatus || "—";
   if (key === "road") return extra.road || "—";
   if (key === "updatedAt") return extra.updatedAt || "—";
 
@@ -312,6 +315,9 @@ export function renderCompare({ compareEl, compareFeatures, onItemClick, onRemov
     ["Субъект", "subject"],
     ["Тип", "type"],
     ["Статус", "status"],
+    ["Адрес", "address"],
+    ["Режим работы", "workingTime"],
+    ["Правовой режим", "legalStatus"],
     ["Координаты", "coords"],
     ["Дорога/маршрут", "road"],
     ["Обновлено", "updatedAt"]
@@ -430,15 +436,23 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
   return features
     .map((feature) => {
       const props = feature.properties;
+      const extra = props.__extra || {};
       const freshness = getFreshnessInfo(props.__extra?.updatedAt);
       const confidence = confidenceInfo(props.__extra?.confidence);
       const qualityFlags = getQualityFlags(feature);
       const hasQualityFlags = qualityFlags.length > 0;
-      const sourceUrl = safeExternalUrl(props.__extra?.source);
+      const sourceUrl = safeExternalUrl(extra.source);
       const isFavorite = favoriteIds.has(String(props.__id));
       const isComparing = compareIds.includes(String(props.__id));
       const isNearestOpen = nearestOpenId === props.__id;
       const favoriteLabel = isFavorite ? "Убрать из избранного" : "Добавить в избранное";
+      const context = [
+        extra.address ? `Адрес: ${escapeHtml(extra.address)}` : "",
+        extra.workingTime ? `Режим: ${escapeHtml(extra.workingTime)}` : "",
+        extra.legalStatus ? `Правовой режим: ${escapeHtml(extra.legalStatus)}` : ""
+      ]
+        .filter(Boolean)
+        .join(" · ");
       const dist = userLocation
         ? ` · 📏 ${haversine(userLocation, feature.geometry.coordinates).toFixed(1)} км`
         : "";
@@ -466,6 +480,7 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
         <div class="item__meta">
           ${props.__subject || "—"} · ${props.__country || "—"}<br>
           ${props.__type} · ${props.__status}${dist}
+          ${context ? `<div class="item__context">${context}</div>` : ""}
           <div class="item__badges">
             <span class="freshness freshness--${freshness.level}" title="${freshness.details}">${freshness.label}</span>
             <span class="confidence confidence--${confidence.level}">${confidence.label}</span>

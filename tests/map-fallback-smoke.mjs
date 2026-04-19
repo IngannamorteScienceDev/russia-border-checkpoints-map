@@ -91,6 +91,7 @@ globalThis.fetch = async () => ({
             checkpoint_name: "Тестовый КПП",
             checkpoint_type: "Автомобильный пункт пропуска",
             status: "Многосторонний",
+            is_functional: "True",
             subject_name: "Приморский край",
             foreign_country: "Китай",
             source: "https://example.test/source",

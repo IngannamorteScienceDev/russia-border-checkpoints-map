@@ -16,8 +16,36 @@ function normalizeType(value) {
   return "Другое";
 }
 
-function normalizeStatus(value) {
+function normalizeBooleanStatus(value) {
+  if (typeof value === "boolean") return value ? "Действует" : "Не функционирует";
+
   const normalized = norm(value);
+  if (!normalized) return "";
+
+  if (["true", "1", "yes", "да"].includes(normalized)) return "Действует";
+  if (["false", "0", "no", "нет"].includes(normalized)) return "Не функционирует";
+  return "";
+}
+
+function normalizeBooleanLabel(value) {
+  if (typeof value === "boolean") return value ? "Да" : "Нет";
+
+  const normalized = norm(value);
+  if (!normalized) return "";
+
+  if (["true", "1", "yes", "да"].includes(normalized)) return "Да";
+  if (["false", "0", "no", "нет"].includes(normalized)) return "Нет";
+  return String(value).trim();
+}
+
+function normalizeStatus(value) {
+  const booleanStatus = normalizeBooleanStatus(value);
+  if (booleanStatus) return booleanStatus;
+
+  const normalized = norm(value);
+  if (!normalized) return "Неизвестно";
+
+  if (normalized.includes("не функционир")) return "Не функционирует";
   if (normalized.includes("функцион") || normalized.includes("действ")) return "Действует";
   if (normalized.includes("огранич")) return "Ограничен";
   if (normalized.includes("врем")) return "Временно закрыт";
@@ -29,8 +57,19 @@ function dataUrl() {
   return new URL("./data/checkpoints.geojson", window.location.href).toString();
 }
 
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+
+  return "";
+}
+
 function extractCountry(props) {
   const candidates = [
+    props.foreign_country,
     props.neighbor_country,
     props.neighbour_country,
     props.border_country,
@@ -92,11 +131,35 @@ function extractExtra(props) {
 
   return {
     checkpointId: pick("checkpoint_id", "id", "object_id", "uid"),
-    category: pick("category", "checkpoint_category", "kind", "type_category"),
+    category: pick(
+      "checkpoint_pattern",
+      "category",
+      "checkpoint_category",
+      "kind",
+      "type_category"
+    ),
+    checkpointPattern: pick("checkpoint_pattern", "checkpoint_profile", "profile"),
     mode: pick("transport_mode", "mode", "vid_soobshcheniya", "communication_type"),
     road: pick("road_name", "route", "road", "highway"),
-    neighborPoint: pick("neighbor_checkpoint", "neighbor_checkpoint_name", "sopredelnyi_kpp"),
+    neighborPoint: pick(
+      "foreign_checkpoint",
+      "neighbor_checkpoint",
+      "neighbor_checkpoint_name",
+      "sopredelnyi_kpp"
+    ),
     operator: pick("operator", "agency", "department", "vedomstvo"),
+    address: pick("address", "checkpoint_address", "location_address"),
+    workingTime: pick("working_time", "work_time", "schedule", "hours"),
+    federalDistrict: pick("federal_district", "district", "federal_district_name"),
+    legalStatus: pick("legal_status", "border_status", "status"),
+    legalStatusDescription: pick(
+      "status_description",
+      "legal_status_description",
+      "border_status_description"
+    ),
+    isFunctional: normalizeBooleanLabel(pick("is_functional", "condition", "functional")),
+    isPublished: normalizeBooleanLabel(pick("is_published", "publish")),
+    slug: pick("checkpoint_slug", "slug"),
     source: pick("source", "source_url", "url", "href"),
     confidence: pick("confidence_level", "confidence", "data_confidence", "quality"),
     updatedAt: pick(
@@ -182,7 +245,15 @@ export async function loadFeatures({ setProgress }) {
     const type = normalizeType(
       props.checkpoint_type || props.type || props.kind || props.transport_type
     );
-    const status = normalizeStatus(props.current_status || props.status || props.state);
+    const status = normalizeStatus(
+      firstNonEmpty(
+        props.current_status,
+        props.operational_status,
+        props.state,
+        props.is_functional,
+        props.condition
+      )
+    );
     const lng = Array.isArray(feature.geometry.coordinates)
       ? feature.geometry.coordinates[0]
       : null;
@@ -204,7 +275,22 @@ export async function loadFeatures({ setProgress }) {
         __coords: hasCoordinates ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : "—",
         __extra: extra,
         __search: norm(
-          [extra.checkpointId, name, subject, country, type, status, extra.category, extra.mode]
+          [
+            extra.checkpointId,
+            name,
+            subject,
+            country,
+            type,
+            status,
+            extra.category,
+            extra.mode,
+            extra.address,
+            extra.workingTime,
+            extra.federalDistrict,
+            extra.legalStatus,
+            extra.neighborPoint,
+            extra.slug
+          ]
             .filter(Boolean)
             .join(" | ")
         )

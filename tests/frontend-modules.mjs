@@ -234,7 +234,7 @@ const features = [
 const indexedFeatures = [
   {
     properties: {
-      __search: "100 beta приморский край"
+      __search: "100 beta приморский край тестовый адрес круглосуточно"
     }
   },
   {
@@ -253,6 +253,17 @@ assert(
     subject: "all"
   }).length === 1,
   "Checkpoint ID search should match the indexed ID."
+);
+
+assert(
+  filterFeatures(indexedFeatures, {
+    query: "круглосуточно",
+    type: "all",
+    status: "all",
+    country: "all",
+    subject: "all"
+  }).length === 1,
+  "Search should match newly indexed hidden checkpoint attributes."
 );
 
 const listEl = createListElement();

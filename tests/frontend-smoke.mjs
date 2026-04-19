@@ -287,9 +287,17 @@ globalThis.fetch = async (resource) => ({
             checkpoint_id: "100",
             checkpoint_name: "Тестовый КПП",
             checkpoint_type: "автомобильный",
-            status: "функционирует",
+            checkpoint_pattern: "Грузо-пассажирский",
+            status: "Многосторонний",
+            status_description: "Тестовое описание правового режима",
+            is_functional: "True",
+            is_published: "True",
+            working_time: "круглосуточно",
+            address: "Приморский край, тестовый адрес КПП",
             subject_name: "Приморский край",
+            federal_district: "Дальневосточный",
             foreign_country: "Китай",
+            foreign_checkpoint: "Тестовый сопредельный пункт",
             source: "https://rosgranstroy.ru/api/map_data",
             confidence_level: "high",
             last_updated: "2026-01-19T09:56:39.000000Z"
@@ -305,7 +313,11 @@ globalThis.fetch = async (resource) => ({
             checkpoint_id: "101",
             checkpoint_name: "Воздушный тест",
             checkpoint_type: "воздушный",
-            status: "временно закрыт",
+            checkpoint_pattern: "Пассажирский",
+            status: "Двусторонний",
+            is_functional: "False",
+            working_time: "по факту прибытия рейсов",
+            address: "Кемеровская область, тестовый аэропорт",
             subject_name: "Кемеровская область",
             foreign_country: "Не указано"
           }
@@ -767,6 +779,20 @@ if (
 }
 
 if (
+  !lastMapInstance
+    ?.getSource("checkpoints")
+    ?.data?.features?.some(
+      (feature) =>
+        feature.properties.__id === "100" &&
+        feature.properties.__status === "Действует" &&
+        feature.properties.__extra?.legalStatus === "Многосторонний" &&
+        feature.properties.__extra?.address === "Приморский край, тестовый адрес КПП"
+    )
+) {
+  throw new Error("Checkpoint legal and hidden attributes were not normalized.");
+}
+
+if (
   !listHtml.includes("item__copyCoords") ||
   !listHtml.includes("Координаты") ||
   !listHtml.includes("item__route") ||
@@ -789,6 +815,14 @@ if (
   !listHtml.includes("https://rosgranstroy.ru/api/map_data")
 ) {
   throw new Error("Source and confidence indicators were not rendered.");
+}
+
+if (
+  !listHtml.includes("Приморский край, тестовый адрес КПП") ||
+  !listHtml.includes("Режим: круглосуточно") ||
+  !listHtml.includes("Правовой режим: Многосторонний")
+) {
+  throw new Error("Hidden checkpoint attributes were not rendered in the list context.");
 }
 
 if (
@@ -908,6 +942,13 @@ if (
   !passportHtml.includes("Паспорт КПП") ||
   !passportHtml.includes("Тестовый КПП") ||
   !passportHtml.includes("Высокая достоверность") ||
+  !passportHtml.includes("Приморский край, тестовый адрес КПП") ||
+  !passportHtml.includes("круглосуточно") ||
+  !passportHtml.includes("Правовой режим") ||
+  !passportHtml.includes("Многосторонний") ||
+  !passportHtml.includes("Грузо-пассажирский") ||
+  !passportHtml.includes("Дальневосточный") ||
+  !passportHtml.includes("Тестовый сопредельный пункт") ||
   !passportHtml.includes("Откуда данные") ||
   !passportHtml.includes("ФГКУ Росгранстрой") ||
   !passportHtml.includes("Сверить с перечнем Минтранса") ||

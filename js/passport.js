@@ -152,7 +152,13 @@ function buildDetailRows(props, extra) {
     ["ID", props.__id],
     ["Субъект РФ", props.__subject],
     ["Сопредельная страна", props.__country],
-    ["Категория", extra.category],
+    ["Федеральный округ", extra.federalDistrict],
+    ["Профиль", extra.checkpointPattern || extra.category],
+    ["Правовой режим", extra.legalStatus],
+    ["Описание режима", extra.legalStatusDescription],
+    ["Функционирует", extra.isFunctional],
+    ["Публикуется", extra.isPublished],
+    ["Slug", extra.slug],
     ["Вид сообщения", extra.mode],
     ["Дорога / маршрут", extra.road],
     ["Сопредельный КПП", extra.neighborPoint],
@@ -161,6 +167,25 @@ function buildDetailRows(props, extra) {
   ]
     .map(([label, value]) => detailHtml(label, value))
     .join("");
+}
+
+function factsHtml(extra) {
+  const rows = [
+    ["Адрес", extra.address],
+    ["Режим работы", extra.workingTime],
+    ["Правовой режим", extra.legalStatus],
+    ["Сопредельный КПП", extra.neighborPoint]
+  ]
+    .map(([label, value]) => detailHtml(label, value))
+    .filter(Boolean);
+
+  if (!rows.length) return "";
+
+  return `
+    <section class="checkpoint-passport__facts" aria-label="Расположение и режим работы">
+      ${rows.join("")}
+    </section>
+  `;
 }
 
 export function renderCheckpointPassport({
@@ -216,8 +241,11 @@ export function renderCheckpointPassport({
       <div class="checkpoint-passport__chips" aria-label="Основные признаки КПП">
         <span>${escapeHtml(props.__type || "Тип не указан")}</span>
         <span>${escapeHtml(props.__status || "Статус не указан")}</span>
+        ${extra.checkpointPattern ? `<span>${escapeHtml(extra.checkpointPattern)}</span>` : ""}
         <span class="freshness freshness--${freshness.level}" title="${escapeHtml(freshness.details)}">${escapeHtml(freshness.label)}</span>
       </div>
+
+      ${factsHtml(extra)}
 
       <section class="checkpoint-passport__metrics" aria-label="Ключевые показатели">
         ${metricHtml("Координаты", props.__coords)}

@@ -34,8 +34,17 @@ function cleanProperties(feature) {
     checkpoint_name: props.__name || props.checkpoint_name || "",
     checkpoint_type: props.__type || props.checkpoint_type || "",
     status: props.__status || props.status || "",
+    legal_status: extra.legalStatus || props.status || "",
+    legal_status_description: extra.legalStatusDescription || props.status_description || "",
+    is_functional: extra.isFunctional || props.is_functional || "",
+    is_published: extra.isPublished || props.is_published || "",
+    checkpoint_pattern: extra.checkpointPattern || props.checkpoint_pattern || "",
     subject_name: props.__subject || props.subject_name || "",
+    federal_district: extra.federalDistrict || props.federal_district || "",
     country: props.__country || "",
+    foreign_checkpoint: extra.neighborPoint || props.foreign_checkpoint || "",
+    address: extra.address || props.address || "",
+    working_time: extra.workingTime || props.working_time || "",
     latitude: coordinates[1] ?? "",
     longitude: coordinates[0] ?? "",
     coordinates: props.__coords || "",
@@ -46,6 +55,7 @@ function cleanProperties(feature) {
     mode: extra.mode || "",
     road: extra.road || "",
     neighbor_checkpoint: extra.neighborPoint || "",
+    checkpoint_slug: extra.slug || props.checkpoint_slug || "",
     operator: extra.operator || ""
   };
 }
