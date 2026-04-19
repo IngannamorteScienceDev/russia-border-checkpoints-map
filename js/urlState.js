@@ -4,6 +4,10 @@ const FILTER_PARAM_MAP = {
   status: "status",
   country: "country",
   subject: "subject",
+  district: "district",
+  legalStatus: "legal",
+  pattern: "profile",
+  corridor: "corridor",
   sort: "sort"
 };
 const CHECKPOINT_PARAM = "checkpoint";
@@ -61,6 +65,8 @@ function hasAllowedValue(el, value) {
 }
 
 function setSelectValue(el, value, emptyValue = "all") {
+  if (!el) return;
+
   if (!value || value === emptyValue) {
     el.value = emptyValue;
     return;
@@ -79,6 +85,10 @@ export function applyFilterStateFromUrl(dom) {
   setSelectValue(dom.statusEl, url.searchParams.get(FILTER_PARAM_MAP.status));
   setSelectValue(dom.countryEl, url.searchParams.get(FILTER_PARAM_MAP.country));
   setSelectValue(dom.subjectEl, url.searchParams.get(FILTER_PARAM_MAP.subject));
+  setSelectValue(dom.districtEl, url.searchParams.get(FILTER_PARAM_MAP.district));
+  setSelectValue(dom.legalStatusEl, url.searchParams.get(FILTER_PARAM_MAP.legalStatus));
+  setSelectValue(dom.patternEl, url.searchParams.get(FILTER_PARAM_MAP.pattern));
+  setSelectValue(dom.corridorEl, url.searchParams.get(FILTER_PARAM_MAP.corridor));
   setSelectValue(dom.sortEl, url.searchParams.get(FILTER_PARAM_MAP.sort), "country");
 }
 
@@ -90,6 +100,10 @@ export function syncFilterStateToUrl(dom) {
       status: dom.statusEl.value,
       country: dom.countryEl.value,
       subject: dom.subjectEl.value,
+      district: dom.districtEl?.value || "all",
+      legalStatus: dom.legalStatusEl?.value || "all",
+      pattern: dom.patternEl?.value || "all",
+      corridor: dom.corridorEl?.value || "all",
       sort: dom.sortEl.value === "country" ? "" : dom.sortEl.value
     };
 

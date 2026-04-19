@@ -317,16 +317,34 @@ export async function loadFeatures({ setProgress }) {
   });
 }
 
-export function filterFeatures(allFeatures, { query, type, status, country, subject }) {
+export function filterFeatures(
+  allFeatures,
+  {
+    query,
+    type = "all",
+    status = "all",
+    country = "all",
+    subject = "all",
+    district = "all",
+    legalStatus = "all",
+    pattern = "all",
+    corridor = "all"
+  }
+) {
   const normalizedQuery = norm(query);
 
   return allFeatures.filter((feature) => {
     const props = feature.properties;
+    const extra = props.__extra || {};
 
     if (type !== "all" && props.__type !== type) return false;
     if (status !== "all" && props.__status !== status) return false;
     if (country !== "all" && props.__country !== country) return false;
     if (subject !== "all" && props.__subject !== subject) return false;
+    if (district !== "all" && extra.federalDistrict !== district) return false;
+    if (legalStatus !== "all" && extra.legalStatus !== legalStatus) return false;
+    if (pattern !== "all" && extra.checkpointPattern !== pattern) return false;
+    if (corridor !== "all" && extra.transportCorridor !== corridor) return false;
     if (!normalizedQuery) return true;
 
     return props.__search.includes(normalizedQuery);

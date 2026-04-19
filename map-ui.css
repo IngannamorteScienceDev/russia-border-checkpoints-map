@@ -895,6 +895,7 @@ html[data-theme="dark"] .app--research .checkpoint-passport__card {
 
 html[data-theme="dark"] .app--research .panel__hero,
 html[data-theme="dark"] .app--research .panel-card,
+html[data-theme="dark"] .app--research .advanced-filters,
 html[data-theme="dark"] .app--research .results-shell,
 html[data-theme="dark"] .app--research .stats,
 html[data-theme="dark"] .app--research .help,
@@ -922,6 +923,7 @@ html[data-theme="dark"] .app--research .panel__title,
 html[data-theme="dark"] .app--research .panel-card h2,
 html[data-theme="dark"] .app--research .results-shell h2,
 html[data-theme="dark"] .app--research .map-dock h2,
+html[data-theme="dark"] .app--research .advanced-filters__title,
 html[data-theme="dark"] .app--research .help__title,
 html[data-theme="dark"] .app--research .recent__title,
 html[data-theme="dark"] .app--research .nearest-open__title,
@@ -934,6 +936,7 @@ html[data-theme="dark"] .app--research .empty__title {
 
 html[data-theme="dark"] .app--research .panel__subtitle,
 html[data-theme="dark"] .app--research .field span,
+html[data-theme="dark"] .app--research .advanced-filters__title small,
 html[data-theme="dark"] .app--research .stats__label,
 html[data-theme="dark"] .app--research .stats__meta,
 html[data-theme="dark"] .app--research .help__item,
@@ -1005,6 +1008,13 @@ html[data-theme="dark"] .app--research .theme-toggle.is-active {
   color: #fde68a;
 }
 
+html[data-theme="dark"] .app--research .advanced-filters {
+  background:
+    linear-gradient(135deg, rgba(20, 184, 166, 0.11), rgba(245, 158, 11, 0.06)),
+    rgba(9, 25, 21, 0.68);
+}
+
+html[data-theme="dark"] .app--research .advanced-filters__title::after,
 html[data-theme="dark"] .app--research .help__title::after {
   border-color: rgba(183, 205, 195, 0.16);
   background: rgba(20, 184, 166, 0.1);

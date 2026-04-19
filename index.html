@@ -110,6 +110,43 @@
               </select>
             </label>
           </div>
+
+          <details class="advanced-filters">
+            <summary class="advanced-filters__title">
+              <span>Расширенные фильтры</span>
+              <small>округ, режим, профиль, МТК</small>
+            </summary>
+
+            <div class="filter-grid filter-grid--advanced">
+              <label class="field">
+                <span>Фед. округ</span>
+                <select id="districtFilter" class="select">
+                  <option value="all">Все округа</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Правовой режим</span>
+                <select id="legalStatusFilter" class="select">
+                  <option value="all">Все режимы</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Профиль</span>
+                <select id="patternFilter" class="select">
+                  <option value="all">Все профили</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>МТК / направление</span>
+                <select id="corridorFilter" class="select">
+                  <option value="all">Все направления</option>
+                </select>
+              </label>
+            </div>
+          </details>
         </section>
 
         <div id="stats" class="stats"></div>

@@ -57,13 +57,36 @@ export function buildLegend(legendEl) {
 }
 
 function fillSelect(el, defaultLabel, values) {
+  if (!el) return;
+
   el.__options = ["all", ...values];
   el.innerHTML =
     `<option value="all">${defaultLabel}</option>` +
     values.map((value) => `<option value="${value}">${value}</option>`).join("");
 }
 
-export function fillFilters({ allFeatures, typeEl, statusEl, countryEl, subjectEl }) {
+function uniqueExtraValues(allFeatures, key) {
+  return [
+    ...new Set(
+      allFeatures
+        .map((feature) => feature.properties.__extra?.[key])
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+    )
+  ].sort((a, b) => a.localeCompare(b, "ru"));
+}
+
+export function fillFilters({
+  allFeatures,
+  typeEl,
+  statusEl,
+  countryEl,
+  subjectEl,
+  districtEl,
+  legalStatusEl,
+  patternEl,
+  corridorEl
+}) {
   const types = [...new Set(allFeatures.map((feature) => feature.properties.__type))].sort((a, b) =>
     a.localeCompare(b, "ru")
   );
@@ -81,6 +104,10 @@ export function fillFilters({ allFeatures, typeEl, statusEl, countryEl, subjectE
   fillSelect(statusEl, "Все статусы", statuses);
   fillSelect(countryEl, "Все страны", countries);
   fillSelect(subjectEl, "Все субъекты", subjects);
+  fillSelect(districtEl, "Все округа", uniqueExtraValues(allFeatures, "federalDistrict"));
+  fillSelect(legalStatusEl, "Все режимы", uniqueExtraValues(allFeatures, "legalStatus"));
+  fillSelect(patternEl, "Все профили", uniqueExtraValues(allFeatures, "checkpointPattern"));
+  fillSelect(corridorEl, "Все направления", uniqueExtraValues(allFeatures, "transportCorridor"));
 }
 
 export function renderStats({

@@ -32,7 +32,7 @@ let replacedUrl = "";
 
 globalThis.window = {
   location: {
-    href: "https://example.test/map?q=test&type=Автомобильный&status=Действует&country=Китай&subject=Приморский%20край&sort=distance&lng=200&lat=95&zoom=30&sat=yes"
+    href: "https://example.test/map?q=test&type=Автомобильный&status=Действует&country=Китай&subject=Приморский%20край&district=east&legal=multi&profile=cargo&corridor=mtk&sort=distance&lng=200&lat=95&zoom=30&sat=yes"
   },
   history: {
     replaceState(_state, _title, nextUrl) {
@@ -126,6 +126,10 @@ const dom = {
   statusEl: createSelect("all", ["Действует", "Временно закрыт"]),
   countryEl: createSelect("all", ["Китай"]),
   subjectEl: createSelect("all", ["Приморский край"]),
+  districtEl: createSelect("all", ["east"]),
+  legalStatusEl: createSelect("all", ["multi"]),
+  patternEl: createSelect("all", ["cargo"]),
+  corridorEl: createSelect("all", ["mtk"]),
   sortEl: createSelect("country", ["country", "name", "distance"])
 };
 
@@ -134,6 +138,10 @@ applyFilterStateFromUrl(dom);
 assert(dom.searchEl.value === "test", "URL query was not applied.");
 assert(dom.typeEl.value === "Автомобильный", "URL type filter was not applied.");
 assert(dom.statusEl.value === "Действует", "URL status filter was not applied.");
+assert(dom.districtEl.value === "east", "URL district filter was not applied.");
+assert(dom.legalStatusEl.value === "multi", "URL legal-status filter was not applied.");
+assert(dom.patternEl.value === "cargo", "URL checkpoint profile filter was not applied.");
+assert(dom.corridorEl.value === "mtk", "URL corridor filter was not applied.");
 assert(dom.sortEl.value === "distance", "URL sort mode was not applied.");
 
 const mapView = getMapViewStateFromUrl({ center: [90, 61], zoom: 4 });
@@ -159,6 +167,13 @@ assert(
 assert(
   filterUrl.searchParams.get("sort") === "name",
   "Non-default sort should be synchronized to URL."
+);
+assert(
+  filterUrl.searchParams.get("district") === "east" &&
+    filterUrl.searchParams.get("legal") === "multi" &&
+    filterUrl.searchParams.get("profile") === "cargo" &&
+    filterUrl.searchParams.get("corridor") === "mtk",
+  "Advanced filters should be synchronized to URL."
 );
 
 syncMapViewToUrl({ center: [37.6176, 55.7558], zoom: 6.5 });
@@ -234,12 +249,24 @@ const features = [
 const indexedFeatures = [
   {
     properties: {
-      __search: "100 beta приморский край тестовый адрес круглосуточно дальневосточный филиал"
+      __search: "100 beta приморский край тестовый адрес круглосуточно дальневосточный филиал",
+      __extra: {
+        federalDistrict: "east",
+        legalStatus: "multi",
+        checkpointPattern: "cargo",
+        transportCorridor: "mtk"
+      }
     }
   },
   {
     properties: {
-      __search: "101 alpha кемеровская область"
+      __search: "101 alpha кемеровская область",
+      __extra: {
+        federalDistrict: "west",
+        legalStatus: "bilateral",
+        checkpointPattern: "passenger",
+        transportCorridor: "north"
+      }
     }
   }
 ];
@@ -275,6 +302,36 @@ assert(
     subject: "all"
   }).length === 1,
   "Search should match indexed branch metadata."
+);
+
+assert(
+  filterFeatures(indexedFeatures, {
+    query: "",
+    type: "all",
+    status: "all",
+    country: "all",
+    subject: "all",
+    district: "east",
+    legalStatus: "multi",
+    pattern: "cargo",
+    corridor: "mtk"
+  }).length === 1,
+  "Advanced checkpoint filters should match indexed metadata."
+);
+
+assert(
+  filterFeatures(indexedFeatures, {
+    query: "",
+    type: "all",
+    status: "all",
+    country: "all",
+    subject: "all",
+    district: "east",
+    legalStatus: "bilateral",
+    pattern: "cargo",
+    corridor: "mtk"
+  }).length === 0,
+  "Advanced checkpoint filters should combine with AND semantics."
 );
 
 const listEl = createListElement();

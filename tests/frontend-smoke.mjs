@@ -649,6 +649,10 @@ const passportHtml = elements.get("checkpointPassport")?.innerHTML || "";
 const countryFilterHtml = elements.get("countryFilter")?.innerHTML || "";
 const subjectFilterHtml = elements.get("subjectFilter")?.innerHTML || "";
 const typeFilterHtml = elements.get("typeFilter")?.innerHTML || "";
+const districtFilterHtml = elements.get("districtFilter")?.innerHTML || "";
+const legalStatusFilterHtml = elements.get("legalStatusFilter")?.innerHTML || "";
+const patternFilterHtml = elements.get("patternFilter")?.innerHTML || "";
+const corridorFilterHtml = elements.get("corridorFilter")?.innerHTML || "";
 const exportCsvButton = elements.get("exportCsv");
 const exportGeoJsonButton = elements.get("exportGeoJson");
 const shareLinkButton = elements.get("shareLink");
@@ -662,6 +666,10 @@ const quickPresets = elements.get("quickPresets");
 const searchInput = elements.get("searchInput");
 const typeFilter = elements.get("typeFilter");
 const statusFilter = elements.get("statusFilter");
+const districtFilter = elements.get("districtFilter");
+const legalStatusFilter = elements.get("legalStatusFilter");
+const patternFilter = elements.get("patternFilter");
+const corridorFilter = elements.get("corridorFilter");
 const resetFiltersButton = elements.get("resetFilters");
 const styleToggleButton = elements.get("styleToggle");
 const boundariesToggleButton = elements.get("boundariesToggle");
@@ -928,6 +936,15 @@ if (!typeFilterHtml.includes("Автомобильный") || !typeFilterHtml.in
   throw new Error("Type filter was not populated.");
 }
 
+if (
+  !districtFilterHtml.includes("Дальневосточный") ||
+  !legalStatusFilterHtml.includes("Многосторонний") ||
+  !patternFilterHtml.includes("Грузо-пассажирский") ||
+  !corridorFilterHtml.includes("Восток")
+) {
+  throw new Error("Advanced checkpoint filters were not populated.");
+}
+
 if (searchInput?.value !== "тест") {
   throw new Error("Search query was not restored from URL.");
 }
@@ -1036,6 +1053,15 @@ if (
 
 if (typeof quickPresets?.onclick !== "function") {
   throw new Error("Quick presets were not wired.");
+}
+
+if (
+  typeof districtFilter?.onchange !== "function" ||
+  typeof legalStatusFilter?.onchange !== "function" ||
+  typeof patternFilter?.onchange !== "function" ||
+  typeof corridorFilter?.onchange !== "function"
+) {
+  throw new Error("Advanced checkpoint filters were not wired.");
 }
 
 if (favoritesOnlyButton?.textContent !== "★ Избранные (1)") {
@@ -1166,6 +1192,21 @@ if (new URL(window.location.href).searchParams.get("status") !== null) {
   throw new Error("URL was not updated after filter change.");
 }
 
+districtFilter.value = "Дальневосточный";
+districtFilter.onchange?.();
+
+if (new URL(window.location.href).searchParams.get("district") !== "Дальневосточный") {
+  throw new Error("Advanced filter was not synchronized to URL.");
+}
+
+const advancedFilterListHtml = elements.get("list")?.innerHTML || "";
+if (
+  !advancedFilterListHtml.includes("Тестовый КПП") ||
+  advancedFilterListHtml.includes("Воздушный тест")
+) {
+  throw new Error("Advanced filter did not limit the rendered checkpoint list.");
+}
+
 resetFiltersButton.onclick?.();
 
 const finalUrl = new URL(window.location.href);
@@ -1174,6 +1215,10 @@ if (
   finalUrl.searchParams.get("q") !== null ||
   finalUrl.searchParams.get("country") !== null ||
   finalUrl.searchParams.get("status") !== null ||
+  finalUrl.searchParams.get("district") !== null ||
+  finalUrl.searchParams.get("legal") !== null ||
+  finalUrl.searchParams.get("profile") !== null ||
+  finalUrl.searchParams.get("corridor") !== null ||
   finalUrl.searchParams.get("checkpoint") !== null
 ) {
   throw new Error("Reset filters did not clear filter state from URL.");

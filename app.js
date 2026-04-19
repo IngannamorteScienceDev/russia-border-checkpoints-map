@@ -452,12 +452,17 @@ function toggleRoadsLayer() {
 }
 
 function getActiveFilterCount() {
+  const activeSelectValue = (el) => (el?.value && el.value !== "all" ? el.value : "");
   const filterValues = [
     dom.searchEl.value.trim(),
-    dom.typeEl.value !== "all" ? dom.typeEl.value : "",
-    dom.statusEl.value !== "all" ? dom.statusEl.value : "",
-    dom.countryEl.value !== "all" ? dom.countryEl.value : "",
-    dom.subjectEl.value !== "all" ? dom.subjectEl.value : "",
+    activeSelectValue(dom.typeEl),
+    activeSelectValue(dom.statusEl),
+    activeSelectValue(dom.countryEl),
+    activeSelectValue(dom.subjectEl),
+    activeSelectValue(dom.districtEl),
+    activeSelectValue(dom.legalStatusEl),
+    activeSelectValue(dom.patternEl),
+    activeSelectValue(dom.corridorEl),
     state.showFavoritesOnly ? "favorites" : "",
     state.showViewportOnly ? "viewport" : ""
   ].filter(Boolean);
@@ -603,7 +608,11 @@ function applyFilters() {
     type: dom.typeEl.value,
     status: dom.statusEl.value,
     country: dom.countryEl.value,
-    subject: dom.subjectEl.value
+    subject: dom.subjectEl.value,
+    district: dom.districtEl?.value || "all",
+    legalStatus: dom.legalStatusEl?.value || "all",
+    pattern: dom.patternEl?.value || "all",
+    corridor: dom.corridorEl?.value || "all"
   });
 
   state.viewFeatures = state.showFavoritesOnly
@@ -646,6 +655,10 @@ function resetFilters() {
   dom.statusEl.value = "all";
   dom.countryEl.value = "all";
   dom.subjectEl.value = "all";
+  if (dom.districtEl) dom.districtEl.value = "all";
+  if (dom.legalStatusEl) dom.legalStatusEl.value = "all";
+  if (dom.patternEl) dom.patternEl.value = "all";
+  if (dom.corridorEl) dom.corridorEl.value = "all";
   state.showFavoritesOnly = false;
   state.showViewportOnly = false;
   applyFilters();
@@ -880,6 +893,9 @@ function attachUi() {
   dom.statusEl.onchange = applyFilters;
   dom.countryEl.onchange = applyFilters;
   dom.subjectEl.onchange = applyFilters;
+  [dom.districtEl, dom.legalStatusEl, dom.patternEl, dom.corridorEl].forEach((filterEl) => {
+    if (filterEl) filterEl.onchange = applyFilters;
+  });
   dom.presetsEl.onclick = (event) => {
     applyQuickPreset(event.target?.dataset?.preset);
   };
@@ -955,7 +971,11 @@ async function init() {
       typeEl: dom.typeEl,
       statusEl: dom.statusEl,
       countryEl: dom.countryEl,
-      subjectEl: dom.subjectEl
+      subjectEl: dom.subjectEl,
+      districtEl: dom.districtEl,
+      legalStatusEl: dom.legalStatusEl,
+      patternEl: dom.patternEl,
+      corridorEl: dom.corridorEl
     });
     applyFilterStateFromUrl(dom);
     attachUi();
