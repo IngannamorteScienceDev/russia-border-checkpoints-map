@@ -226,6 +226,33 @@ function hideLoaderOnce() {
   }, 250);
 }
 
+function setPanelControlsState(isOpen) {
+  const expanded = String(isOpen);
+  dom.mobileToggleEl?.setAttribute("aria-expanded", expanded);
+  dom.mobileToggleFloatingEl?.setAttribute("aria-expanded", expanded);
+
+  if (dom.panelScrimEl) {
+    dom.panelScrimEl.hidden = !isOpen;
+    dom.panelScrimEl.classList.toggle("is-visible", isOpen);
+  }
+}
+
+function resizeMapAfterPanelChange() {
+  setTimeout(() => map.resize(), 200);
+}
+
+function setPanelOpen(isOpen) {
+  dom.panelEl?.classList.toggle("open", isOpen);
+  setPanelControlsState(isOpen);
+  resizeMapAfterPanelChange();
+}
+
+function togglePanel() {
+  const isOpen = Boolean(dom.panelEl?.classList.toggle("open"));
+  setPanelControlsState(isOpen);
+  resizeMapAfterPanelChange();
+}
+
 function syncOfflineStatus() {
   if (!dom.offlineStatusEl) return;
 
@@ -842,6 +869,7 @@ function attachUi() {
   map.on("moveend", syncCurrentMapView);
   globalThis.window?.addEventListener?.("online", syncOfflineStatus);
   globalThis.window?.addEventListener?.("offline", syncOfflineStatus);
+  setPanelControlsState(false);
 
   dom.searchEl.oninput = () => {
     clearTimeout(state.debounceTimer);
@@ -885,17 +913,15 @@ function attachUi() {
   };
 
   if (dom.mobileToggleEl) {
-    dom.mobileToggleEl.onclick = () => {
-      dom.panelEl.classList.toggle("open");
-      setTimeout(() => map.resize(), 200);
-    };
+    dom.mobileToggleEl.onclick = togglePanel;
   }
 
   if (dom.mobileToggleFloatingEl) {
-    dom.mobileToggleFloatingEl.onclick = () => {
-      dom.panelEl.classList.add("open");
-      setTimeout(() => map.resize(), 200);
-    };
+    dom.mobileToggleFloatingEl.onclick = () => setPanelOpen(true);
+  }
+
+  if (dom.panelScrimEl) {
+    dom.panelScrimEl.onclick = () => setPanelOpen(false);
   }
 }
 
@@ -915,7 +941,7 @@ async function init() {
     state.viewFeatures = state.allFeatures;
     state.datasetMeta = buildDatasetMeta(state.allFeatures);
 
-    setProgress(42, "Р—Р°РіСЂСѓР¶Р°РµРј СЃР»РѕР№ РѕР±РѕРіР°С‰РµРЅРёР№...");
+    setProgress(42, "Загружаем слой обогащений...");
     state.checkpointEnrichment = await loadCheckpointEnrichment();
 
     const currentSnapshot = buildDatasetSnapshot(state.allFeatures, state.datasetMeta);
@@ -935,10 +961,6 @@ async function init() {
     attachUi();
     syncCurrentMapView();
     applyFilters();
-
-    if (window.matchMedia("(max-width: 900px)").matches) {
-      dom.panelEl.classList.add("open");
-    }
 
     setProgress(80, "Строим слои...");
     layerController.rebuildLayers(getMapFeatures());

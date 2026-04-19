@@ -13,6 +13,7 @@ function indexOfOrThrow(source, needle, message) {
 const indexHtml = await readFile(new URL("../index.html", import.meta.url), "utf-8");
 const styleCss = await readFile(new URL("../style.css", import.meta.url), "utf-8");
 const mapUiCss = await readFile(new URL("../map-ui.css", import.meta.url), "utf-8");
+const appSource = await readFile(new URL("../app.js", import.meta.url), "utf-8");
 const swSource = await readFile(new URL("../sw.js", import.meta.url), "utf-8");
 
 const sharedStyleIndex = indexOfOrThrow(
@@ -40,6 +41,10 @@ const mapHtml = indexHtml.slice(mainStart, mainEnd);
 
 assert(panelHtml.includes('id="controls"'), "Search controls should stay in the left panel.");
 assert(panelHtml.includes('id="stats"'), "Stats should stay in the left panel.");
+assert(
+  panelHtml.includes('<details id="help"'),
+  "Help content should stay available but collapsed by default."
+);
 assert(panelHtml.includes('class="results-shell"'), "Results should stay in the left panel.");
 assert(!panelHtml.includes('id="layers"'), "Layer controls should not live in the left panel.");
 assert(!panelHtml.includes('id="tools"'), "Tool controls should not live in the left panel.");
@@ -55,6 +60,7 @@ assert(mapHtml.includes('id="layers"'), "Layer controls should live in the map t
 assert(mapHtml.includes('id="tools"'), "Tool controls should live in the map tools dock.");
 assert(mapHtml.includes('id="legend"'), "Legend should live in the map tools dock.");
 assert(mapHtml.includes('id="themeToggle"'), "Theme toggle should live in the map tools dock.");
+assert(mapHtml.includes('id="panelScrim"'), "Mobile panel scrim should live in the map wrapper.");
 assert(
   mapHtml.includes('id="checkpointPassport"'),
   "Checkpoint passport should live in the map wrapper."
@@ -81,6 +87,10 @@ assert(
   "Dedicated map UI stylesheet should avoid unscoped global button rules."
 );
 assert(swSource.includes('"./map-ui.css"'), "Service worker should precache map-ui.css.");
+assert(
+  !appSource.includes('dom.panelEl.classList.add("open")'),
+  "Mobile panel should not force-open over the map on startup."
+);
 assert(swSource.includes('"./js/theme.js"'), "Service worker should precache theme.js.");
 assert(swSource.includes('"./js/passport.js"'), "Service worker should precache passport.js.");
 assert(swSource.includes('"./js/enrichment.js"'), "Service worker should precache enrichment.js.");

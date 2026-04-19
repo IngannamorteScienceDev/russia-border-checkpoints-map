@@ -8,9 +8,44 @@ function createNode(dataset = {}) {
     style: {},
     textContent: "",
     onclick: null,
-    classList: { add() {}, toggle() {} },
+    classList: createClassList(),
     addEventListener(eventName, handler) {
       if (eventName === "click") this.onclick = handler;
+    }
+  };
+}
+
+function createClassList() {
+  const names = new Set();
+
+  return {
+    add(...nextNames) {
+      nextNames.forEach((name) => names.add(name));
+    },
+    remove(...nextNames) {
+      nextNames.forEach((name) => names.delete(name));
+    },
+    toggle(name, force) {
+      if (force === true) {
+        names.add(name);
+        return true;
+      }
+
+      if (force === false) {
+        names.delete(name);
+        return false;
+      }
+
+      if (names.has(name)) {
+        names.delete(name);
+        return false;
+      }
+
+      names.add(name);
+      return true;
+    },
+    contains(name) {
+      return names.has(name);
     }
   };
 }
@@ -82,7 +117,7 @@ function createElement() {
     onclick: null,
     onchange: null,
     oninput: null,
-    classList: { add() {}, toggle() {} },
+    classList: createClassList(),
     parentNode: { removeChild() {} },
     setAttribute() {},
     querySelector(selector) {
@@ -609,7 +644,39 @@ const styleToggleButton = elements.get("styleToggle");
 const boundariesToggleButton = elements.get("boundariesToggle");
 const roadsToggleButton = elements.get("roadsToggle");
 const sortOrder = elements.get("sortOrder");
+const panelEl = elements.get("panel");
+const mobilePanelButton = elements.get("mobileToggle");
+const mobilePanelFab = elements.get("mobileToggleFloating");
+const panelScrimButton = elements.get("panelScrim");
 const url = new URL(window.location.href);
+
+if (panelEl?.classList.contains("open")) {
+  throw new Error("Mobile panel should not be forced open during startup.");
+}
+
+mobilePanelFab?.onclick?.();
+if (
+  !panelEl?.classList.contains("open") ||
+  panelScrimButton?.hidden !== false ||
+  !panelScrimButton?.classList.contains("is-visible")
+) {
+  throw new Error("Mobile panel button did not open the panel with a scrim.");
+}
+
+panelScrimButton?.onclick?.();
+if (panelEl?.classList.contains("open") || panelScrimButton?.hidden !== true) {
+  throw new Error("Mobile panel scrim did not close the panel.");
+}
+
+mobilePanelButton?.onclick?.();
+if (!panelEl?.classList.contains("open")) {
+  throw new Error("Inner mobile panel button did not toggle the panel.");
+}
+
+mobilePanelButton?.onclick?.();
+if (panelEl?.classList.contains("open")) {
+  throw new Error("Inner mobile panel button did not close the panel.");
+}
 
 if (!statsHtml.includes("Всего КПП") || !statsHtml.includes("Обновлено")) {
   throw new Error("Stats block was not rendered.");

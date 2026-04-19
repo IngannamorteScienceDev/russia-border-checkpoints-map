@@ -3,6 +3,7 @@ const el = (id) => document.getElementById(id);
 export function getDomElements() {
   return {
     panelEl: el("panel"),
+    panelScrimEl: el("panelScrim"),
     mapWrapEl: el("mapWrap"),
     mapFallbackEl: el("mapFallback"),
     mobileToggleEl: el("mobileToggle"),

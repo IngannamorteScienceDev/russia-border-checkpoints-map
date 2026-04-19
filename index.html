@@ -39,7 +39,13 @@
     <div class="app app--research">
       <aside id="panel" class="panel" aria-label="Панель управления картой">
         <header class="panel__hero">
-          <button id="mobileToggle" class="panel__burger" aria-label="Открыть или закрыть панель">
+          <button
+            id="mobileToggle"
+            class="panel__burger"
+            type="button"
+            aria-label="Открыть или закрыть панель"
+            aria-expanded="false"
+          >
             ☰
           </button>
 
@@ -112,8 +118,8 @@
         <div id="recent" class="recent"></div>
         <div id="compare" class="compare"></div>
 
-        <section id="help" class="help">
-          <div class="help__title">Как пользоваться</div>
+        <details id="help" class="help">
+          <summary class="help__title">Как пользоваться</summary>
           <div class="help__list">
             <div class="help__item">
               <span class="help__tag">Поиск</span>
@@ -128,7 +134,7 @@
               Карточки показывают источник, свежесть, достоверность и предупреждения качества.
             </div>
           </div>
-        </section>
+        </details>
         <section class="results-shell" aria-label="Результаты поиска">
           <div class="results-shell__header">
             <div>
@@ -141,9 +147,24 @@
         </section>
       </aside>
 
-      <button id="mobileToggleFloating" class="mobile-fab" aria-label="Открыть панель">☰</button>
+      <button
+        id="mobileToggleFloating"
+        class="mobile-fab"
+        type="button"
+        aria-label="Открыть панель"
+        aria-expanded="false"
+      >
+        ☰
+      </button>
 
       <main id="mapWrap" class="mapWrap">
+        <button
+          id="panelScrim"
+          class="panel-scrim"
+          type="button"
+          aria-label="Закрыть панель"
+          hidden
+        ></button>
         <div class="map-chrome" aria-hidden="true">
           <div class="map-chrome__title">Спутник + границы + дороги</div>
           <div class="map-chrome__text">Выберите КПП на карте или уточните поиск слева</div>
