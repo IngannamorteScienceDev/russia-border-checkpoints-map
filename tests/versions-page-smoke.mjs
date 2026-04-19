@@ -64,6 +64,61 @@ globalThis.fetch = async (url) => {
     };
   }
 
+  if (href.includes("research_coverage_report.json")) {
+    return {
+      ok: true,
+      async json() {
+        return {
+          schemaVersion: 1,
+          summary: {
+            totalCheckpoints: 2,
+            describedCheckpoints: 1,
+            missingDescriptionCount: 1,
+            descriptionCoveragePercent: 50,
+            withEventCoverage: 1,
+            missingEventCoverage: 1,
+            eventCoveragePercent: 50,
+            officialVerificationCoverage: 0,
+            qualityIssueCount: 1
+          },
+          coverage: {
+            description: { covered: 1, missing: 1, percent: 50 },
+            eventsOrVerification: { covered: 1, missing: 1, percent: 50 },
+            officialVerification: { covered: 0, missing: 2, percent: 0 },
+            workingTime: { covered: 1, missing: 1, percent: 50 }
+          },
+          queues: {
+            missingDescriptions: [
+              {
+                id: "101",
+                name: "Воздушный тест",
+                subject: "Кемеровская область",
+                country: "Не указано"
+              }
+            ],
+            missingEvents: [
+              {
+                id: "101",
+                name: "Воздушный тест",
+                subject: "Кемеровская область",
+                country: "Не указано"
+              }
+            ],
+            qualityIssues: [
+              {
+                id: "101",
+                name: "Воздушный тест",
+                subject: "Кемеровская область",
+                country: "Не указано",
+                issues: ["missing_operational_status"]
+              }
+            ]
+          }
+        };
+      }
+    };
+  }
+
   return {
     ok: true,
     async json() {
@@ -115,6 +170,22 @@ const summaryHtml = elements.get("versionsSummary")?.innerHTML || "";
 
 assert(summaryHtml.includes("versions-quality--warning"), "Quality warning card was not rendered.");
 assert(summaryHtml.includes("Качество данных"), "Quality report heading was not rendered.");
+assert(
+  summaryHtml.includes("Исследовательское покрытие"),
+  "Research coverage report heading was not rendered."
+);
+assert(summaryHtml.includes("1/2 описано"), "Research coverage summary was not rendered.");
+assert(
+  summaryHtml.includes("Без описания") &&
+    summaryHtml.includes("Без событий / сверки") &&
+    summaryHtml.includes("Вопросы к данным"),
+  "Research coverage queues were not rendered."
+);
+assert(
+  summaryHtml.includes("index.html?research=missing-description") &&
+    summaryHtml.includes("index.html?checkpoint=101&amp;q=101"),
+  "Research coverage map links were not rendered."
+);
 assert(
   summaryHtml.includes("101: coordinates have low precision"),
   "Quality warning preview was not rendered."

@@ -228,6 +228,80 @@ function renderQualityReport(report = {}) {
   `;
 }
 
+function renderCoverageMetric(label, item = {}) {
+  return `
+    <div>
+      <span>${escapeHtml(label)}</span>
+      <b>${Number(item.covered || 0)}/${Number((item.covered || 0) + (item.missing || 0))}</b>
+      <small>${Number(item.percent || 0)}%</small>
+    </div>
+  `;
+}
+
+function renderResearchQueuePreview(title, items = [], filterValue = "") {
+  const shownItems = items.slice(0, 6);
+
+  if (!shownItems.length) return "";
+
+  return `
+    <article class="versions-research__queue">
+      <div class="versions-research__queueHeader">
+        <h3>${escapeHtml(title)}</h3>
+        <a href="./index.html?research=${encodeURIComponent(filterValue)}">${items.length} на карте</a>
+      </div>
+      <div class="versions-research__items">
+        ${shownItems
+          .map(
+            (item) => `
+          <a href="./index.html?checkpoint=${encodeURIComponent(item.id)}&amp;q=${encodeURIComponent(item.id)}">
+            <b>${escapeHtml(item.name)}</b>
+            <span>${escapeHtml(item.subject)} · ${escapeHtml(item.country)}</span>
+          </a>
+        `
+          )
+          .join("")}
+      </div>
+    </article>
+  `;
+}
+
+function renderResearchCoverageReport(report = {}) {
+  const summary = report.summary || {};
+  const coverage = report.coverage || {};
+  const queues = report.queues || {};
+  const total = Number(summary.totalCheckpoints || 0);
+  const described = Number(summary.describedCheckpoints || 0);
+  const descriptionPercent = Number(summary.descriptionCoveragePercent || 0);
+
+  if (!total) return "";
+
+  return `
+    <section class="versions-research">
+      <div class="versions-research__header">
+        <div>
+          <h2>Исследовательское покрытие</h2>
+          <p>Показывает, какие КПП уже получили описание, а какие еще требуют сверки источников.</p>
+        </div>
+        <span>${described}/${total} описано</span>
+      </div>
+      <div class="versions-research__progress" aria-label="Покрытие описаниями">
+        <i style="width:${descriptionPercent}%"></i>
+      </div>
+      <div class="versions-research__grid">
+        ${renderCoverageMetric("Описания", coverage.description)}
+        ${renderCoverageMetric("События / сверка", coverage.eventsOrVerification)}
+        ${renderCoverageMetric("Официальная сверка", coverage.officialVerification)}
+        ${renderCoverageMetric("Режим работы", coverage.workingTime)}
+      </div>
+      <div class="versions-research__queues">
+        ${renderResearchQueuePreview("Без описания", queues.missingDescriptions || [], "missing-description")}
+        ${renderResearchQueuePreview("Без событий / сверки", queues.missingEvents || [], "missing-events")}
+        ${renderResearchQueuePreview("Вопросы к данным", queues.qualityIssues || [], "quality-issues")}
+      </div>
+    </section>
+  `;
+}
+
 async function loadChangelog() {
   const response = await fetch(new URL("../data/dataset_changelog.json", import.meta.url), {
     cache: "no-store"
@@ -246,6 +320,15 @@ async function loadQualityReport() {
   return response.json();
 }
 
+async function loadResearchCoverageReport() {
+  const response = await fetch(new URL("../data/research_coverage_report.json", import.meta.url), {
+    cache: "no-store"
+  });
+
+  if (!response.ok) return { summary: { totalCheckpoints: 0 } };
+  return response.json();
+}
+
 function buildVersionId(snapshot) {
   const datePart = snapshot.latestUpdatedAt
     ? snapshot.latestUpdatedAt.slice(0, 10)
@@ -259,6 +342,7 @@ async function initVersionsPage() {
     const features = await loadFeatures({ setProgress: () => {} });
     const changelog = await loadChangelog();
     const qualityReport = await loadQualityReport();
+    const researchCoverageReport = await loadResearchCoverageReport();
     const datasetMeta = buildDatasetMeta(features);
     const snapshot = buildDatasetSnapshot(features, datasetMeta);
     const freshness = getFreshnessInfo(datasetMeta.latestUpdatedAt);
@@ -297,6 +381,7 @@ async function initVersionsPage() {
         <h2>По типам</h2>
         ${renderCountList(byType)}
       </section>
+      ${renderResearchCoverageReport(researchCoverageReport)}
       ${renderQualityReport(qualityReport)}
       ${renderChangelog(changelog.entries || [])}
     `;

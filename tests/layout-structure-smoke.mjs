@@ -106,5 +106,9 @@ assert(
   swSource.includes('"./data/checkpoint_enrichment.json"'),
   "Service worker should precache checkpoint enrichment data."
 );
+assert(
+  swSource.includes('"./data/research_coverage_report.json"'),
+  "Service worker should precache research coverage data."
+);
 
 console.log("layout structure smoke test passed");

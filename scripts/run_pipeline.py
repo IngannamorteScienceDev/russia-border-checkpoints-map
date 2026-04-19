@@ -6,6 +6,8 @@ from pathlib import Path
 GENERATED_FILES = [
     Path("data/checkpoints_v1.csv"),
     Path("data/checkpoints.geojson"),
+    Path("data/data_quality_report.json"),
+    Path("data/research_coverage_report.json"),
     Path("frontend/data/checkpoints.geojson"),
 ]
 
@@ -15,6 +17,10 @@ PIPELINE_STEPS = [
     ("STEP 3. Build final GeoJSON", ["python", "scripts/02_build_geojson.py"]),
     ("STEP 4. Update dataset changelog", ["python", "scripts/03_update_changelog.py"]),
     ("STEP 5. Write data quality report", ["python", "scripts/04_write_quality_report.py"]),
+    (
+        "STEP 6. Write research coverage report",
+        ["python", "scripts/05_write_research_coverage_report.py"],
+    ),
 ]
 
 

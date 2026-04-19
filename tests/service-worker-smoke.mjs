@@ -24,6 +24,10 @@ assert(
   "App shell should include checkpoint enrichment data."
 );
 assert(
+  appShellUrls.includes("./data/research_coverage_report.json"),
+  "App shell should include research coverage data."
+);
+assert(
   appShellUrls.includes("./data/dataset_changelog.json"),
   "App shell should include dataset changelog."
 );

@@ -21,6 +21,10 @@ from pipeline_validation import (  # noqa: E402
     validate_raw_payload,
     validate_rows,
 )
+from research_coverage import (  # noqa: E402
+    build_research_coverage_report,
+    validate_research_coverage_report,
+)
 
 
 def make_row(**overrides):
@@ -232,6 +236,65 @@ class PipelineValidationTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValidationError, "current GeoJSON"):
             validate_dataset_changelog(changelog, stale_geojson)
+
+    def test_build_research_coverage_report_counts_gaps(self):
+        geojson = make_geojson(
+            [
+                make_feature(properties={"checkpoint_id": "101", "working_time": "24/7"}),
+                make_feature(
+                    properties={
+                        "checkpoint_id": "202",
+                        "checkpoint_name": "Second checkpoint",
+                        "working_time": "",
+                        "is_functional": "",
+                    }
+                ),
+            ]
+        )
+        enrichment = {
+            "schemaVersion": 1,
+            "records": [
+                {
+                    "checkpointId": "101",
+                    "kind": "description",
+                    "title": "Description",
+                    "summary": "Covered checkpoint.",
+                },
+                {
+                    "checkpointId": "101",
+                    "kind": "official_verification",
+                    "title": "Verified",
+                    "summary": "Matched with a source.",
+                },
+            ],
+        }
+
+        report = build_research_coverage_report(
+            geojson,
+            enrichment,
+            generated_at="2026-04-19T00:00:00+00:00",
+        )
+
+        self.assertEqual(report["summary"]["totalCheckpoints"], 2)
+        self.assertEqual(report["summary"]["describedCheckpoints"], 1)
+        self.assertEqual(report["summary"]["missingDescriptionCount"], 1)
+        self.assertEqual(report["summary"]["withEventCoverage"], 1)
+        self.assertEqual(report["coverage"]["workingTime"]["missing"], 1)
+        self.assertEqual(report["queues"]["missingDescriptions"][0]["id"], "202")
+        self.assertEqual(validate_research_coverage_report(report, geojson, enrichment), 2)
+
+    def test_validate_research_coverage_report_accepts_current_file(self):
+        geojson = json.loads(
+            (ROOT / "data/checkpoints.geojson").read_text(encoding="utf-8")
+        )
+        enrichment = json.loads(
+            (ROOT / "data/checkpoint_enrichment.json").read_text(encoding="utf-8")
+        )
+        report = json.loads(
+            (ROOT / "data/research_coverage_report.json").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(validate_research_coverage_report(report, geojson, enrichment), 385)
 
 
 if __name__ == "__main__":

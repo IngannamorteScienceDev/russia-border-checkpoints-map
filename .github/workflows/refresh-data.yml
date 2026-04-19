@@ -43,13 +43,21 @@ jobs:
           from pathlib import Path
 
           report = json.loads(Path("data/data_quality_report.json").read_text(encoding="utf-8"))
+          research = json.loads(Path("data/research_coverage_report.json").read_text(encoding="utf-8"))
           summary = report.get("summary", {})
+          research_summary = research.get("summary", {})
           warnings = report.get("warnings") or []
           lines = [
               f"- Checked records: {summary.get('checked', 0)}",
               f"- Blocking errors: {summary.get('errorCount', 0)}",
               f"- Warnings: {summary.get('warningCount', 0)}",
               f"- Dataset version: {report.get('datasetVersion', 'unknown')}",
+              "",
+              "Research coverage:",
+              f"- Descriptions: {research_summary.get('describedCheckpoints', 0)}/{research_summary.get('totalCheckpoints', 0)}",
+              f"- Missing descriptions: {research_summary.get('missingDescriptionCount', 0)}",
+              f"- Missing events or verification: {research_summary.get('missingEventCoverage', 0)}",
+              f"- Quality issue queue: {research_summary.get('qualityIssueCount', 0)}",
           ]
 
           if warnings:

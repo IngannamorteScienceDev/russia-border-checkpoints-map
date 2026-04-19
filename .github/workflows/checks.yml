@@ -31,6 +31,11 @@ jobs:
       - name: Rebuild GeoJSON
         run: python scripts/02_build_geojson.py
 
+      - name: Rebuild data reports
+        run: |
+          python scripts/04_write_quality_report.py
+          python scripts/05_write_research_coverage_report.py
+
   frontend-smoke:
     runs-on: ubuntu-latest
 
