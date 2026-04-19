@@ -121,6 +121,12 @@ export function renderStats({
   const hiddenCount = Math.max(allFeatures.length - viewFeatures.length, 0);
   const latestUpdatedLabel = datasetMeta?.latestUpdatedLabel || "Дата не указана";
   const filtersLabel = activeFilterCount ? `${activeFilterCount}` : "0";
+  const describedCount = allFeatures.filter(
+    (feature) => feature.properties?.__hasDescription
+  ).length;
+  const eventCount = allFeatures.filter(
+    (feature) => Number(feature.properties?.__enrichmentEventCount) > 0
+  ).length;
 
   statsEl.innerHTML = `
     <div class="stats__grid">
@@ -143,6 +149,8 @@ export function renderStats({
     </div>
     <div class="stats__meta">
       <span>Обновлено: <b>${latestUpdatedLabel}</b></span>
+      <span>Описаний: <b>${describedCount}/${allFeatures.length}</b></span>
+      <span>Событий: <b>${eventCount}</b></span>
       <span>Активных фильтров: <b>${filtersLabel}</b></span>
       <span>Избранных: <b>${favoriteCount}</b></span>
       <span>Скрыто: <b>${hiddenCount}</b></span>

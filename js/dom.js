@@ -17,6 +17,7 @@ export function getDomElements() {
     legalStatusEl: el("legalStatusFilter"),
     patternEl: el("patternFilter"),
     corridorEl: el("corridorFilter"),
+    researchEl: el("researchFilter"),
     presetsEl: el("quickPresets"),
     sortEl: el("sortOrder"),
     nearestBtnEl: el("nearestBtn"),

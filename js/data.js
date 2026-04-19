@@ -329,7 +329,8 @@ export function filterFeatures(
     district = "all",
     legalStatus = "all",
     pattern = "all",
-    corridor = "all"
+    corridor = "all",
+    research = "all"
   }
 ) {
   const normalizedQuery = norm(query);
@@ -346,6 +347,9 @@ export function filterFeatures(
     if (legalStatus !== "all" && extra.legalStatus !== legalStatus) return false;
     if (pattern !== "all" && extra.checkpointPattern !== pattern) return false;
     if (corridor !== "all" && extra.transportCorridor !== corridor) return false;
+    if (research === "described" && !props.__hasDescription) return false;
+    if (research === "missing-description" && props.__hasDescription) return false;
+    if (research === "events" && !props.__enrichmentEventCount) return false;
     if (!normalizedQuery) return true;
 
     return [props.__search, props.__enrichmentSearch]

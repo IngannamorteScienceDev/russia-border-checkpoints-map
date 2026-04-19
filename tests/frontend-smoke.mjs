@@ -679,6 +679,7 @@ const districtFilter = elements.get("districtFilter");
 const legalStatusFilter = elements.get("legalStatusFilter");
 const patternFilter = elements.get("patternFilter");
 const corridorFilter = elements.get("corridorFilter");
+const researchFilter = elements.get("researchFilter");
 const resetFiltersButton = elements.get("resetFilters");
 const styleToggleButton = elements.get("styleToggle");
 const boundariesToggleButton = elements.get("boundariesToggle");
@@ -720,6 +721,14 @@ if (panelEl?.classList.contains("open")) {
 
 if (!statsHtml.includes("Всего КПП") || !statsHtml.includes("Обновлено")) {
   throw new Error("Stats block was not rendered.");
+}
+
+if (
+  !statsHtml.includes("Описаний") ||
+  !statsHtml.includes("1/2") ||
+  !statsHtml.includes("Событий")
+) {
+  throw new Error("Research coverage stats were not rendered.");
 }
 
 if (offlineStatus?.hidden !== false || !offlineStatus?.textContent.includes("Офлайн")) {
@@ -1078,7 +1087,8 @@ if (
   typeof districtFilter?.onchange !== "function" ||
   typeof legalStatusFilter?.onchange !== "function" ||
   typeof patternFilter?.onchange !== "function" ||
-  typeof corridorFilter?.onchange !== "function"
+  typeof corridorFilter?.onchange !== "function" ||
+  typeof researchFilter?.onchange !== "function"
 ) {
   throw new Error("Advanced checkpoint filters were not wired.");
 }
@@ -1244,6 +1254,33 @@ if (
 
 resetFiltersButton.onclick?.();
 
+researchFilter.value = "described";
+researchFilter.onchange?.();
+
+if (new URL(window.location.href).searchParams.get("research") !== "described") {
+  throw new Error("Research coverage filter was not synchronized to URL.");
+}
+
+const describedListHtml = elements.get("list")?.innerHTML || "";
+if (!describedListHtml.includes("Тестовый КПП") || describedListHtml.includes("Воздушный тест")) {
+  throw new Error("Research coverage filter did not keep described checkpoints.");
+}
+
+resetFiltersButton.onclick?.();
+
+researchFilter.value = "missing-description";
+researchFilter.onchange?.();
+
+const missingDescriptionListHtml = elements.get("list")?.innerHTML || "";
+if (
+  !missingDescriptionListHtml.includes("Воздушный тест") ||
+  missingDescriptionListHtml.includes("Тестовый КПП")
+) {
+  throw new Error("Research coverage filter did not keep checkpoints missing descriptions.");
+}
+
+resetFiltersButton.onclick?.();
+
 const finalUrl = new URL(window.location.href);
 
 if (
@@ -1254,6 +1291,7 @@ if (
   finalUrl.searchParams.get("legal") !== null ||
   finalUrl.searchParams.get("profile") !== null ||
   finalUrl.searchParams.get("corridor") !== null ||
+  finalUrl.searchParams.get("research") !== null ||
   finalUrl.searchParams.get("checkpoint") !== null
 ) {
   throw new Error("Reset filters did not clear filter state from URL.");

@@ -61,6 +61,8 @@ const expectedStatsSnapshot = normalize(`
   </div>
   <div class="stats__meta">
     <span>Обновлено: <b>19 января 2026 г.</b></span>
+    <span>Описаний: <b>0/2</b></span>
+    <span>Событий: <b>0</b></span>
     <span>Активных фильтров: <b>3</b></span>
     <span>Избранных: <b>1</b></span>
     <span>Скрыто: <b>1</b></span>

@@ -151,6 +151,8 @@ export function applyFeatureEnrichmentToFeatures(features = [], index) {
         __descriptionPreview: createPreview(description),
         __enrichmentSearch: recordsToSearchText(enrichment.records),
         __hasDescription: Boolean(description),
+        __enrichmentEventCount:
+          enrichment.verificationRecords.length + enrichment.eventRecords.length,
         __enrichmentRecordCount: enrichment.records.length
       }
     };

@@ -8,6 +8,7 @@ const FILTER_PARAM_MAP = {
   legalStatus: "legal",
   pattern: "profile",
   corridor: "corridor",
+  research: "research",
   sort: "sort"
 };
 const CHECKPOINT_PARAM = "checkpoint";
@@ -89,6 +90,7 @@ export function applyFilterStateFromUrl(dom) {
   setSelectValue(dom.legalStatusEl, url.searchParams.get(FILTER_PARAM_MAP.legalStatus));
   setSelectValue(dom.patternEl, url.searchParams.get(FILTER_PARAM_MAP.pattern));
   setSelectValue(dom.corridorEl, url.searchParams.get(FILTER_PARAM_MAP.corridor));
+  setSelectValue(dom.researchEl, url.searchParams.get(FILTER_PARAM_MAP.research));
   setSelectValue(dom.sortEl, url.searchParams.get(FILTER_PARAM_MAP.sort), "country");
 }
 
@@ -104,6 +106,7 @@ export function syncFilterStateToUrl(dom) {
       legalStatus: dom.legalStatusEl?.value || "all",
       pattern: dom.patternEl?.value || "all",
       corridor: dom.corridorEl?.value || "all",
+      research: dom.researchEl?.value || "all",
       sort: dom.sortEl.value === "country" ? "" : dom.sortEl.value
     };
 

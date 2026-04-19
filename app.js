@@ -467,6 +467,7 @@ function getActiveFilterCount() {
     activeSelectValue(dom.legalStatusEl),
     activeSelectValue(dom.patternEl),
     activeSelectValue(dom.corridorEl),
+    activeSelectValue(dom.researchEl),
     state.showFavoritesOnly ? "favorites" : "",
     state.showViewportOnly ? "viewport" : ""
   ].filter(Boolean);
@@ -616,7 +617,8 @@ function applyFilters() {
     district: dom.districtEl?.value || "all",
     legalStatus: dom.legalStatusEl?.value || "all",
     pattern: dom.patternEl?.value || "all",
-    corridor: dom.corridorEl?.value || "all"
+    corridor: dom.corridorEl?.value || "all",
+    research: dom.researchEl?.value || "all"
   });
 
   state.viewFeatures = state.showFavoritesOnly
@@ -663,6 +665,7 @@ function resetFilters() {
   if (dom.legalStatusEl) dom.legalStatusEl.value = "all";
   if (dom.patternEl) dom.patternEl.value = "all";
   if (dom.corridorEl) dom.corridorEl.value = "all";
+  if (dom.researchEl) dom.researchEl.value = "all";
   state.showFavoritesOnly = false;
   state.showViewportOnly = false;
   applyFilters();
@@ -897,9 +900,11 @@ function attachUi() {
   dom.statusEl.onchange = applyFilters;
   dom.countryEl.onchange = applyFilters;
   dom.subjectEl.onchange = applyFilters;
-  [dom.districtEl, dom.legalStatusEl, dom.patternEl, dom.corridorEl].forEach((filterEl) => {
-    if (filterEl) filterEl.onchange = applyFilters;
-  });
+  [dom.districtEl, dom.legalStatusEl, dom.patternEl, dom.corridorEl, dom.researchEl].forEach(
+    (filterEl) => {
+      if (filterEl) filterEl.onchange = applyFilters;
+    }
+  );
   dom.presetsEl.onclick = (event) => {
     applyQuickPreset(event.target?.dataset?.preset);
   };

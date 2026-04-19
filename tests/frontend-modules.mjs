@@ -32,7 +32,7 @@ let replacedUrl = "";
 
 globalThis.window = {
   location: {
-    href: "https://example.test/map?q=test&type=Автомобильный&status=Действует&country=Китай&subject=Приморский%20край&district=east&legal=multi&profile=cargo&corridor=mtk&sort=distance&lng=200&lat=95&zoom=30&sat=yes"
+    href: "https://example.test/map?q=test&type=Автомобильный&status=Действует&country=Китай&subject=Приморский%20край&district=east&legal=multi&profile=cargo&corridor=mtk&research=described&sort=distance&lng=200&lat=95&zoom=30&sat=yes"
   },
   history: {
     replaceState(_state, _title, nextUrl) {
@@ -149,6 +149,7 @@ const dom = {
   legalStatusEl: createSelect("all", ["multi"]),
   patternEl: createSelect("all", ["cargo"]),
   corridorEl: createSelect("all", ["mtk"]),
+  researchEl: createSelect("all", ["described", "missing-description", "events"]),
   sortEl: createSelect("country", ["country", "name", "distance"])
 };
 
@@ -161,6 +162,7 @@ assert(dom.districtEl.value === "east", "URL district filter was not applied.");
 assert(dom.legalStatusEl.value === "multi", "URL legal-status filter was not applied.");
 assert(dom.patternEl.value === "cargo", "URL checkpoint profile filter was not applied.");
 assert(dom.corridorEl.value === "mtk", "URL corridor filter was not applied.");
+assert(dom.researchEl.value === "described", "URL research coverage filter was not applied.");
 assert(dom.sortEl.value === "distance", "URL sort mode was not applied.");
 
 const mapView = getMapViewStateFromUrl({ center: [90, 61], zoom: 4 });
@@ -191,7 +193,8 @@ assert(
   filterUrl.searchParams.get("district") === "east" &&
     filterUrl.searchParams.get("legal") === "multi" &&
     filterUrl.searchParams.get("profile") === "cargo" &&
-    filterUrl.searchParams.get("corridor") === "mtk",
+    filterUrl.searchParams.get("corridor") === "mtk" &&
+    filterUrl.searchParams.get("research") === "described",
   "Advanced filters should be synchronized to URL."
 );
 
@@ -270,6 +273,8 @@ const indexedFeatures = [
     properties: {
       __search: "100 beta приморский край тестовый адрес круглосуточно дальневосточный филиал",
       __enrichmentSearch: "исследовательское описание электронная очередь",
+      __hasDescription: true,
+      __enrichmentEventCount: 1,
       __extra: {
         federalDistrict: "east",
         legalStatus: "multi",
@@ -281,6 +286,8 @@ const indexedFeatures = [
   {
     properties: {
       __search: "101 alpha кемеровская область",
+      __hasDescription: false,
+      __enrichmentEventCount: 0,
       __extra: {
         federalDistrict: "west",
         legalStatus: "bilateral",
@@ -363,6 +370,42 @@ assert(
     corridor: "mtk"
   }).length === 0,
   "Advanced checkpoint filters should combine with AND semantics."
+);
+
+assert(
+  filterFeatures(indexedFeatures, {
+    query: "",
+    type: "all",
+    status: "all",
+    country: "all",
+    subject: "all",
+    research: "described"
+  }).length === 1,
+  "Research filter should keep checkpoints with descriptions."
+);
+
+assert(
+  filterFeatures(indexedFeatures, {
+    query: "",
+    type: "all",
+    status: "all",
+    country: "all",
+    subject: "all",
+    research: "missing-description"
+  }).length === 1,
+  "Research filter should keep checkpoints missing descriptions."
+);
+
+assert(
+  filterFeatures(indexedFeatures, {
+    query: "",
+    type: "all",
+    status: "all",
+    country: "all",
+    subject: "all",
+    research: "events"
+  }).length === 1,
+  "Research filter should keep checkpoints with event enrichment."
 );
 
 const listEl = createListElement();
