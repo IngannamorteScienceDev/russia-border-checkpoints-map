@@ -1,3 +1,5 @@
+import { getQualityFlags } from "./quality.js";
+
 function norm(value) {
   return String(value || "")
     .toLowerCase()
@@ -350,6 +352,8 @@ export function filterFeatures(
     if (research === "described" && !props.__hasDescription) return false;
     if (research === "missing-description" && props.__hasDescription) return false;
     if (research === "events" && !props.__enrichmentEventCount) return false;
+    if (research === "missing-events" && props.__enrichmentEventCount) return false;
+    if (research === "quality-issues" && !getQualityFlags(feature).length) return false;
     if (!normalizedQuery) return true;
 
     return [props.__search, props.__enrichmentSearch]

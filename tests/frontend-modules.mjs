@@ -149,7 +149,13 @@ const dom = {
   legalStatusEl: createSelect("all", ["multi"]),
   patternEl: createSelect("all", ["cargo"]),
   corridorEl: createSelect("all", ["mtk"]),
-  researchEl: createSelect("all", ["described", "missing-description", "events"]),
+  researchEl: createSelect("all", [
+    "described",
+    "missing-description",
+    "events",
+    "missing-events",
+    "quality-issues"
+  ]),
   sortEl: createSelect("country", ["country", "name", "distance"])
 };
 
@@ -273,9 +279,13 @@ const indexedFeatures = [
     properties: {
       __search: "100 beta приморский край тестовый адрес круглосуточно дальневосточный филиал",
       __enrichmentSearch: "исследовательское описание электронная очередь",
+      __status: "Действует",
+      __coords: "10.00000, 10.00000",
       __hasDescription: true,
       __enrichmentEventCount: 1,
       __extra: {
+        source: "https://example.test/source",
+        updatedAt: "2026-01-01T00:00:00Z",
         federalDistrict: "east",
         legalStatus: "multi",
         checkpointPattern: "cargo",
@@ -286,6 +296,8 @@ const indexedFeatures = [
   {
     properties: {
       __search: "101 alpha кемеровская область",
+      __status: "Действует",
+      __coords: "1.00000, 1.00000",
       __hasDescription: false,
       __enrichmentEventCount: 0,
       __extra: {
@@ -406,6 +418,30 @@ assert(
     research: "events"
   }).length === 1,
   "Research filter should keep checkpoints with event enrichment."
+);
+
+assert(
+  filterFeatures(indexedFeatures, {
+    query: "",
+    type: "all",
+    status: "all",
+    country: "all",
+    subject: "all",
+    research: "missing-events"
+  }).length === 1,
+  "Research filter should keep checkpoints missing event enrichment."
+);
+
+assert(
+  filterFeatures(indexedFeatures, {
+    query: "",
+    type: "all",
+    status: "all",
+    country: "all",
+    subject: "all",
+    research: "quality-issues"
+  }).length === 1,
+  "Research filter should keep checkpoints with quality issues."
 );
 
 const listEl = createListElement();

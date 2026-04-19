@@ -36,6 +36,7 @@ export function getDomElements() {
     compareEl: el("compare"),
     legendEl: el("legend"),
     statsEl: el("stats"),
+    researchQueueEl: el("researchQueue"),
     listEl: el("list"),
     emptyEl: el("emptyState"),
     loaderEl: el("loader"),

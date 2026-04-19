@@ -1,4 +1,4 @@
-import { renderShareSheet, renderStats } from "../js/render.js";
+import { renderResearchQueue, renderShareSheet, renderStats } from "../js/render.js";
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -21,6 +21,7 @@ function normalize(html) {
   return html
     .replace(/src="data:image\/svg\+xml[^"]+"/, 'src="<qr>"')
     .replace(/\s+/g, " ")
+    .replace(/\s+>/g, ">")
     .replace(/> </g, "><")
     .trim();
 }
@@ -70,6 +71,89 @@ const expectedStatsSnapshot = normalize(`
 `);
 
 assert(statsSnapshot === expectedStatsSnapshot, "Stats visual snapshot changed.");
+
+const researchQueueEl = createElement();
+renderResearchQueue({
+  queueEl: researchQueueEl,
+  allFeatures: [
+    {
+      properties: {
+        __hasDescription: true,
+        __enrichmentEventCount: 1,
+        __status: "Действует",
+        __coords: "10.00000, 10.00000",
+        __extra: {
+          source: "https://example.test/source",
+          updatedAt: "2026-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      properties: {
+        __hasDescription: false,
+        __enrichmentEventCount: 0,
+        __status: "Неизвестно",
+        __coords: "—",
+        __extra: {}
+      }
+    }
+  ],
+  viewFeatures: [{}],
+  activeResearchFilter: "missing-description",
+  onFilter() {}
+});
+
+const researchQueueSnapshot = normalize(researchQueueEl.innerHTML);
+const expectedResearchQueueSnapshot = normalize(`
+  <div class="research-queue__header">
+    <div>
+      <div class="research-queue__kicker">Исследовательская очередь</div>
+      <h2>Что проверить дальше</h2>
+    </div>
+    <span>1/2</span>
+  </div>
+  <div class="research-queue__progress" aria-label="Покрытие описаниями">
+    <div class="research-queue__progressTop">
+      <span>Покрытие описаниями</span>
+      <b>50%</b>
+    </div>
+    <div class="research-queue__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+      <i style="width:50%"></i>
+    </div>
+  </div>
+  <div class="research-queue__tasks">
+    <button class="research-queue__task research-queue__task--warning is-active" type="button" data-research-filter="missing-description" aria-pressed="true">
+      <span>
+        <b>Нужно описание</b>
+        <small>КПП без исследовательской карточки</small>
+      </span>
+      <strong>1</strong>
+    </button>
+    <button class="research-queue__task research-queue__task--warning" type="button" data-research-filter="missing-events" aria-pressed="false">
+      <span>
+        <b>Нет событий / сверки</b>
+        <small>Нет привязанных новостей, сверок или заметок</small>
+      </span>
+      <strong>1</strong>
+    </button>
+    <button class="research-queue__task research-queue__task--danger" type="button" data-research-filter="quality-issues" aria-pressed="false">
+      <span>
+        <b>Вопросы к данным</b>
+        <small>Неполные источник, дата, статус или координаты</small>
+      </span>
+      <strong>1</strong>
+    </button>
+    <button class="research-queue__task research-queue__task--good" type="button" data-research-filter="described" aria-pressed="false">
+      <span>
+        <b>Готово к чтению</b>
+        <small>КПП с готовым описанием</small>
+      </span>
+      <strong>1</strong>
+    </button>
+  </div>
+`);
+
+assert(researchQueueSnapshot === expectedResearchQueueSnapshot, "Research queue snapshot changed.");
 
 const shareSheetEl = createElement();
 renderShareSheet({

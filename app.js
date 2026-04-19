@@ -32,6 +32,7 @@ import {
   renderList,
   renderNearestOpen,
   renderRecent,
+  renderResearchQueue,
   renderShareSheet,
   renderStats
 } from "./js/render.js";
@@ -287,6 +288,14 @@ function renderAll() {
     datasetMeta: state.datasetMeta,
     activeFilterCount: getActiveFilterCount(),
     favoriteCount: getFavoriteCount()
+  });
+
+  renderResearchQueue({
+    queueEl: dom.researchQueueEl,
+    allFeatures: state.allFeatures,
+    viewFeatures: state.viewFeatures,
+    activeResearchFilter: dom.researchEl?.value || "all",
+    onFilter: setResearchFilter
   });
 
   renderList({
@@ -604,6 +613,12 @@ function applyQuickPreset(presetName) {
 
   setSelectIfAllowed(dom.typeEl, preset.type);
   setSelectIfAllowed(dom.statusEl, preset.status);
+  applyFilters();
+}
+
+function setResearchFilter(value) {
+  if (!dom.researchEl) return;
+  setSelectIfAllowed(dom.researchEl, value);
   applyFilters();
 }
 

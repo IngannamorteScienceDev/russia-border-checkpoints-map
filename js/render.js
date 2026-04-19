@@ -158,6 +158,115 @@ export function renderStats({
   `;
 }
 
+function percentOf(part, total) {
+  if (!total) return 0;
+  return Math.round((part / total) * 100);
+}
+
+export function renderResearchQueue({
+  queueEl,
+  allFeatures = [],
+  viewFeatures = [],
+  activeResearchFilter = "all",
+  onFilter
+}) {
+  if (!queueEl) return;
+
+  if (!allFeatures.length) {
+    queueEl.innerHTML = "";
+    queueEl.style.display = "none";
+    return;
+  }
+
+  const total = allFeatures.length;
+  const describedCount = allFeatures.filter(
+    (feature) => feature.properties?.__hasDescription
+  ).length;
+  const eventCount = allFeatures.filter(
+    (feature) => Number(feature.properties?.__enrichmentEventCount) > 0
+  ).length;
+  const qualityIssueCount = allFeatures.filter((feature) => getQualityFlags(feature).length).length;
+  const missingDescriptionCount = total - describedCount;
+  const missingEventCount = total - eventCount;
+  const descriptionPercent = percentOf(describedCount, total);
+
+  const tasks = [
+    {
+      id: "missing-description",
+      label: "Нужно описание",
+      count: missingDescriptionCount,
+      hint: "КПП без исследовательской карточки",
+      tone: "warning"
+    },
+    {
+      id: "missing-events",
+      label: "Нет событий / сверки",
+      count: missingEventCount,
+      hint: "Нет привязанных новостей, сверок или заметок",
+      tone: "warning"
+    },
+    {
+      id: "quality-issues",
+      label: "Вопросы к данным",
+      count: qualityIssueCount,
+      hint: "Неполные источник, дата, статус или координаты",
+      tone: "danger"
+    },
+    {
+      id: "described",
+      label: "Готово к чтению",
+      count: describedCount,
+      hint: "КПП с готовым описанием",
+      tone: "good"
+    }
+  ];
+
+  queueEl.innerHTML = `
+    <div class="research-queue__header">
+      <div>
+        <div class="research-queue__kicker">Исследовательская очередь</div>
+        <h2>Что проверить дальше</h2>
+      </div>
+      <span>${viewFeatures.length}/${total}</span>
+    </div>
+    <div class="research-queue__progress" aria-label="Покрытие описаниями">
+      <div class="research-queue__progressTop">
+        <span>Покрытие описаниями</span>
+        <b>${descriptionPercent}%</b>
+      </div>
+      <div class="research-queue__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${descriptionPercent}">
+        <i style="width:${descriptionPercent}%"></i>
+      </div>
+    </div>
+    <div class="research-queue__tasks">
+      ${tasks
+        .map(
+          (task) => `
+        <button
+          class="research-queue__task research-queue__task--${task.tone}${activeResearchFilter === task.id ? " is-active" : ""}"
+          type="button"
+          data-research-filter="${task.id}"
+          aria-pressed="${activeResearchFilter === task.id ? "true" : "false"}"
+        >
+          <span>
+            <b>${task.label}</b>
+            <small>${task.hint}</small>
+          </span>
+          <strong>${task.count}</strong>
+        </button>
+      `
+        )
+        .join("")}
+    </div>
+  `;
+
+  queueEl.querySelectorAll("[data-research-filter]").forEach((node) => {
+    node.onclick = () => onFilter?.(node.dataset.researchFilter);
+  });
+
+  queueEl.style.display = "block";
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replaceAll("&", "&amp;")

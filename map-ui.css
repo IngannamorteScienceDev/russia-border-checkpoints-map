@@ -29,6 +29,7 @@
 .app--research .panel-card,
 .app--research .results-shell,
 .app--research .stats,
+.app--research .research-queue,
 .app--research .help,
 .app--research .dataset-changes,
 .app--research .recent,
@@ -207,6 +208,139 @@
   gap: 7px 10px;
   color: #64746d;
   font-size: 12px;
+}
+
+.app--research .research-queue {
+  padding: 12px;
+}
+
+.app--research .research-queue__header,
+.app--research .research-queue__progressTop,
+.app--research .research-queue__task {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.app--research .research-queue__header h2 {
+  margin: 3px 0 0;
+  color: #10251f;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.app--research .research-queue__header > span {
+  flex: 0 0 auto;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.08);
+  color: #0f766e;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.app--research .research-queue__kicker {
+  color: #0f766e;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app--research .research-queue__progress {
+  margin-top: 10px;
+}
+
+.app--research .research-queue__progressTop {
+  color: #64746d;
+  font-size: 12px;
+}
+
+.app--research .research-queue__progressTop b {
+  color: #10251f;
+}
+
+.app--research .research-queue__bar {
+  height: 9px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.1);
+}
+
+.app--research .research-queue__bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0f766e, #f59e0b);
+}
+
+.app--research .research-queue__tasks {
+  display: grid;
+  gap: 8px;
+  margin-top: 11px;
+}
+
+.app--research .research-queue__task {
+  width: 100%;
+  min-height: 58px;
+  border: 1px solid rgba(26, 58, 49, 0.1);
+  border-radius: 16px;
+  background: rgba(248, 250, 246, 0.8);
+  color: #17231f;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app--research .research-queue__task:hover,
+.app--research .research-queue__task.is-active {
+  border-color: rgba(15, 118, 110, 0.32);
+  background: rgba(15, 118, 110, 0.1);
+}
+
+.app--research .research-queue__task b,
+.app--research .research-queue__task small {
+  display: block;
+}
+
+.app--research .research-queue__task b {
+  color: #10251f;
+  font-size: 13px;
+}
+
+.app--research .research-queue__task small {
+  margin-top: 3px;
+  color: #64746d;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.app--research .research-queue__task strong {
+  flex: 0 0 auto;
+  min-width: 34px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f766e;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.app--research .research-queue__task--warning strong {
+  background: rgba(245, 158, 11, 0.14);
+  color: #92400e;
+}
+
+.app--research .research-queue__task--danger strong {
+  background: rgba(220, 38, 38, 0.12);
+  color: #991b1b;
+}
+
+.app--research .research-queue__task--good strong {
+  background: rgba(22, 163, 74, 0.12);
+  color: #166534;
 }
 
 .app--research .results-shell {
@@ -950,6 +1084,7 @@ html[data-theme="dark"] .app--research .panel-card,
 html[data-theme="dark"] .app--research .advanced-filters,
 html[data-theme="dark"] .app--research .results-shell,
 html[data-theme="dark"] .app--research .stats,
+html[data-theme="dark"] .app--research .research-queue,
 html[data-theme="dark"] .app--research .help,
 html[data-theme="dark"] .app--research .dataset-changes,
 html[data-theme="dark"] .app--research .recent,
@@ -967,7 +1102,8 @@ html[data-theme="dark"] .app--research .panel__hero {
 }
 
 html[data-theme="dark"] .app--research .panel__eyebrow,
-html[data-theme="dark"] .app--research .panel-card__kicker {
+html[data-theme="dark"] .app--research .panel-card__kicker,
+html[data-theme="dark"] .app--research .research-queue__kicker {
   color: #5eead4;
 }
 
@@ -976,6 +1112,7 @@ html[data-theme="dark"] .app--research .panel-card h2,
 html[data-theme="dark"] .app--research .results-shell h2,
 html[data-theme="dark"] .app--research .map-dock h2,
 html[data-theme="dark"] .app--research .advanced-filters__title,
+html[data-theme="dark"] .app--research .research-queue__header h2,
 html[data-theme="dark"] .app--research .help__title,
 html[data-theme="dark"] .app--research .recent__title,
 html[data-theme="dark"] .app--research .nearest-open__title,
@@ -991,6 +1128,8 @@ html[data-theme="dark"] .app--research .field span,
 html[data-theme="dark"] .app--research .advanced-filters__title small,
 html[data-theme="dark"] .app--research .stats__label,
 html[data-theme="dark"] .app--research .stats__meta,
+html[data-theme="dark"] .app--research .research-queue__progressTop,
+html[data-theme="dark"] .app--research .research-queue__task small,
 html[data-theme="dark"] .app--research .help__item,
 html[data-theme="dark"] .app--research .item__context,
 html[data-theme="dark"] .app--research .item__description,
@@ -1075,6 +1214,7 @@ html[data-theme="dark"] .app--research .help__title::after {
 }
 
 html[data-theme="dark"] .app--research .stats__card,
+html[data-theme="dark"] .app--research .research-queue__task,
 html[data-theme="dark"] .app--research .help__item,
 html[data-theme="dark"] .app--research .recent__item,
 html[data-theme="dark"] .app--research .nearest-open__card,
@@ -1108,6 +1248,8 @@ html[data-theme="dark"] .app--research .checkpoint-passport__fold {
 }
 
 html[data-theme="dark"] .app--research .stats__value,
+html[data-theme="dark"] .app--research .research-queue__progressTop b,
+html[data-theme="dark"] .app--research .research-queue__task b,
 html[data-theme="dark"] .app--research .dataset-changes__grid b,
 html[data-theme="dark"] .app--research .group,
 html[data-theme="dark"] .app--research .item__meta,
@@ -1154,6 +1296,28 @@ html[data-theme="dark"] .app--research .checkpoint-passport__fold summary {
 html[data-theme="dark"] .app--research .checkpoint-passport__fold summary::after {
   background: rgba(20, 184, 166, 0.12);
   color: #99f6e4;
+}
+
+html[data-theme="dark"] .app--research .research-queue__header > span,
+html[data-theme="dark"] .app--research .research-queue__task strong {
+  border-color: rgba(94, 234, 212, 0.18);
+  background: rgba(20, 184, 166, 0.14);
+  color: #99f6e4;
+}
+
+html[data-theme="dark"] .app--research .research-queue__task--warning strong {
+  background: rgba(120, 53, 15, 0.28);
+  color: #fde68a;
+}
+
+html[data-theme="dark"] .app--research .research-queue__task--danger strong {
+  background: rgba(127, 29, 29, 0.26);
+  color: #fecaca;
+}
+
+html[data-theme="dark"] .app--research .research-queue__task--good strong {
+  background: rgba(22, 101, 52, 0.24);
+  color: #bbf7d0;
 }
 
 html[data-theme="dark"] .app--research .checkpoint-passport__metric--high {

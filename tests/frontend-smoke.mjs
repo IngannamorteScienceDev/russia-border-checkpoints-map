@@ -649,6 +649,7 @@ await import(new URL("../app.js", import.meta.url));
 await new Promise((resolve) => setTimeout(resolve, 0));
 
 const statsHtml = elements.get("stats")?.innerHTML || "";
+const researchQueueHtml = elements.get("researchQueue")?.innerHTML || "";
 const listHtml = elements.get("list")?.innerHTML || "";
 const recentHtml = elements.get("recent")?.innerHTML || "";
 const compareHtml = elements.get("compare")?.innerHTML || "";
@@ -729,6 +730,18 @@ if (
   !statsHtml.includes("Событий")
 ) {
   throw new Error("Research coverage stats were not rendered.");
+}
+
+if (
+  !researchQueueHtml.includes("Исследовательская очередь") ||
+  !researchQueueHtml.includes("Что проверить дальше") ||
+  !researchQueueHtml.includes("Нужно описание") ||
+  !researchQueueHtml.includes("Нет событий / сверки") ||
+  !researchQueueHtml.includes("Вопросы к данным") ||
+  !researchQueueHtml.includes("Готово к чтению") ||
+  !researchQueueHtml.includes("50%")
+) {
+  throw new Error("Research queue was not rendered.");
 }
 
 if (offlineStatus?.hidden !== false || !offlineStatus?.textContent.includes("Офлайн")) {
@@ -1093,6 +1106,13 @@ if (
   throw new Error("Advanced checkpoint filters were not wired.");
 }
 
+if (
+  typeof elements.get("researchQueue")?.querySelector("[data-research-filter]")?.onclick !==
+  "function"
+) {
+  throw new Error("Research queue actions were not wired.");
+}
+
 if (favoritesOnlyButton?.textContent !== "★ Избранные (1)") {
   throw new Error("Favorites counter was not rendered.");
 }
@@ -1250,6 +1270,29 @@ if (
   descriptionSearchHtml.includes("Воздушный тест")
 ) {
   throw new Error("Search did not match checkpoint enrichment descriptions.");
+}
+
+resetFiltersButton.onclick?.();
+
+const missingEventsQueueButton = elements
+  .get("researchQueue")
+  ?.querySelectorAll("[data-research-filter]")
+  ?.find((node) => node.dataset.researchFilter === "missing-events");
+missingEventsQueueButton?.onclick?.();
+
+if (
+  researchFilter?.value !== "missing-events" ||
+  new URL(window.location.href).searchParams.get("research") !== "missing-events"
+) {
+  throw new Error("Research queue action did not apply the missing-events filter.");
+}
+
+const missingEventsListHtml = elements.get("list")?.innerHTML || "";
+if (
+  !missingEventsListHtml.includes("Воздушный тест") ||
+  missingEventsListHtml.includes("Тестовый КПП")
+) {
+  throw new Error("Research queue action did not limit checkpoints missing event coverage.");
 }
 
 resetFiltersButton.onclick?.();

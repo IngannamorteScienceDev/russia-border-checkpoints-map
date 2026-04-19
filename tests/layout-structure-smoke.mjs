@@ -42,6 +42,10 @@ const mapHtml = indexHtml.slice(mainStart, mainEnd);
 assert(panelHtml.includes('id="controls"'), "Search controls should stay in the left panel.");
 assert(panelHtml.includes('id="stats"'), "Stats should stay in the left panel.");
 assert(
+  panelHtml.includes('id="researchQueue"'),
+  "Research coverage queue should stay in the left panel."
+);
+assert(
   panelHtml.includes('<details id="help"'),
   "Help content should stay available but collapsed by default."
 );
