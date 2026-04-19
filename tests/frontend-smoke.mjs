@@ -298,6 +298,17 @@ globalThis.fetch = async (resource) => ({
             federal_district: "Дальневосточный",
             foreign_country: "Китай",
             foreign_checkpoint: "Тестовый сопредельный пункт",
+            transport_corridor: "Восток",
+            checkpoint_note: "Тестовое примечание КПП",
+            near_checkpoint_condition: "0",
+            checkpoint_working_mode_id: "3",
+            checkpoint_direction_id: "2",
+            branch_name: "Дальневосточный филиал",
+            branch_phone: "+7(423)000-00-00",
+            branch_email: "test@example.test",
+            branch_address: "г. Владивосток, тестовый адрес филиала",
+            branch_working_time: "по будням с 9:00 до 18:00",
+            branch_slug: "dalnevostochniy",
             source: "https://rosgranstroy.ru/api/map_data",
             confidence_level: "high",
             last_updated: "2026-01-19T09:56:39.000000Z"
@@ -786,7 +797,9 @@ if (
         feature.properties.__id === "100" &&
         feature.properties.__status === "Действует" &&
         feature.properties.__extra?.legalStatus === "Многосторонний" &&
-        feature.properties.__extra?.address === "Приморский край, тестовый адрес КПП"
+        feature.properties.__extra?.address === "Приморский край, тестовый адрес КПП" &&
+        feature.properties.__extra?.branchName === "Дальневосточный филиал" &&
+        feature.properties.__extra?.transportCorridor === "Восток"
     )
 ) {
   throw new Error("Checkpoint legal and hidden attributes were not normalized.");
@@ -820,7 +833,9 @@ if (
 if (
   !listHtml.includes("Приморский край, тестовый адрес КПП") ||
   !listHtml.includes("Режим: круглосуточно") ||
-  !listHtml.includes("Правовой режим: Многосторонний")
+  !listHtml.includes("Правовой режим: Многосторонний") ||
+  !listHtml.includes("МТК: Восток") ||
+  !listHtml.includes("Филиал: Дальневосточный филиал")
 ) {
   throw new Error("Hidden checkpoint attributes were not rendered in the list context.");
 }
@@ -937,31 +952,43 @@ if (
   throw new Error("Map view was not synchronized after restoring the checkpoint popup.");
 }
 
-if (
-  passportEl?.hidden !== false ||
-  !passportHtml.includes("Паспорт КПП") ||
-  !passportHtml.includes("Тестовый КПП") ||
-  !passportHtml.includes("Высокая достоверность") ||
-  !passportHtml.includes("Приморский край, тестовый адрес КПП") ||
-  !passportHtml.includes("круглосуточно") ||
-  !passportHtml.includes("Правовой режим") ||
-  !passportHtml.includes("Многосторонний") ||
-  !passportHtml.includes("Грузо-пассажирский") ||
-  !passportHtml.includes("Дальневосточный") ||
-  !passportHtml.includes("Тестовый сопредельный пункт") ||
-  !passportHtml.includes("Откуда данные") ||
-  !passportHtml.includes("ФГКУ Росгранстрой") ||
-  !passportHtml.includes("Сверить с перечнем Минтранса") ||
-  !passportHtml.includes("События и сверка") ||
-  !passportHtml.includes("Сверено с тестовым перечнем") ||
-  !passportHtml.includes("Тестовое инфраструктурное событие") ||
-  !passportHtml.includes("https://www.rosgranstroy.ru/press-center/news/test") ||
-  !passportHtml.includes("checkpoint-passport__favorite is-active") ||
-  !passportHtml.includes("checkpoint-passport__copy") ||
-  !passportHtml.includes("https://rosgranstroy.ru/api/map_data") ||
-  !passportHtml.includes("issues/new")
-) {
-  throw new Error("Selected checkpoint passport was not rendered with actions and data quality.");
+const requiredPassportSnippets = [
+  "Паспорт КПП",
+  "Тестовый КПП",
+  "Высокая достоверность",
+  "Приморский край, тестовый адрес КПП",
+  "круглосуточно",
+  "Правовой режим",
+  "Многосторонний",
+  "Грузо-пассажирский",
+  "Дальневосточный",
+  "Тестовый сопредельный пункт",
+  "Филиал Росгранстроя",
+  "Дальневосточный филиал",
+  "+7(423)000-00-00",
+  "test@example.test",
+  "Восток",
+  "Тестовое примечание КПП",
+  "Откуда данные",
+  "ФГКУ Росгранстрой",
+  "Сверить с перечнем Минтранса",
+  "События и сверка",
+  "Сверено с тестовым перечнем",
+  "Тестовое инфраструктурное событие",
+  "https://www.rosgranstroy.ru/press-center/news/test",
+  "checkpoint-passport__favorite is-active",
+  "checkpoint-passport__copy",
+  "https://rosgranstroy.ru/api/map_data",
+  "issues/new"
+];
+const missingPassportSnippets = requiredPassportSnippets.filter(
+  (snippet) => !passportHtml.includes(snippet)
+);
+
+if (passportEl?.hidden !== false || missingPassportSnippets.length) {
+  throw new Error(
+    `Selected checkpoint passport is missing expected content: ${missingPassportSnippets.join(", ")}`
+  );
 }
 
 if (

@@ -6,6 +6,7 @@ from pathlib import Path
 GENERATED_FILES = [
     Path("data/checkpoints_v1.csv"),
     Path("data/checkpoints.geojson"),
+    Path("frontend/data/checkpoints.geojson"),
 ]
 
 PIPELINE_STEPS = [

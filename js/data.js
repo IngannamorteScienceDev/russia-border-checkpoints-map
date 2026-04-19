@@ -160,6 +160,17 @@ function extractExtra(props) {
     isFunctional: normalizeBooleanLabel(pick("is_functional", "condition", "functional")),
     isPublished: normalizeBooleanLabel(pick("is_published", "publish")),
     slug: pick("checkpoint_slug", "slug"),
+    transportCorridor: pick("transport_corridor", "checkpoint_direction", "direction"),
+    checkpointNote: pick("checkpoint_note", "note"),
+    nearCheckpointCondition: pick("near_checkpoint_condition"),
+    workingModeId: pick("checkpoint_working_mode_id", "working_mode_id"),
+    directionId: pick("checkpoint_direction_id", "direction_id"),
+    branchName: pick("branch_name", "filial_name", "filial"),
+    branchPhone: pick("branch_phone", "filial_phone"),
+    branchEmail: pick("branch_email", "filial_email"),
+    branchAddress: pick("branch_address", "filial_address"),
+    branchWorkingTime: pick("branch_working_time", "filial_working_time"),
+    branchSlug: pick("branch_slug", "filial_slug"),
     source: pick("source", "source_url", "url", "href"),
     confidence: pick("confidence_level", "confidence", "data_confidence", "quality"),
     updatedAt: pick(
@@ -289,7 +300,14 @@ export async function loadFeatures({ setProgress }) {
             extra.federalDistrict,
             extra.legalStatus,
             extra.neighborPoint,
-            extra.slug
+            extra.slug,
+            extra.transportCorridor,
+            extra.checkpointNote,
+            extra.branchName,
+            extra.branchPhone,
+            extra.branchEmail,
+            extra.branchAddress,
+            extra.branchSlug
           ]
             .filter(Boolean)
             .join(" | ")

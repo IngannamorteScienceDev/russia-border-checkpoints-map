@@ -297,6 +297,8 @@ function compareValue(feature, key) {
   if (key === "address") return extra.address || "—";
   if (key === "workingTime") return extra.workingTime || "—";
   if (key === "legalStatus") return extra.legalStatus || "—";
+  if (key === "transportCorridor") return extra.transportCorridor || "—";
+  if (key === "branch") return extra.branchName || "—";
   if (key === "road") return extra.road || "—";
   if (key === "updatedAt") return extra.updatedAt || "—";
 
@@ -318,6 +320,8 @@ export function renderCompare({ compareEl, compareFeatures, onItemClick, onRemov
     ["Адрес", "address"],
     ["Режим работы", "workingTime"],
     ["Правовой режим", "legalStatus"],
+    ["Направление МТК", "transportCorridor"],
+    ["Филиал", "branch"],
     ["Координаты", "coords"],
     ["Дорога/маршрут", "road"],
     ["Обновлено", "updatedAt"]
@@ -449,7 +453,9 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
       const context = [
         extra.address ? `Адрес: ${escapeHtml(extra.address)}` : "",
         extra.workingTime ? `Режим: ${escapeHtml(extra.workingTime)}` : "",
-        extra.legalStatus ? `Правовой режим: ${escapeHtml(extra.legalStatus)}` : ""
+        extra.legalStatus ? `Правовой режим: ${escapeHtml(extra.legalStatus)}` : "",
+        extra.transportCorridor ? `МТК: ${escapeHtml(extra.transportCorridor)}` : "",
+        extra.branchName ? `Филиал: ${escapeHtml(extra.branchName)}` : ""
       ]
         .filter(Boolean)
         .join(" · ");

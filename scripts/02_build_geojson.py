@@ -12,6 +12,8 @@ from pipeline_validation import (
 
 INPUT_FILE = Path("data/checkpoints_v1.csv")
 OUTPUT_FILE = Path("data/checkpoints.geojson")
+FRONTEND_OUTPUT_FILE = Path("frontend/data/checkpoints.geojson")
+
 
 def main():
     print("=== STEP 3. Build final GeoJSON ===")
@@ -47,13 +49,14 @@ def main():
     }
     validate_geojson(geojson)
 
-    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_FILE.write_text(
-        json.dumps(geojson, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    serialized_geojson = json.dumps(geojson, ensure_ascii=False, indent=2)
+
+    for output_file in (OUTPUT_FILE, FRONTEND_OUTPUT_FILE):
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        output_file.write_text(serialized_geojson, encoding="utf-8")
 
     print("Final file:", OUTPUT_FILE.resolve())
+    print("Frontend copy:", FRONTEND_OUTPUT_FILE.resolve())
     print("Features written:", len(features))
     print("GeoJSON validation passed.")
     print("=== STEP 3 completed ===")

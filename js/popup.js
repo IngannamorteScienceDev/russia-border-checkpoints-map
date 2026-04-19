@@ -56,6 +56,9 @@ function buildPopupHtml(feature, userLocation) {
   if (extra.workingTime) lines.push({ k: "Режим работы", v: extra.workingTime });
   if (extra.legalStatus) lines.push({ k: "Правовой режим", v: extra.legalStatus });
   if (extra.federalDistrict) lines.push({ k: "Федеральный округ", v: extra.federalDistrict });
+  if (extra.transportCorridor) lines.push({ k: "Направление МТК", v: extra.transportCorridor });
+  if (extra.branchName) lines.push({ k: "Филиал", v: extra.branchName });
+  if (extra.branchPhone) lines.push({ k: "Телефон филиала", v: extra.branchPhone });
   if (extra.category) lines.push({ k: "Категория", v: extra.category });
   if (extra.mode) lines.push({ k: "Вид сообщения", v: extra.mode });
   if (extra.road) lines.push({ k: "Дорога/маршрут", v: extra.road });

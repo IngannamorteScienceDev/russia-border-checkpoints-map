@@ -234,7 +234,7 @@ const features = [
 const indexedFeatures = [
   {
     properties: {
-      __search: "100 beta приморский край тестовый адрес круглосуточно"
+      __search: "100 beta приморский край тестовый адрес круглосуточно дальневосточный филиал"
     }
   },
   {
@@ -264,6 +264,17 @@ assert(
     subject: "all"
   }).length === 1,
   "Search should match newly indexed hidden checkpoint attributes."
+);
+
+assert(
+  filterFeatures(indexedFeatures, {
+    query: "филиал",
+    type: "all",
+    status: "all",
+    country: "all",
+    subject: "all"
+  }).length === 1,
+  "Search should match indexed branch metadata."
 );
 
 const listEl = createListElement();

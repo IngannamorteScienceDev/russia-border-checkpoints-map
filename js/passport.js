@@ -158,6 +158,11 @@ function buildDetailRows(props, extra) {
     ["Описание режима", extra.legalStatusDescription],
     ["Функционирует", extra.isFunctional],
     ["Публикуется", extra.isPublished],
+    ["Направление МТК", extra.transportCorridor],
+    ["Примечание", extra.checkpointNote],
+    ["Признак сопредельного КПП", extra.nearCheckpointCondition],
+    ["ID режима работы", extra.workingModeId],
+    ["ID направления", extra.directionId],
     ["Slug", extra.slug],
     ["Вид сообщения", extra.mode],
     ["Дорога / маршрут", extra.road],
@@ -174,6 +179,7 @@ function factsHtml(extra) {
     ["Адрес", extra.address],
     ["Режим работы", extra.workingTime],
     ["Правовой режим", extra.legalStatus],
+    ["Направление МТК", extra.transportCorridor],
     ["Сопредельный КПП", extra.neighborPoint]
   ]
     .map(([label, value]) => detailHtml(label, value))
@@ -185,6 +191,28 @@ function factsHtml(extra) {
     <section class="checkpoint-passport__facts" aria-label="Расположение и режим работы">
       ${rows.join("")}
     </section>
+  `;
+}
+
+function branchHtml(extra) {
+  const rows = [
+    ["Филиал", extra.branchName],
+    ["Телефон", extra.branchPhone],
+    ["Email", extra.branchEmail],
+    ["Адрес филиала", extra.branchAddress],
+    ["График филиала", extra.branchWorkingTime],
+    ["Slug филиала", extra.branchSlug]
+  ]
+    .map(([label, value]) => detailHtml(label, value))
+    .filter(Boolean);
+
+  if (!rows.length) return "";
+
+  return `
+    <details class="checkpoint-passport__fold checkpoint-passport__details">
+      <summary>Филиал Росгранстроя</summary>
+      ${rows.join("")}
+    </details>
   `;
 }
 
@@ -246,6 +274,8 @@ export function renderCheckpointPassport({
       </div>
 
       ${factsHtml(extra)}
+
+      ${branchHtml(extra)}
 
       <section class="checkpoint-passport__metrics" aria-label="Ключевые показатели">
         ${metricHtml("Координаты", props.__coords)}
