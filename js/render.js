@@ -477,6 +477,7 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
       const isComparing = compareIds.includes(String(props.__id));
       const isNearestOpen = nearestOpenId === props.__id;
       const favoriteLabel = isFavorite ? "Убрать из избранного" : "Добавить в избранное";
+      const descriptionPreview = props.__descriptionPreview || "";
       const context = [
         extra.address ? `Адрес: ${escapeHtml(extra.address)}` : "",
         extra.workingTime ? `Режим: ${escapeHtml(extra.workingTime)}` : "",
@@ -514,6 +515,7 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
           ${props.__subject || "—"} · ${props.__country || "—"}<br>
           ${props.__type} · ${props.__status}${dist}
           ${context ? `<div class="item__context">${context}</div>` : ""}
+          ${descriptionPreview ? `<div class="item__description">${escapeHtml(descriptionPreview)}</div>` : ""}
           <div class="item__badges">
             <span class="freshness freshness--${freshness.level}" title="${freshness.details}">${freshness.label}</span>
             <span class="confidence confidence--${confidence.level}">${confidence.label}</span>

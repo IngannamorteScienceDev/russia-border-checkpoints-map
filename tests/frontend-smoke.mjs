@@ -858,6 +858,13 @@ if (
 }
 
 if (
+  !listHtml.includes("item__description") ||
+  !listHtml.includes("Тестовое исследовательское описание КПП из markdown-отчета.")
+) {
+  throw new Error("Checkpoint description preview was not rendered in the result list.");
+}
+
+if (
   !listHtml.includes("item__report") ||
   !listHtml.includes("github.com/IngannamorteScienceDev/russia-border-checkpoints-map/issues/new")
 ) {
@@ -1217,6 +1224,22 @@ if (
   advancedFilterListHtml.includes("Воздушный тест")
 ) {
   throw new Error("Advanced filter did not limit the rendered checkpoint list.");
+}
+
+resetFiltersButton.onclick?.();
+
+searchInput.value = "markdown-отчета";
+searchInput.oninput?.();
+await new Promise((resolve) => setTimeout(resolve, 250));
+
+const descriptionSearchUrl = new URL(window.location.href);
+const descriptionSearchHtml = elements.get("list")?.innerHTML || "";
+if (
+  descriptionSearchUrl.searchParams.get("q") !== "markdown-отчета" ||
+  !descriptionSearchHtml.includes("Тестовый КПП") ||
+  descriptionSearchHtml.includes("Воздушный тест")
+) {
+  throw new Error("Search did not match checkpoint enrichment descriptions.");
 }
 
 resetFiltersButton.onclick?.();

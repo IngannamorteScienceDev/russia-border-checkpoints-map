@@ -1,6 +1,7 @@
 function norm(value) {
   return String(value || "")
     .toLowerCase()
+    .replaceAll("ё", "е")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -347,6 +348,8 @@ export function filterFeatures(
     if (corridor !== "all" && extra.transportCorridor !== corridor) return false;
     if (!normalizedQuery) return true;
 
-    return props.__search.includes(normalizedQuery);
+    return [props.__search, props.__enrichmentSearch]
+      .filter(Boolean)
+      .some((value) => norm(value).includes(normalizedQuery));
   });
 }

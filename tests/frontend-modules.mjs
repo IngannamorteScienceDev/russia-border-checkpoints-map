@@ -64,9 +64,8 @@ const { registerAppShellServiceWorker } = await import(
   new URL("../js/serviceWorker.js", import.meta.url)
 );
 const { renderList } = await import(new URL("../js/render.js", import.meta.url));
-const { buildCheckpointEnrichmentIndex, getFeatureEnrichment } = await import(
-  new URL("../js/enrichment.js", import.meta.url)
-);
+const { applyFeatureEnrichmentToFeatures, buildCheckpointEnrichmentIndex, getFeatureEnrichment } =
+  await import(new URL("../js/enrichment.js", import.meta.url));
 
 const manifest = JSON.parse(
   await readFile(new URL("../manifest.webmanifest", import.meta.url), "utf-8")
@@ -270,6 +269,7 @@ const indexedFeatures = [
   {
     properties: {
       __search: "100 beta приморский край тестовый адрес круглосуточно дальневосточный филиал",
+      __enrichmentSearch: "исследовательское описание электронная очередь",
       __extra: {
         federalDistrict: "east",
         legalStatus: "multi",
@@ -322,6 +322,17 @@ assert(
     subject: "all"
   }).length === 1,
   "Search should match indexed branch metadata."
+);
+
+assert(
+  filterFeatures(indexedFeatures, {
+    query: "электронная очередь",
+    type: "all",
+    status: "all",
+    country: "all",
+    subject: "all"
+  }).length === 1,
+  "Search should match indexed enrichment descriptions."
 );
 
 assert(
@@ -426,12 +437,19 @@ const enrichmentIndex = buildCheckpointEnrichmentIndex({
   ]
 });
 const alphaEnrichment = getFeatureEnrichment(enrichmentIndex, features[1]);
+const enrichedFeatures = applyFeatureEnrichmentToFeatures(features, enrichmentIndex);
+const enrichedAlpha = enrichedFeatures.find((feature) => feature.properties.__id === "alpha");
 
 assert(alphaEnrichment.records.length === 3, "Enrichment records were not grouped by checkpoint.");
 assert(
   alphaEnrichment.descriptionRecords.length === 1 &&
     alphaEnrichment.descriptionRecords[0].summary === "Research description for alpha.",
   "Description enrichment records were not exposed separately."
+);
+assert(
+  enrichedAlpha?.properties.__descriptionPreview === "Research description for alpha." &&
+    enrichedAlpha?.properties.__enrichmentSearch.includes("research description for alpha"),
+  "Description enrichment was not attached to feature search metadata."
 );
 assert(
   alphaEnrichment.verificationRecords.length === 1 && alphaEnrichment.eventRecords.length === 1,

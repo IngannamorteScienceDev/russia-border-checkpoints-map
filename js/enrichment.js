@@ -37,6 +37,32 @@ function normalizeText(value) {
   return String(value || "").trim();
 }
 
+function normalizeSearchText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replaceAll("ё", "е")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function createPreview(value, maxLength = 190) {
+  const text = normalizeText(value);
+  if (text.length <= maxLength) return text;
+
+  const head = text.slice(0, maxLength);
+  const sentenceBoundary = Math.max(
+    head.lastIndexOf(". "),
+    head.lastIndexOf("! "),
+    head.lastIndexOf("? "),
+    head.lastIndexOf("; ")
+  );
+
+  if (sentenceBoundary >= 90) return head.slice(0, sentenceBoundary + 1);
+
+  const wordBoundary = head.lastIndexOf(" ");
+  return `${head.slice(0, wordBoundary >= 90 ? wordBoundary : maxLength).trim()}...`;
+}
+
 function safeExternalUrl(value) {
   try {
     const url = new URL(String(value || ""));
@@ -95,6 +121,40 @@ export function buildCheckpointEnrichmentIndex(payload = {}) {
   }
 
   return index;
+}
+
+function recordsToSearchText(records = []) {
+  return normalizeSearchText(
+    records
+      .flatMap((record) => [
+        record.kindLabel,
+        record.title,
+        record.summary,
+        record.sourceTitle,
+        ...(record.tags || [])
+      ])
+      .filter(Boolean)
+      .join(" | ")
+  );
+}
+
+export function applyFeatureEnrichmentToFeatures(features = [], index) {
+  return features.map((feature) => {
+    const enrichment = getFeatureEnrichment(index, feature);
+    const description = enrichment.descriptionRecords[0]?.summary || "";
+
+    return {
+      ...feature,
+      properties: {
+        ...(feature.properties || {}),
+        __description: description,
+        __descriptionPreview: createPreview(description),
+        __enrichmentSearch: recordsToSearchText(enrichment.records),
+        __hasDescription: Boolean(description),
+        __enrichmentRecordCount: enrichment.records.length
+      }
+    };
+  });
 }
 
 export async function loadCheckpointEnrichment({

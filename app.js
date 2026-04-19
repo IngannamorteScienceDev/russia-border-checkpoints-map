@@ -8,7 +8,11 @@ import {
   summarizeDatasetChanges
 } from "./js/datasetChanges.js";
 import { getDomElements } from "./js/dom.js";
-import { getFeatureEnrichment, loadCheckpointEnrichment } from "./js/enrichment.js";
+import {
+  applyFeatureEnrichmentToFeatures,
+  getFeatureEnrichment,
+  loadCheckpointEnrichment
+} from "./js/enrichment.js";
 import { exportFeaturesAsCsv, exportFeaturesAsGeoJson } from "./js/export.js";
 import { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } from "./js/favorites.js";
 import { haversine } from "./js/geo.js";
@@ -959,6 +963,11 @@ async function init() {
 
     setProgress(42, "Загружаем слой обогащений...");
     state.checkpointEnrichment = await loadCheckpointEnrichment();
+    state.allFeatures = applyFeatureEnrichmentToFeatures(
+      state.allFeatures,
+      state.checkpointEnrichment
+    );
+    state.viewFeatures = state.allFeatures;
 
     const currentSnapshot = buildDatasetSnapshot(state.allFeatures, state.datasetMeta);
     state.datasetChangeSummary = summarizeDatasetChanges(loadDatasetSnapshot(), currentSnapshot);

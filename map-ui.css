@@ -255,6 +255,19 @@
   -webkit-line-clamp: 2;
 }
 
+.app--research .item__description {
+  display: -webkit-box;
+  margin-top: 8px;
+  overflow: hidden;
+  border-left: 3px solid rgba(15, 118, 110, 0.2);
+  color: #34463e;
+  padding-left: 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
 .app--research .item__action {
   background: rgba(248, 250, 246, 0.9);
 }
@@ -980,6 +993,7 @@ html[data-theme="dark"] .app--research .stats__label,
 html[data-theme="dark"] .app--research .stats__meta,
 html[data-theme="dark"] .app--research .help__item,
 html[data-theme="dark"] .app--research .item__context,
+html[data-theme="dark"] .app--research .item__description,
 html[data-theme="dark"] .app--research .legend__note,
 html[data-theme="dark"] .app--research .item__meta,
 html[data-theme="dark"] .app--research .recent__item small,
