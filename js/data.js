@@ -353,6 +353,7 @@ export function filterFeatures(
     if (research === "missing-description" && props.__hasDescription) return false;
     if (research === "events" && !props.__enrichmentEventCount) return false;
     if (research === "missing-events" && props.__enrichmentEventCount) return false;
+    if (research === "missing-working-time" && extra.workingTime) return false;
     if (research === "quality-issues" && !getQualityFlags(feature).length) return false;
     if (!normalizedQuery) return true;
 

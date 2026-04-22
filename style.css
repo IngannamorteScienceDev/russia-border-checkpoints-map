@@ -1819,6 +1819,23 @@ body.versions-body {
 .versions-research__grid small {
   margin-top: 4px;
 }
+.versions-research__detail {
+  margin-top: 14px;
+}
+.versions-research__sectionHeader h3 {
+  margin: 0;
+  color: rgba(204, 251, 241, 0.96);
+  font-size: 14px;
+}
+.versions-research__sectionHeader p {
+  margin: 6px 0 0;
+  color: rgba(229, 231, 235, 0.64);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.versions-research__grid--detail {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .versions-research__queues {
   display: grid;
   gap: 10px;

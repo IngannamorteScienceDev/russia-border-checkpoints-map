@@ -188,6 +188,9 @@ export function renderResearchQueue({
   const qualityIssueCount = allFeatures.filter((feature) => getQualityFlags(feature).length).length;
   const missingDescriptionCount = total - describedCount;
   const missingEventCount = total - eventCount;
+  const missingWorkingTimeCount = allFeatures.filter(
+    (feature) => !feature.properties?.__extra?.workingTime
+  ).length;
   const descriptionPercent = percentOf(describedCount, total);
 
   const tasks = [
@@ -203,6 +206,13 @@ export function renderResearchQueue({
       label: "Нет событий / сверки",
       count: missingEventCount,
       hint: "Нет привязанных новостей, сверок или заметок",
+      tone: "warning"
+    },
+    {
+      id: "missing-working-time",
+      label: "Нет режима работы",
+      count: missingWorkingTimeCount,
+      hint: "Карточка не показывает, когда КПП принимает транспорт",
       tone: "warning"
     },
     {

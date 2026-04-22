@@ -85,7 +85,13 @@ globalThis.fetch = async (url) => {
             description: { covered: 1, missing: 1, percent: 50 },
             eventsOrVerification: { covered: 1, missing: 1, percent: 50 },
             officialVerification: { covered: 0, missing: 2, percent: 0 },
-            workingTime: { covered: 1, missing: 1, percent: 50 }
+            workingTime: { covered: 1, missing: 1, percent: 50 },
+            source: { covered: 2, missing: 0, percent: 100 },
+            lastUpdated: { covered: 2, missing: 0, percent: 100 },
+            address: { covered: 1, missing: 1, percent: 50 },
+            neighborCheckpoint: { covered: 0, missing: 2, percent: 0 },
+            transportCorridor: { covered: 1, missing: 1, percent: 50 },
+            branchContact: { covered: 1, missing: 1, percent: 50 }
           },
           byCountry: [
             {
@@ -124,6 +130,14 @@ globalThis.fetch = async (url) => {
               }
             ],
             missingEvents: [
+              {
+                id: "101",
+                name: "Воздушный тест",
+                subject: "Кемеровская область",
+                country: "Не указано"
+              }
+            ],
+            missingWorkingTime: [
               {
                 id: "101",
                 name: "Воздушный тест",
@@ -205,6 +219,7 @@ assert(summaryHtml.includes("1/2 описано"), "Research coverage summary wa
 assert(
   summaryHtml.includes("Без описания") &&
     summaryHtml.includes("Без событий / сверки") &&
+    summaryHtml.includes("Без режима работы") &&
     summaryHtml.includes("Вопросы к данным"),
   "Research coverage queues were not rendered."
 );
@@ -229,6 +244,12 @@ assert(
 assert(summaryHtml.includes("История версий"), "Dataset changelog was not rendered.");
 assert(summaryHtml.includes("2026-01-19-2-test"), "Dataset version was not rendered.");
 assert(
+  summaryHtml.includes("Полнота карточек") &&
+    summaryHtml.includes("Источник") &&
+    summaryHtml.includes("Контакты филиала"),
+  "Research field completeness section was not rendered."
+);
+assert(
   summaryHtml.includes("По странам") &&
     summaryHtml.includes("По субъектам РФ") &&
     summaryHtml.includes("По типам КПП"),
@@ -237,7 +258,8 @@ assert(
 assert(
   summaryHtml.includes("index.html?research=missing-description&amp;country=") &&
     summaryHtml.includes("index.html?research=missing-description&amp;subject=") &&
-    summaryHtml.includes("index.html?research=missing-description&amp;type="),
+    summaryHtml.includes("index.html?research=missing-description&amp;type=") &&
+    summaryHtml.includes("index.html?research=missing-working-time"),
   "Research coverage hotspot links were not rendered."
 );
 

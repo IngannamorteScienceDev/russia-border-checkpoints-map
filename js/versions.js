@@ -238,6 +238,25 @@ function renderCoverageMetric(label, item = {}) {
   `;
 }
 
+function renderCoverageDetailSection(title, description, items = []) {
+  const validItems = items.filter((item) => item?.label && item?.value);
+  if (!validItems.length) return "";
+
+  return `
+    <div class="versions-research__detail">
+      <div class="versions-research__sectionHeader">
+        <div>
+          <h3>${escapeHtml(title)}</h3>
+          <p>${escapeHtml(description)}</p>
+        </div>
+      </div>
+      <div class="versions-research__grid versions-research__grid--detail">
+        ${validItems.map((item) => renderCoverageMetric(item.label, item.value)).join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderResearchQueuePreview(title, items = [], filterValue = "") {
   const shownItems = items.slice(0, 6);
 
@@ -389,6 +408,18 @@ function renderResearchCoverageReport(report = {}) {
         ${renderCoverageMetric("Официальная сверка", coverage.officialVerification)}
         ${renderCoverageMetric("Режим работы", coverage.workingTime)}
       </div>
+      ${renderCoverageDetailSection(
+        "Полнота карточек",
+        "Базовые поля, которые влияют на полезность карточки КПП в исследовательском режиме.",
+        [
+          { label: "Источник", value: coverage.source },
+          { label: "Дата обновления", value: coverage.lastUpdated },
+          { label: "Адрес", value: coverage.address },
+          { label: "Сопредельный КПП", value: coverage.neighborCheckpoint },
+          { label: "Контакты филиала", value: coverage.branchContact },
+          { label: "МТК / направление", value: coverage.transportCorridor }
+        ]
+      )}
       <div class="versions-research__hotspots">
         <div class="versions-research__hotspotsIntro">
           <h3>Где быстрее всего наращивать покрытие</h3>
@@ -416,6 +447,7 @@ function renderResearchCoverageReport(report = {}) {
       <div class="versions-research__queues">
         ${renderResearchQueuePreview("Без описания", queues.missingDescriptions || [], "missing-description")}
         ${renderResearchQueuePreview("Без событий / сверки", queues.missingEvents || [], "missing-events")}
+        ${renderResearchQueuePreview("Без режима работы", queues.missingWorkingTime || [], "missing-working-time")}
         ${renderResearchQueuePreview("Вопросы к данным", queues.qualityIssues || [], "quality-issues")}
       </div>
     </section>

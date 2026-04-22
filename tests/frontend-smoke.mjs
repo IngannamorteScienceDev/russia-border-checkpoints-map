@@ -336,7 +336,6 @@ globalThis.fetch = async (resource) => ({
             checkpoint_pattern: "Пассажирский",
             status: "Двусторонний",
             is_functional: "False",
-            working_time: "по факту прибытия рейсов",
             address: "Кемеровская область, тестовый аэропорт",
             subject_name: "Кемеровская область",
             foreign_country: "Не указано"
@@ -1293,6 +1292,29 @@ if (
   missingEventsListHtml.includes("Тестовый КПП")
 ) {
   throw new Error("Research queue action did not limit checkpoints missing event coverage.");
+}
+
+resetFiltersButton.onclick?.();
+
+const missingWorkingTimeQueueButton = elements
+  .get("researchQueue")
+  ?.querySelectorAll("[data-research-filter]")
+  ?.find((node) => node.dataset.researchFilter === "missing-working-time");
+missingWorkingTimeQueueButton?.onclick?.();
+
+if (
+  researchFilter?.value !== "missing-working-time" ||
+  new URL(window.location.href).searchParams.get("research") !== "missing-working-time"
+) {
+  throw new Error("Research queue action did not apply the missing-working-time filter.");
+}
+
+const missingWorkingTimeListHtml = elements.get("list")?.innerHTML || "";
+if (
+  !missingWorkingTimeListHtml.includes("Воздушный тест") ||
+  missingWorkingTimeListHtml.includes("Тестовый КПП")
+) {
+  throw new Error("Research queue action did not limit checkpoints missing working time.");
 }
 
 resetFiltersButton.onclick?.();

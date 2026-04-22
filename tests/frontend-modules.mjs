@@ -154,6 +154,7 @@ const dom = {
     "missing-description",
     "events",
     "missing-events",
+    "missing-working-time",
     "quality-issues"
   ]),
   sortEl: createSelect("country", ["country", "name", "distance"])
@@ -286,6 +287,7 @@ const indexedFeatures = [
       __extra: {
         source: "https://example.test/source",
         updatedAt: "2026-01-01T00:00:00Z",
+        workingTime: "круглосуточно",
         federalDistrict: "east",
         legalStatus: "multi",
         checkpointPattern: "cargo",
@@ -430,6 +432,18 @@ assert(
     research: "missing-events"
   }).length === 1,
   "Research filter should keep checkpoints missing event enrichment."
+);
+
+assert(
+  filterFeatures(indexedFeatures, {
+    query: "",
+    type: "all",
+    status: "all",
+    country: "all",
+    subject: "all",
+    research: "missing-working-time"
+  }).length === 1,
+  "Research filter should keep checkpoints missing working time."
 );
 
 assert(
