@@ -87,6 +87,33 @@ globalThis.fetch = async (url) => {
             officialVerification: { covered: 0, missing: 2, percent: 0 },
             workingTime: { covered: 1, missing: 1, percent: 50 }
           },
+          byCountry: [
+            {
+              label: "Не указано",
+              total: 1,
+              described: 0,
+              missingDescriptions: 1,
+              descriptionPercent: 0
+            }
+          ],
+          bySubject: [
+            {
+              label: "Кемеровская область",
+              total: 1,
+              described: 0,
+              missingDescriptions: 1,
+              descriptionPercent: 0
+            }
+          ],
+          byType: [
+            {
+              label: "Воздушный пункт пропуска",
+              total: 1,
+              described: 0,
+              missingDescriptions: 1,
+              descriptionPercent: 0
+            }
+          ],
           queues: {
             missingDescriptions: [
               {
@@ -201,5 +228,17 @@ assert(
 );
 assert(summaryHtml.includes("История версий"), "Dataset changelog was not rendered.");
 assert(summaryHtml.includes("2026-01-19-2-test"), "Dataset version was not rendered.");
+assert(
+  summaryHtml.includes("По странам") &&
+    summaryHtml.includes("По субъектам РФ") &&
+    summaryHtml.includes("По типам КПП"),
+  "Research coverage hotspots were not rendered."
+);
+assert(
+  summaryHtml.includes("index.html?research=missing-description&amp;country=") &&
+    summaryHtml.includes("index.html?research=missing-description&amp;subject=") &&
+    summaryHtml.includes("index.html?research=missing-description&amp;type="),
+  "Research coverage hotspot links were not rendered."
+);
 
 console.log("versions page smoke test passed");

@@ -1824,6 +1824,85 @@ body.versions-body {
   gap: 10px;
   margin-top: 14px;
 }
+.versions-research__hotspots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.versions-research__hotspotsIntro {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(45, 212, 191, 0.12);
+  border-radius: 18px;
+  background: rgba(20, 184, 166, 0.08);
+  padding: 12px;
+}
+.versions-research__hotspotsIntro h3,
+.versions-research__hotspot h3 {
+  margin: 0;
+  color: rgba(204, 251, 241, 0.96);
+  font-size: 14px;
+}
+.versions-research__hotspotsIntro p,
+.versions-research__hotspot p {
+  margin: 6px 0 0;
+  color: rgba(229, 231, 235, 0.64);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.versions-research__hotspot {
+  border: 1px solid rgba(45, 212, 191, 0.12);
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.22);
+  padding: 12px;
+}
+.versions-research__hotspotRows {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.versions-research__hotspotRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(45, 212, 191, 0.12);
+  border-radius: 14px;
+  background: rgba(20, 184, 166, 0.08);
+  padding: 10px;
+}
+.versions-research__hotspotMeta {
+  min-width: 0;
+}
+.versions-research__hotspotMeta b,
+.versions-research__hotspotMeta span {
+  display: block;
+}
+.versions-research__hotspotMeta b {
+  color: rgba(240, 253, 250, 0.95);
+}
+.versions-research__hotspotMeta span {
+  margin-top: 4px;
+  color: rgba(229, 231, 235, 0.62);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.versions-research__hotspotLink {
+  flex: 0 0 auto;
+  border: 1px solid rgba(45, 212, 191, 0.2);
+  border-radius: 999px;
+  background: rgba(20, 184, 166, 0.12);
+  color: rgba(204, 251, 241, 0.95);
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 850;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.versions-research__hotspotLink:hover {
+  border-color: rgba(45, 212, 191, 0.36);
+  background: rgba(20, 184, 166, 0.2);
+}
 .versions-research__queue h3 {
   margin: 0;
   color: rgba(204, 251, 241, 0.96);
@@ -2050,7 +2129,15 @@ body.versions-body {
     flex-direction: column;
   }
   .versions-research__grid,
-  .versions-quality__grid {
+  .versions-quality__grid,
+  .versions-research__hotspots {
     grid-template-columns: 1fr;
+  }
+  .versions-research__hotspotRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .versions-research__hotspotLink {
+    text-align: center;
   }
 }

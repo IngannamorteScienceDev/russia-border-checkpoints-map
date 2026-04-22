@@ -265,6 +265,102 @@ function renderResearchQueuePreview(title, items = [], filterValue = "") {
   `;
 }
 
+function formatPercent(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return "0";
+  return Number.isInteger(number) ? String(number) : number.toFixed(1).replace(/\.0$/, "");
+}
+
+function normalizeResearchTypeFilter(label) {
+  const normalized = String(label || "").toLowerCase();
+  if (normalized.includes("авто")) return "Автомобильный";
+  if (normalized.includes("желез")) return "Железнодорожный";
+  if (normalized.includes("воздуш")) return "Воздушный";
+  if (normalized.includes("мор")) return "Морской";
+  if (normalized.includes("реч")) return "Речной";
+  if (normalized.includes("пеш")) return "Пешеходный";
+  return "Другое";
+}
+
+function buildResearchMapLink({
+  checkpointId = "",
+  research = "",
+  country = "",
+  subject = "",
+  type = ""
+} = {}) {
+  const params = new URLSearchParams();
+
+  if (checkpointId) {
+    params.set("checkpoint", checkpointId);
+    params.set("q", checkpointId);
+  } else {
+    if (research) params.set("research", research);
+    if (country) params.set("country", country);
+    if (subject) params.set("subject", subject);
+    if (type) params.set("type", type);
+  }
+
+  const query = params.toString();
+  return query ? `./index.html?${escapeHtml(query)}` : "./index.html";
+}
+
+function renderResearchHotspotSection(title, description, items = [], filterKey = "country") {
+  const hotspotItems = [...items]
+    .filter((item) => Number(item?.missingDescriptions || 0) > 0)
+    .sort((a, b) => {
+      const missingDelta = Number(b.missingDescriptions || 0) - Number(a.missingDescriptions || 0);
+      if (missingDelta !== 0) return missingDelta;
+
+      const totalDelta = Number(b.total || 0) - Number(a.total || 0);
+      if (totalDelta !== 0) return totalDelta;
+
+      return String(a.label || "").localeCompare(String(b.label || ""), "ru");
+    })
+    .slice(0, 5);
+
+  if (!hotspotItems.length) return "";
+
+  return `
+    <article class="versions-research__hotspot">
+      <div class="versions-research__hotspotHeader">
+        <div>
+          <h3>${escapeHtml(title)}</h3>
+          <p>${escapeHtml(description)}</p>
+        </div>
+      </div>
+      <div class="versions-research__hotspotRows">
+        ${hotspotItems
+          .map((item) => {
+            const label = item.label || "Не указано";
+            const total = Number(item.total || 0);
+            const described = Number(item.described || 0);
+            const missingDescriptions = Number(item.missingDescriptions || 0);
+            const filterValue =
+              filterKey === "type" ? normalizeResearchTypeFilter(label) : String(label || "");
+            const link =
+              filterKey === "country"
+                ? buildResearchMapLink({ research: "missing-description", country: filterValue })
+                : filterKey === "subject"
+                  ? buildResearchMapLink({ research: "missing-description", subject: filterValue })
+                  : buildResearchMapLink({ research: "missing-description", type: filterValue });
+
+            return `
+              <article class="versions-research__hotspotRow">
+                <div class="versions-research__hotspotMeta">
+                  <b>${escapeHtml(label)}</b>
+                  <span>${missingDescriptions} без описания · ${described}/${total} описано · ${formatPercent(item.descriptionPercent)}%</span>
+                </div>
+                <a class="versions-research__hotspotLink" href="${link}">Открыть на карте</a>
+              </article>
+            `;
+          })
+          .join("")}
+      </div>
+    </article>
+  `;
+}
+
 function renderResearchCoverageReport(report = {}) {
   const summary = report.summary || {};
   const coverage = report.coverage || {};
@@ -292,6 +388,30 @@ function renderResearchCoverageReport(report = {}) {
         ${renderCoverageMetric("События / сверка", coverage.eventsOrVerification)}
         ${renderCoverageMetric("Официальная сверка", coverage.officialVerification)}
         ${renderCoverageMetric("Режим работы", coverage.workingTime)}
+      </div>
+      <div class="versions-research__hotspots">
+        <div class="versions-research__hotspotsIntro">
+          <h3>Где быстрее всего наращивать покрытие</h3>
+          <p>Приоритетные пробелы по странам, регионам и типам КПП. Каждый блок ведет на карту уже с нужным фильтром.</p>
+        </div>
+        ${renderResearchHotspotSection(
+          "По странам",
+          "Крупнейшие пробелы в описаниях по сопредельным странам.",
+          report.byCountry || [],
+          "country"
+        )}
+        ${renderResearchHotspotSection(
+          "По субъектам РФ",
+          "Регионы, где остается больше всего КПП без исследовательского описания.",
+          report.bySubject || [],
+          "subject"
+        )}
+        ${renderResearchHotspotSection(
+          "По типам КПП",
+          "Типы переходов, которые сильнее всего отстают по покрытию карточек.",
+          report.byType || [],
+          "type"
+        )}
       </div>
       <div class="versions-research__queues">
         ${renderResearchQueuePreview("Без описания", queues.missingDescriptions || [], "missing-description")}
