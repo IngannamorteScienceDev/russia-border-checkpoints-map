@@ -23,7 +23,11 @@ import {
 } from "./js/mapLayers.js";
 import { renderCheckpointPassport } from "./js/passport.js";
 import { createPopupController } from "./js/popup.js";
-import { getQualityFlags } from "./js/quality.js";
+import {
+  applyQualityReportToFeatures,
+  getQualityFlags,
+  loadDataQualityReport
+} from "./js/quality.js";
 import {
   buildLegend,
   fillFilters,
@@ -77,6 +81,7 @@ const state = {
   datasetMeta: null,
   datasetChangeSummary: null,
   checkpointEnrichment: null,
+  dataQualityReport: null,
   favoriteIds: loadFavoriteIds(),
   recentIds: loadRecentIds(),
   compareIds: [],
@@ -394,6 +399,8 @@ function syncMapLayerButtons() {
   dom.styleToggleEl.textContent = satelliteEnabled ? "Спутник включен" : "Схема включена";
   dom.styleToggleEl.classList.toggle("is-active", satelliteEnabled);
   dom.styleToggleEl.setAttribute?.("aria-pressed", satelliteEnabled ? "true" : "false");
+  dom.mapWrapEl?.classList.toggle("mapWrap--satellite", satelliteEnabled);
+  dom.mapWrapEl?.classList.toggle("mapWrap--local-base", !satelliteEnabled && !map.isFallback);
 
   if (dom.boundariesToggleEl) {
     dom.boundariesToggleEl.disabled = !satelliteEnabled || map.isFallback;
@@ -978,6 +985,11 @@ async function init() {
 
     setProgress(25, "Загружаем КПП...");
     state.allFeatures = await loadFeatures({ setProgress });
+    state.viewFeatures = state.allFeatures;
+
+    setProgress(34, "Подключаем отчет качества...");
+    state.dataQualityReport = await loadDataQualityReport();
+    state.allFeatures = applyQualityReportToFeatures(state.allFeatures, state.dataQualityReport);
     state.viewFeatures = state.allFeatures;
     state.datasetMeta = buildDatasetMeta(state.allFeatures);
 

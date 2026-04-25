@@ -1,4 +1,4 @@
-const CACHE_NAME = "russia-border-checkpoints-app-shell-v11";
+const CACHE_NAME = "russia-border-checkpoints-app-shell-v14";
 
 const APP_SHELL_URLS = [
   "./",
@@ -40,6 +40,9 @@ const APP_SHELL_URLS = [
   "./js/theme.js",
   "./js/urlState.js",
   "./js/versions.js",
+  "./js/vendor/maplibre-gl.css",
+  "./js/vendor/maplibre-gl.js",
+  "./js/vendor/maplibre-gl.LICENSE.txt",
   "./js/vendor/qrcode.mjs"
 ];
 

@@ -61,8 +61,10 @@ function fillSelect(el, defaultLabel, values) {
 
   el.__options = ["all", ...values];
   el.innerHTML =
-    `<option value="all">${defaultLabel}</option>` +
-    values.map((value) => `<option value="${value}">${value}</option>`).join("");
+    `<option value="all">${escapeHtml(defaultLabel)}</option>` +
+    values
+      .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
+      .join("");
 }
 
 function uniqueExtraValues(allFeatures, key) {
@@ -148,7 +150,7 @@ export function renderStats({
       </div>
     </div>
     <div class="stats__meta">
-      <span>Обновлено: <b>${latestUpdatedLabel}</b></span>
+      <span>Обновлено: <b>${escapeHtml(latestUpdatedLabel)}</b></span>
       <span>Описаний: <b>${describedCount}/${allFeatures.length}</b></span>
       <span>Событий: <b>${eventCount}</b></span>
       <span>Активных фильтров: <b>${filtersLabel}</b></span>
@@ -278,7 +280,7 @@ export function renderResearchQueue({
 }
 
 function escapeHtml(value) {
-  return String(value || "")
+  return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -385,9 +387,9 @@ export function renderRecent({ recentEl, recentFeatures, onItemClick }) {
         .map((feature) => {
           const props = feature.properties;
           return `
-          <button class="recent__item" type="button" data-id="${props.__id}">
-            <span>${props.__name}</span>
-            <small>${props.__country || "—"}</small>
+          <button class="recent__item" type="button" data-id="${escapeHtml(props.__id)}">
+            <span>${escapeHtml(props.__name)}</span>
+            <small>${escapeHtml(props.__country || "—")}</small>
           </button>
         `;
         })
@@ -423,10 +425,10 @@ export function renderNearestOpen({ nearestOpenEl, feature, userLocation, onItem
 
   nearestOpenEl.innerHTML = `
     <div class="nearest-open__title">Ближайший действующий</div>
-    <button class="nearest-open__card" type="button" data-id="${props.__id}">
+    <button class="nearest-open__card" type="button" data-id="${escapeHtml(props.__id)}">
       <span>
-        <b>${props.__name}</b>
-        <small>${props.__country || "—"} · ${props.__subject || "—"}</small>
+        <b>${escapeHtml(props.__name)}</b>
+        <small>${escapeHtml(props.__country || "—")} · ${escapeHtml(props.__subject || "—")}</small>
       </span>
       <strong>${distance} км</strong>
     </button>
@@ -494,10 +496,10 @@ export function renderCompare({ compareEl, compareFeatures, onItemClick, onRemov
         .map((feature) => {
           const props = feature.properties;
           return `
-          <button class="compare__pill" type="button" data-id="${props.__id}">
-            <span>${props.__name}</span>
-            <small>${props.__country || "—"}</small>
-            <i data-remove-compare-id="${props.__id}" aria-label="Убрать из сравнения">×</i>
+          <button class="compare__pill" type="button" data-id="${escapeHtml(props.__id)}">
+            <span>${escapeHtml(props.__name)}</span>
+            <small>${escapeHtml(props.__country || "—")}</small>
+            <i data-remove-compare-id="${escapeHtml(props.__id)}" aria-label="Убрать из сравнения">×</i>
           </button>
         `;
         })
@@ -512,8 +514,8 @@ export function renderCompare({ compareEl, compareFeatures, onItemClick, onRemov
             ([label, key]) => `
           <div class="compare__row">
             <b>${label}</b>
-            <span>${compareValue(compareFeatures[0], key)}</span>
-            <span>${compareValue(compareFeatures[1], key)}</span>
+            <span>${escapeHtml(compareValue(compareFeatures[0], key))}</span>
+            <span>${escapeHtml(compareValue(compareFeatures[1], key))}</span>
           </div>
         `
           )
@@ -553,7 +555,7 @@ function groupByCountry(features) {
 
 function badgeHtml(type) {
   const color = TYPE_COLORS[type] || TYPE_COLORS.Другое;
-  return `<span class="badge"><span class="badge__dot" style="background:${color}"></span>${type}</span>`;
+  return `<span class="badge"><span class="badge__dot" style="background:${color}"></span>${escapeHtml(type)}</span>`;
 }
 
 function safeExternalUrl(value) {
@@ -621,41 +623,47 @@ function renderItems(features, userLocation, favoriteIds, compareIds, nearestOpe
         ? routeUrl(userLocation, feature.geometry.coordinates)
         : mapPointUrl(feature.geometry.coordinates);
       const reportHref = buildReportUrl(feature);
+      const safeId = escapeHtml(props.__id);
+      const safeFavoriteLabel = escapeHtml(favoriteLabel);
+      const safeSourceUrl = escapeHtml(sourceUrl);
+      const safeRouteHref = escapeHtml(routeHref);
+      const safeReportHref = escapeHtml(reportHref);
+      const safeFreshnessDetails = escapeHtml(freshness.details);
 
       return `
-      <div class="item${isNearestOpen ? " item--nearest-open" : ""}${hasQualityFlags ? " item--quality-warning" : ""}" data-id="${props.__id}">
+      <div class="item${isNearestOpen ? " item--nearest-open" : ""}${hasQualityFlags ? " item--quality-warning" : ""}" data-id="${safeId}">
         <div class="item__name">
           <span class="item__headline">
             ${badgeHtml(props.__type)}
-            <span>${props.__name}</span>
+            <span>${escapeHtml(props.__name)}</span>
           </span>
           <button
             class="item__favorite${isFavorite ? " is-favorite" : ""}"
             type="button"
-            data-favorite-id="${props.__id}"
-            aria-label="${favoriteLabel}"
+            data-favorite-id="${safeId}"
+            aria-label="${safeFavoriteLabel}"
             aria-pressed="${isFavorite ? "true" : "false"}"
-            title="${favoriteLabel}"
+            title="${safeFavoriteLabel}"
           >★</button>
         </div>
         <div class="item__meta">
-          ${props.__subject || "—"} · ${props.__country || "—"}<br>
-          ${props.__type} · ${props.__status}${dist}
+          ${escapeHtml(props.__subject || "—")} · ${escapeHtml(props.__country || "—")}<br>
+          ${escapeHtml(props.__type)} · ${escapeHtml(props.__status)}${escapeHtml(dist)}
           ${context ? `<div class="item__context">${context}</div>` : ""}
           ${descriptionPreview ? `<div class="item__description">${escapeHtml(descriptionPreview)}</div>` : ""}
           <div class="item__badges">
-            <span class="freshness freshness--${freshness.level}" title="${freshness.details}">${freshness.label}</span>
-            <span class="confidence confidence--${confidence.level}">${confidence.label}</span>
-            ${qualityFlags.map((flag) => `<span class="quality-flag quality-flag--${flag.level}">${flag.label}</span>`).join("")}
+            <span class="freshness freshness--${freshness.level}" title="${safeFreshnessDetails}">${escapeHtml(freshness.label)}</span>
+            <span class="confidence confidence--${confidence.level}">${escapeHtml(confidence.label)}</span>
+            ${qualityFlags.map((flag) => `<span class="quality-flag quality-flag--${flag.level}">${escapeHtml(flag.label)}</span>`).join("")}
           </div>
           ${isNearestOpen ? '<div class="item__note">Ближайший действующий пункт</div>' : ""}
         </div>
         <div class="item__actions">
-          <button class="item__action item__compare${isComparing ? " is-active" : ""}" type="button" data-compare-id="${props.__id}">Сравнить</button>
-          <button class="item__action item__copyCoords" type="button" data-copy-coords-id="${props.__id}">Координаты</button>
-          <a class="item__action item__route" href="${routeHref}" target="_blank" rel="noreferrer">Маршрут</a>
-          ${sourceUrl ? `<a class="item__action item__source" href="${sourceUrl}" target="_blank" rel="noreferrer">Источник</a>` : ""}
-          <a class="item__action item__report" href="${reportHref}" target="_blank" rel="noreferrer">Сообщить</a>
+          <button class="item__action item__compare${isComparing ? " is-active" : ""}" type="button" data-compare-id="${safeId}">Сравнить</button>
+          <button class="item__action item__copyCoords" type="button" data-copy-coords-id="${safeId}">Координаты</button>
+          <a class="item__action item__route" href="${safeRouteHref}" target="_blank" rel="noreferrer">Маршрут</a>
+          ${sourceUrl ? `<a class="item__action item__source" href="${safeSourceUrl}" target="_blank" rel="noreferrer">Источник</a>` : ""}
+          <a class="item__action item__report" href="${safeReportHref}" target="_blank" rel="noreferrer">Сообщить</a>
         </div>
       </div>
     `;
@@ -719,7 +727,7 @@ export function renderList({
     listEl.innerHTML = grouped
       .map(([country, items]) => {
         const sorted = [...items].sort(compareByName);
-        return `<div class="group">🌍 ${country} (${items.length})</div>${renderItems(sorted, userLocation, favoriteIds, compareIds, nearestOpenId)}`;
+        return `<div class="group">🌍 ${escapeHtml(country)} (${items.length})</div>${renderItems(sorted, userLocation, favoriteIds, compareIds, nearestOpenId)}`;
       })
       .join("");
   }

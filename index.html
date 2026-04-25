@@ -20,7 +20,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+    <link rel="stylesheet" href="./js/vendor/maplibre-gl.css" />
     <link rel="stylesheet" href="./style.css" />
     <link rel="stylesheet" href="./map-ui.css" />
   </head>
@@ -37,7 +37,7 @@
     <div id="offlineStatus" class="offline-status" role="status" aria-live="polite" hidden></div>
 
     <div class="app app--research">
-      <aside id="panel" class="panel" aria-label="Панель управления картой">
+      <aside id="panel" class="panel control-rail" aria-label="Панель управления картой">
         <header class="panel__hero">
           <button
             id="mobileToggle"
@@ -50,10 +50,10 @@
           </button>
 
           <div>
-            <div class="panel__eyebrow">Исследовательская карта</div>
+            <div class="panel__eyebrow">Карта пунктов пропуска</div>
             <h1 class="panel__title">Пункты пропуска РФ</h1>
             <p class="panel__subtitle">
-              Спутник, границы, дороги и проверяемые данные в одном рабочем интерфейсе.
+              Быстрый поиск, фильтры и проверяемые данные поверх рабочей карты.
             </p>
           </div>
         </header>
@@ -163,29 +163,39 @@
         </section>
 
         <div id="stats" class="stats"></div>
-        <div id="researchQueue" class="research-queue"></div>
-        <div id="datasetChanges" class="dataset-changes"></div>
-        <div id="nearestOpen" class="nearest-open"></div>
-        <div id="recent" class="recent"></div>
-        <div id="compare" class="compare"></div>
 
-        <details id="help" class="help">
-          <summary class="help__title">Как пользоваться</summary>
-          <div class="help__list">
-            <div class="help__item">
-              <span class="help__tag">Поиск</span>
-              Ищите КПП по названию, ID, стране, субъекту РФ, типу и статусу.
-            </div>
-            <div class="help__item">
-              <span class="help__tag">Карта</span>
-              Нажмите на точку или карточку, чтобы открыть паспорт пункта пропуска.
-            </div>
-            <div class="help__item">
-              <span class="help__tag">Данные</span>
-              Карточки показывают источник, свежесть, достоверность и предупреждения качества.
-            </div>
+        <details class="rail-drawer">
+          <summary class="rail-drawer__title">
+            <span>Исследование и история</span>
+            <small>качество, недавние, сравнение</small>
+          </summary>
+          <div class="rail-drawer__body">
+            <div id="researchQueue" class="research-queue"></div>
+            <div id="datasetChanges" class="dataset-changes"></div>
+            <div id="nearestOpen" class="nearest-open"></div>
+            <div id="recent" class="recent"></div>
+            <div id="compare" class="compare"></div>
+
+            <details id="help" class="help">
+              <summary class="help__title">Как пользоваться</summary>
+              <div class="help__list">
+                <div class="help__item">
+                  <span class="help__tag">Поиск</span>
+                  Ищите КПП по названию, ID, стране, субъекту РФ, типу и статусу.
+                </div>
+                <div class="help__item">
+                  <span class="help__tag">Карта</span>
+                  Нажмите на точку или карточку, чтобы открыть паспорт пункта пропуска.
+                </div>
+                <div class="help__item">
+                  <span class="help__tag">Данные</span>
+                  Карточки показывают источник, свежесть, достоверность и предупреждения качества.
+                </div>
+              </div>
+            </details>
           </div>
         </details>
+
         <section class="results-shell" aria-label="Результаты поиска">
           <div class="results-shell__header">
             <div>
@@ -217,41 +227,49 @@
           hidden
         ></button>
         <div class="map-chrome" aria-hidden="true">
-          <div class="map-chrome__title">Спутник + границы + дороги</div>
-          <div class="map-chrome__text">Выберите КПП на карте или уточните поиск слева</div>
+          <div class="map-chrome__title">385 КПП на карте</div>
+          <div class="map-chrome__text">Клик по точке открывает паспорт и источники</div>
         </div>
 
-        <div class="map-side" aria-label="Инструменты карты">
-          <section id="layers" class="map-dock map-dock--layers">
-            <div class="panel-card__header">
-              <div>
-                <div class="panel-card__kicker">Картография</div>
-                <h2>Слои</h2>
-              </div>
-            </div>
+        <div class="map-side map-toolbar" aria-label="Инструменты карты">
+          <section id="layers" class="map-dock map-dock--layers" aria-label="Слои карты">
             <div class="layer-actions" aria-label="Управление слоями карты">
-              <button id="styleToggle" class="layer-toggle" type="button" aria-pressed="true">
+              <button
+                id="styleToggle"
+                class="layer-toggle tool-icon tool-icon--satellite"
+                type="button"
+                aria-label="Переключить спутник"
+                aria-pressed="true"
+                title="Спутник"
+              >
                 Спутник включен
               </button>
-              <button id="boundariesToggle" class="layer-toggle" type="button" aria-pressed="true">
+              <button
+                id="boundariesToggle"
+                class="layer-toggle tool-icon tool-icon--borders"
+                type="button"
+                aria-label="Показать или скрыть границы"
+                aria-pressed="true"
+                title="Границы"
+              >
                 Границы и города
               </button>
-              <button id="roadsToggle" class="layer-toggle" type="button" aria-pressed="true">
+              <button
+                id="roadsToggle"
+                class="layer-toggle tool-icon tool-icon--roads"
+                type="button"
+                aria-label="Показать или скрыть дороги"
+                aria-pressed="true"
+                title="Дороги"
+              >
                 Дороги
               </button>
             </div>
           </section>
 
-          <section id="tools" class="map-dock map-dock--tools">
-            <div class="panel-card__header">
-              <div>
-                <div class="panel-card__kicker">Действия</div>
-                <h2>Инструменты</h2>
-              </div>
-            </div>
-
+          <section id="tools" class="map-dock map-dock--tools" aria-label="Действия с картой">
             <div class="tool-grid">
-              <label class="field field--wide">
+              <label class="field field--wide sort-control">
                 <span>Сортировка</span>
                 <select id="sortOrder" class="select">
                   <option value="country">По стране</option>
@@ -260,33 +278,103 @@
                 </select>
               </label>
 
-              <button id="nearestBtn" class="btn" type="button">Ближайшие</button>
-              <button id="geoBtn" class="btn" type="button">Гео</button>
-              <button id="fitResults" class="btn btn--ghost" type="button">Показать</button>
-              <button id="viewportOnly" class="btn btn--ghost" type="button" aria-pressed="false">
+              <button
+                id="nearestBtn"
+                class="btn tool-icon tool-icon--nearest"
+                type="button"
+                aria-label="Найти ближайшие"
+                title="Ближайшие"
+              >
+                Ближайшие
+              </button>
+              <button
+                id="geoBtn"
+                class="btn tool-icon tool-icon--geo"
+                type="button"
+                aria-label="Определить геопозицию"
+                title="Гео"
+              >
+                Гео
+              </button>
+              <button
+                id="fitResults"
+                class="btn btn--ghost tool-icon tool-icon--fit"
+                type="button"
+                aria-label="Показать всю выборку"
+                title="Показать"
+              >
+                Показать
+              </button>
+              <button
+                id="viewportOnly"
+                class="btn btn--ghost tool-icon tool-icon--viewport"
+                type="button"
+                aria-label="Фильтровать по текущей области карты"
+                aria-pressed="false"
+                title="В области"
+              >
                 В области
               </button>
-              <button id="favoritesOnly" class="btn btn--ghost" type="button" aria-pressed="false">
+              <button
+                id="favoritesOnly"
+                class="btn btn--ghost tool-icon tool-icon--favorite"
+                type="button"
+                aria-label="Показать избранные"
+                aria-pressed="false"
+                title="Избранные"
+              >
                 ★ Избранные (0)
               </button>
-              <button id="shareLink" class="btn btn--ghost" type="button">Ссылка</button>
-              <button id="exportCsv" class="btn btn--ghost" type="button">CSV</button>
-              <button id="exportGeoJson" class="btn btn--ghost" type="button">GeoJSON</button>
+              <button
+                id="shareLink"
+                class="btn btn--ghost tool-icon tool-icon--share"
+                type="button"
+                aria-label="Поделиться ссылкой"
+                title="Ссылка"
+              >
+                Ссылка
+              </button>
+              <button
+                id="exportCsv"
+                class="btn btn--ghost tool-icon tool-icon--csv"
+                type="button"
+                aria-label="Экспорт CSV"
+                title="CSV"
+              >
+                CSV
+              </button>
+              <button
+                id="exportGeoJson"
+                class="btn btn--ghost tool-icon tool-icon--geojson"
+                type="button"
+                aria-label="Экспорт GeoJSON"
+                title="GeoJSON"
+              >
+                GeoJSON
+              </button>
               <button
                 id="themeToggle"
-                class="btn btn--ghost theme-toggle"
+                class="btn btn--ghost theme-toggle tool-icon tool-icon--theme"
                 type="button"
+                aria-label="Переключить тему"
                 aria-pressed="false"
+                title="Тема"
               >
                 Темная тема
               </button>
-              <a class="btn btn--ghost" href="./versions.html">Версии</a>
+              <a
+                class="btn btn--ghost tool-icon tool-icon--versions"
+                href="./versions.html"
+                aria-label="Открыть версии датасета"
+                title="Версии"
+                >Версии</a
+              >
             </div>
           </section>
-
-          <div id="shareSheet" class="share-sheet"></div>
-          <div id="legend" class="map-legend legend"></div>
         </div>
+
+        <div id="shareSheet" class="share-sheet"></div>
+        <div id="legend" class="map-legend legend"></div>
 
         <aside
           id="checkpointPassport"
@@ -301,15 +389,15 @@
           <div>
             <b>Карта временно недоступна</b>
             <span
-              >Похоже, внешний MapLibre CDN не загрузился. Данные, фильтры, избранное и экспорт
-              продолжают работать.</span
+              >Картографический runtime не загрузился. Данные, фильтры, избранное и экспорт
+              продолжат работать.</span
             >
           </div>
         </div>
       </main>
     </div>
 
-    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="./js/vendor/maplibre-gl.js"></script>
     <script type="module" src="./app.js"></script>
   </body>
 </html>

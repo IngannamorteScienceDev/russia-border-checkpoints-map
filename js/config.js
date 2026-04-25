@@ -1,4 +1,17 @@
-export const STYLE_MAP = "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
+export const STYLE_MAP = {
+  version: 8,
+  name: "KPP local base",
+  sources: {},
+  layers: [
+    {
+      id: "local-base",
+      type: "background",
+      paint: {
+        "background-color": "rgba(219, 231, 220, 0.9)"
+      }
+    }
+  ]
+};
 
 export const SATELLITE_SOURCE_ID = "sat";
 export const SATELLITE_LAYER_ID = "sat-layer";

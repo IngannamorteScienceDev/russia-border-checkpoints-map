@@ -32,8 +32,18 @@ assert(
   "App shell should include dataset changelog."
 );
 assert(
+  appShellUrls.includes("./data/data_quality_report.json"),
+  "App shell should include the data quality report."
+);
+assert(
   appShellUrls.includes("./icons/maskable-icon.svg"),
   "App shell should include the maskable PWA icon."
+);
+assert(
+  appShellUrls.includes("./js/vendor/maplibre-gl.css") &&
+    appShellUrls.includes("./js/vendor/maplibre-gl.js") &&
+    appShellUrls.includes("./js/vendor/maplibre-gl.LICENSE.txt"),
+  "App shell should include the local MapLibre runtime."
 );
 
 for (const appShellUrl of appShellUrls) {

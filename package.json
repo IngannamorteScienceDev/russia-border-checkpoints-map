@@ -14,5 +14,8 @@
     "globals": "^15.0.0",
     "prettier": "^3.0.0",
     "qrcode-generator": "^2.0.4"
+  },
+  "dependencies": {
+    "maplibre-gl": "4.7.1"
   }
 }

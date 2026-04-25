@@ -209,7 +209,10 @@ function factsHtml(extra) {
 
   return `
     <section class="checkpoint-passport__facts" aria-label="Расположение и режим работы">
-      ${rows.join("")}
+      <div class="checkpoint-passport__sectionTitle">Расположение и режим</div>
+      <div class="checkpoint-passport__factGrid">
+        ${rows.join("")}
+      </div>
     </section>
   `;
 }
@@ -233,6 +236,80 @@ function branchHtml(extra) {
       <summary>Филиал Росгранстроя</summary>
       ${rows.join("")}
     </details>
+  `;
+}
+
+function statusToneInfo(props, extra) {
+  const text = `${props.__status || ""} ${extra.isFunctional || ""}`.toLowerCase();
+
+  if (text.includes("не функционирует") || text.includes("false")) {
+    return {
+      level: "closed",
+      label: "Есть ограничения",
+      text: "Проверьте статус перед планированием маршрута."
+    };
+  }
+
+  if (text.includes("действ") || text.includes("true")) {
+    return {
+      level: "open",
+      label: "Работает",
+      text: "Статус выглядит рабочим по текущим данным."
+    };
+  }
+
+  return {
+    level: "unknown",
+    label: "Нужна сверка",
+    text: "Статус не выглядит полностью подтвержденным."
+  };
+}
+
+function qualitySummaryInfo(flags) {
+  if (flags.some((flag) => flag.level === "critical")) {
+    return {
+      level: "critical",
+      title: "Есть критичные замечания",
+      text: "Данные стоит проверить перед использованием в маршрутах и отчетах."
+    };
+  }
+
+  if (flags.length) {
+    return {
+      level: "warning",
+      title: "Есть предупреждения",
+      text: "Пайплайн нашел признаки, которые лучше сверить с источниками."
+    };
+  }
+
+  return {
+    level: "ok",
+    title: "Критичных замечаний нет",
+    text: "Базовые проверки качества не нашли проблем для этого КПП."
+  };
+}
+
+function sourcePanelHtml(sourceAudit) {
+  return `
+    <section class="checkpoint-passport__sourcePanel checkpoint-passport__sourcePanel--${sourceAudit.trustLevel}" aria-label="Откуда данные">
+      <div class="checkpoint-passport__sourcePanelTop">
+        <div>
+          <div class="checkpoint-passport__sectionTitle">Откуда данные</div>
+          <b>${escapeHtml(sourceAudit.title)}</b>
+          <p>${escapeHtml(sourceAudit.summary)}</p>
+        </div>
+        <strong>${escapeHtml(sourceAudit.trustLabel)}</strong>
+      </div>
+      <div class="checkpoint-passport__sourceEvidence">${sourceEvidenceHtml(sourceAudit.evidence)}</div>
+      <div class="checkpoint-passport__sourceLinks">
+        ${
+          sourceAudit.sourceUrl
+            ? `<a href="${escapeHtml(sourceAudit.sourceUrl)}" target="_blank" rel="noreferrer">Открыть источник</a>`
+            : "<span>Исходная ссылка отсутствует</span>"
+        }
+        <a href="${escapeHtml(sourceAudit.verificationUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceAudit.verificationLabel)}</a>
+      </div>
+    </section>
   `;
 }
 
@@ -264,6 +341,8 @@ export function renderCheckpointPassport({
   const freshness = getFreshnessInfo(extra.updatedAt);
   const confidence = confidenceInfo(extra.confidence);
   const qualityFlags = getQualityFlags(feature);
+  const qualitySummary = qualitySummaryInfo(qualityFlags);
+  const statusTone = statusToneInfo(props, extra);
   const sourceAudit = buildFeatureSourceAudit(feature);
   const distance = userLocation
     ? `${haversine(userLocation, coords).toFixed(1)} км`
@@ -277,21 +356,39 @@ export function renderCheckpointPassport({
   passportEl.style.display = "block";
   passportEl.innerHTML = `
     <article class="checkpoint-passport__card" aria-label="Паспорт выбранного КПП">
-      <header class="checkpoint-passport__header">
-        <div>
-          <div class="checkpoint-passport__eyebrow">Паспорт КПП</div>
+      <header class="checkpoint-passport__hero checkpoint-passport__hero--${statusTone.level}">
+        <div class="checkpoint-passport__topline">
+          <span class="checkpoint-passport__eyebrow">Паспорт КПП</span>
+          <span class="checkpoint-passport__statusDot">${escapeHtml(statusTone.label)}</span>
+          <button class="checkpoint-passport__close" type="button" aria-label="Закрыть паспорт">×</button>
+        </div>
+        <div class="checkpoint-passport__identity">
           <h2>${escapeHtml(props.__name || "Без названия")}</h2>
           <p>${escapeHtml(props.__subject || "Субъект не указан")} · ${escapeHtml(props.__country || "Страна не указана")}</p>
         </div>
-        <button class="checkpoint-passport__close" type="button" aria-label="Закрыть паспорт">×</button>
+
+        <div class="checkpoint-passport__chips" aria-label="Основные признаки КПП">
+          <span>${escapeHtml(props.__type || "Тип не указан")}</span>
+          <span>${escapeHtml(props.__status || "Статус не указан")}</span>
+          ${extra.checkpointPattern ? `<span>${escapeHtml(extra.checkpointPattern)}</span>` : ""}
+          <span class="freshness freshness--${freshness.level}" title="${escapeHtml(freshness.details)}">${escapeHtml(freshness.label)}</span>
+        </div>
       </header>
 
-      <div class="checkpoint-passport__chips" aria-label="Основные признаки КПП">
-        <span>${escapeHtml(props.__type || "Тип не указан")}</span>
-        <span>${escapeHtml(props.__status || "Статус не указан")}</span>
-        ${extra.checkpointPattern ? `<span>${escapeHtml(extra.checkpointPattern)}</span>` : ""}
-        <span class="freshness freshness--${freshness.level}" title="${escapeHtml(freshness.details)}">${escapeHtml(freshness.label)}</span>
-      </div>
+      <section class="checkpoint-passport__snapshot" aria-label="Ключевые показатели">
+        ${metricHtml("Статус", statusTone.text, statusTone.level)}
+        ${metricHtml("Расстояние", distance)}
+        ${metricHtml("Данные", confidence.label, confidence.level)}
+      </section>
+
+      <section class="checkpoint-passport__quality checkpoint-passport__quality--${qualitySummary.level}" aria-label="Качество данных">
+        <div>
+          <div class="checkpoint-passport__sectionTitle">Качество данных</div>
+          <b>${escapeHtml(qualitySummary.title)}</b>
+          <p>${escapeHtml(qualitySummary.text)}</p>
+        </div>
+        <div class="checkpoint-passport__flags">${qualityFlagsHtml(qualityFlags)}</div>
+      </section>
 
       ${factsHtml(extra)}
 
@@ -299,39 +396,12 @@ export function renderCheckpointPassport({
 
       ${branchHtml(extra)}
 
-      <section class="checkpoint-passport__metrics" aria-label="Ключевые показатели">
+      <section class="checkpoint-passport__metrics" aria-label="Координаты и идентификаторы">
         ${metricHtml("Координаты", props.__coords)}
-        ${metricHtml("Расстояние", distance)}
-        ${metricHtml("Данные", confidence.label, confidence.level)}
+        ${metricHtml("ID", props.__id)}
       </section>
 
-      <section class="checkpoint-passport__quality" aria-label="Качество данных">
-        <div class="checkpoint-passport__sectionTitle">Качество данных</div>
-        <div class="checkpoint-passport__flags">${qualityFlagsHtml(qualityFlags)}</div>
-      </section>
-
-      <details class="checkpoint-passport__fold checkpoint-passport__source">
-        <summary>Откуда данные</summary>
-        <div class="checkpoint-passport__sourceCard checkpoint-passport__sourceCard--${sourceAudit.trustLevel}">
-          <div class="checkpoint-passport__sourceTop">
-            <div>
-              <b>${escapeHtml(sourceAudit.title)}</b>
-              <span>${escapeHtml(sourceAudit.badge)}</span>
-            </div>
-            <strong>${escapeHtml(sourceAudit.trustLabel)}</strong>
-          </div>
-          <p>${escapeHtml(sourceAudit.summary)}</p>
-          <div class="checkpoint-passport__sourceEvidence">${sourceEvidenceHtml(sourceAudit.evidence)}</div>
-          <div class="checkpoint-passport__sourceLinks">
-            ${
-              sourceAudit.sourceUrl
-                ? `<a href="${escapeHtml(sourceAudit.sourceUrl)}" target="_blank" rel="noreferrer">Открыть источник</a>`
-                : "<span>Исходная ссылка отсутствует</span>"
-            }
-            <a href="${escapeHtml(sourceAudit.verificationUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceAudit.verificationLabel)}</a>
-          </div>
-        </div>
-      </details>
+      ${sourcePanelHtml(sourceAudit)}
 
       ${enrichmentHtml(enrichment)}
 

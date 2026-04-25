@@ -31,6 +31,19 @@ assert(
   sharedStyleIndex < mapUiStyleIndex,
   "Dedicated map UI stylesheet should load after the shared stylesheet."
 );
+assert(
+  indexHtml.includes('href="./js/vendor/maplibre-gl.css"') &&
+    indexHtml.includes('src="./js/vendor/maplibre-gl.js"'),
+  "Main page should load the local MapLibre runtime instead of the CDN."
+);
+assert(
+  !indexHtml.includes("unpkg.com/maplibre-gl"),
+  "Main page should not depend on the MapLibre CDN."
+);
+assert(
+  indexHtml.includes('class="app app--research"') && !indexHtml.includes("app--redesign"),
+  "Main page should use the redesigned map shell as the default app layout."
+);
 
 const panelStart = indexOfOrThrow(indexHtml, '<aside id="panel"', "Main panel should exist.");
 const panelEnd = indexOfOrThrow(indexHtml, "</aside>", "Main panel should close.");
@@ -59,7 +72,10 @@ assert(
   "Checkpoint passport should not live in the left panel."
 );
 
-assert(mapHtml.includes('class="map-side"'), "Map tools dock should live inside the map wrapper.");
+assert(
+  mapHtml.includes('class="map-side map-toolbar"'),
+  "Map tools dock should live inside the map wrapper."
+);
 assert(mapHtml.includes('id="layers"'), "Layer controls should live in the map tools dock.");
 assert(mapHtml.includes('id="tools"'), "Tool controls should live in the map tools dock.");
 assert(mapHtml.includes('id="legend"'), "Legend should live in the map tools dock.");
@@ -70,7 +86,7 @@ assert(
   "Checkpoint passport should live in the map wrapper."
 );
 assert(
-  mapHtml.indexOf('class="map-side"') < mapHtml.indexOf('id="map"'),
+  mapHtml.indexOf('class="map-side map-toolbar"') < mapHtml.indexOf('id="map"'),
   "Map dock should render before the map canvas."
 );
 
@@ -87,6 +103,10 @@ assert(
   "Dedicated map UI stylesheet should own desktop and mobile map layout."
 );
 assert(
+  !mapUiCss.includes("app--redesign") && !mapUiCss.includes("2026 redesign shell"),
+  "Dedicated map UI stylesheet should not keep the temporary redesign override layer."
+);
+assert(
   !/(^|\n)\.btn\s*\{/.test(mapUiCss),
   "Dedicated map UI stylesheet should avoid unscoped global button rules."
 );
@@ -101,6 +121,12 @@ assert(swSource.includes('"./js/enrichment.js"'), "Service worker should precach
 assert(
   swSource.includes('"./js/sourceTrust.js"'),
   "Service worker should precache sourceTrust.js."
+);
+assert(
+  swSource.includes('"./js/vendor/maplibre-gl.css"') &&
+    swSource.includes('"./js/vendor/maplibre-gl.js"') &&
+    swSource.includes('"./js/vendor/maplibre-gl.LICENSE.txt"'),
+  "Service worker should precache the local MapLibre runtime."
 );
 assert(
   swSource.includes('"./data/checkpoint_enrichment.json"'),

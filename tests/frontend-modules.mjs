@@ -64,6 +64,9 @@ const { registerAppShellServiceWorker } = await import(
   new URL("../js/serviceWorker.js", import.meta.url)
 );
 const { renderList } = await import(new URL("../js/render.js", import.meta.url));
+const { applyQualityReportToFeatures, buildQualityWarningIndex, getQualityFlags } = await import(
+  new URL("../js/quality.js", import.meta.url)
+);
 const { applyFeatureEnrichmentToFeatures, buildCheckpointEnrichmentIndex, getFeatureEnrichment } =
   await import(new URL("../js/enrichment.js", import.meta.url));
 
@@ -458,6 +461,68 @@ assert(
   "Research filter should keep checkpoints with quality issues."
 );
 
+const qualityReport = {
+  warnings: [
+    "391: coordinates have low precision",
+    "Duplicate coordinate pair detected: (55.0, 55.0): 391, 390"
+  ],
+  errors: ["390: invalid latitude"]
+};
+const qualityWarningIndex = buildQualityWarningIndex(qualityReport);
+
+assert(
+  qualityWarningIndex.get("391")?.length === 2,
+  "Quality warning index should attach direct and duplicate-coordinate warnings."
+);
+assert(
+  qualityWarningIndex.get("390")?.some((flag) => flag.level === "critical"),
+  "Quality warning index should attach report errors as critical flags."
+);
+
+const qualityFeatures = applyQualityReportToFeatures(
+  [
+    {
+      properties: {
+        __id: "391",
+        __status: "Действует",
+        __coords: "55.00000, 55.00000",
+        __extra: {
+          source: "https://example.test/source",
+          updatedAt: "2026-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      properties: {
+        __id: "390",
+        __status: "Действует",
+        __coords: "55.00000, 55.00000",
+        __extra: {
+          source: "https://example.test/source",
+          updatedAt: "2026-01-01T00:00:00Z"
+        }
+      }
+    }
+  ],
+  qualityReport
+);
+
+assert(
+  getQualityFlags(qualityFeatures[0]).some((flag) => flag.label === "Низкая точность координат"),
+  "Quality flags should include low-precision coordinate warnings from the report."
+);
+assert(
+  filterFeatures(qualityFeatures, {
+    query: "",
+    type: "all",
+    status: "all",
+    country: "all",
+    subject: "all",
+    research: "quality-issues"
+  }).length === 2,
+  "Research quality filter should include checkpoints flagged by the quality report."
+);
+
 const listEl = createListElement();
 const emptyEl = createEmptyElement();
 
@@ -496,6 +561,42 @@ renderList({
 assert(
   listEl.innerHTML.indexOf("Alpha") < listEl.innerHTML.indexOf("Beta"),
   "Distance sorting did not place the closest checkpoint first."
+);
+
+renderList({
+  listEl,
+  emptyEl,
+  viewFeatures: [
+    {
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [10, 10] },
+      properties: {
+        __id: "bad-id",
+        __name: '<img src=x onerror="alert(1)">',
+        __type: "Автомобильный",
+        __status: "Действует",
+        __country: "<script>alert(1)</script>",
+        __subject: "Регион",
+        __coords: "10.00000, 10.00000",
+        __extra: { updatedAt: "2026-01-01T00:00:00Z" }
+      }
+    }
+  ],
+  userLocation: null,
+  favoriteIds: new Set(),
+  compareIds: [],
+  sortMode: "name",
+  onItemClick() {}
+});
+
+assert(!listEl.innerHTML.includes("<img"), "Checkpoint names should be escaped in list HTML.");
+assert(
+  !listEl.innerHTML.includes("<script"),
+  "Checkpoint metadata should be escaped in list HTML."
+);
+assert(
+  listEl.innerHTML.includes("&lt;img") && listEl.innerHTML.includes("&lt;script"),
+  "Escaped checkpoint HTML should remain visible as text."
 );
 
 const enrichmentIndex = buildCheckpointEnrichmentIndex({
