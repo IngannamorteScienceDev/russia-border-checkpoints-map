@@ -211,6 +211,11 @@
   color: var(--ui-accent);
 }
 
+.app--research :is(button, a, input, select, summary):focus-visible {
+  outline: 3px solid rgba(102, 217, 202, 0.42);
+  outline-offset: 2px;
+}
+
 .app--research .filter-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1288,23 +1293,65 @@ html[data-theme="dark"] .app--research .preset.is-active {
     top: 12px;
     right: 12px;
     left: 64px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 6px;
+    width: auto;
+    max-width: none;
     max-height: none;
     overflow: visible;
   }
 
+  .app--research .mapWrap--passport-open .map-side {
+    display: none;
+  }
+
   .app--research .map-dock {
+    min-width: 0;
     padding: 5px;
   }
 
+  .app--research .map-dock--layers {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .app--research .map-dock--tools {
+    grid-column: 1 / -1;
+    min-width: 0;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .app--research .layer-actions {
+    display: flex;
+  }
+
+  .app--research .tool-grid {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+
   .app--research .sort-control {
-    width: 146px;
+    grid-column: span 2;
+    min-width: 0;
+    width: auto;
+  }
+
+  .app--research .sort-control .select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .app--research .map-side .btn,
   .app--research .map-side .layer-toggle,
   .app--research .map-side .tool-grid a.btn {
-    width: 36px;
+    width: 100%;
+    min-width: 0;
     height: 36px;
     min-height: 36px;
   }
@@ -1316,5 +1363,24 @@ html[data-theme="dark"] .app--research .preset.is-active {
 
   .app--research .checkpoint-passport__card {
     border-radius: 8px 8px 0 0;
+  }
+
+  .app--research .checkpoint-passport {
+    overflow-x: hidden;
+  }
+
+  .app--research .checkpoint-passport__snapshot,
+  .app--research .checkpoint-passport__metrics,
+  .app--research .checkpoint-passport__factGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .app--research .checkpoint-passport__sourcePanelTop,
+  .app--research .checkpoint-passport__topline {
+    align-items: flex-start;
+  }
+
+  .app--research .checkpoint-passport__statusDot {
+    white-space: normal;
   }
 }

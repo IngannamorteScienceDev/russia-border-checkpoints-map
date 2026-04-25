@@ -1,4 +1,4 @@
-const CACHE_NAME = "russia-border-checkpoints-app-shell-v14";
+const CACHE_NAME = "russia-border-checkpoints-app-shell-v15";
 
 const APP_SHELL_URLS = [
   "./",

@@ -746,6 +746,27 @@ function closeSelectedCheckpoint() {
   popupController.closePopup();
 }
 
+function handleGlobalKeydown(event) {
+  if (event.key !== "Escape") return;
+
+  if (dom.panelEl?.classList.contains("open")) {
+    setPanelOpen(false);
+    event.preventDefault?.();
+    return;
+  }
+
+  if (state.shareSheetOpen) {
+    closeShareSheet();
+    event.preventDefault?.();
+    return;
+  }
+
+  if (state.selectedFeature) {
+    closeSelectedCheckpoint();
+    event.preventDefault?.();
+  }
+}
+
 function restoreSelectedCheckpointFromUrl() {
   const selectedId = getSelectedCheckpointIdFromUrl();
   if (!selectedId) return;
@@ -970,6 +991,8 @@ function attachUi() {
   if (dom.panelScrimEl) {
     dom.panelScrimEl.onclick = () => setPanelOpen(false);
   }
+
+  globalThis.window?.addEventListener?.("keydown", handleGlobalKeydown);
 }
 
 async function init() {

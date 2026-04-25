@@ -704,6 +704,18 @@ if (
   throw new Error("Mobile panel button did not open the panel with a scrim.");
 }
 
+let escapePrevented = false;
+windowListeners.get("keydown")?.({
+  key: "Escape",
+  preventDefault() {
+    escapePrevented = true;
+  }
+});
+if (panelEl?.classList.contains("open") || panelScrimButton?.hidden !== true || !escapePrevented) {
+  throw new Error("Escape did not close the mobile panel.");
+}
+
+mobilePanelFab?.onclick?.();
 panelScrimButton?.onclick?.();
 if (panelEl?.classList.contains("open") || panelScrimButton?.hidden !== true) {
   throw new Error("Mobile panel scrim did not close the panel.");

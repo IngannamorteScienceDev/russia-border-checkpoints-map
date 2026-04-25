@@ -98,6 +98,7 @@ assert(
   mapUiCss.includes(".app--research .map-side") &&
     mapUiCss.includes(".app--research .tool-grid") &&
     mapUiCss.includes(".app--research .checkpoint-passport") &&
+    mapUiCss.includes(":focus-visible") &&
     mapUiCss.includes('html[data-theme="dark"]') &&
     mapUiCss.includes("@media (max-width: 900px)"),
   "Dedicated map UI stylesheet should own desktop and mobile map layout."
@@ -114,6 +115,11 @@ assert(swSource.includes('"./map-ui.css"'), "Service worker should precache map-
 assert(
   !appSource.includes('dom.panelEl.classList.add("open")'),
   "Mobile panel should not force-open over the map on startup."
+);
+assert(
+  appSource.includes('addEventListener?.("keydown"') &&
+    appSource.includes('event.key !== "Escape"'),
+  "Map UI should support Escape for dismissing transient panels."
 );
 assert(swSource.includes('"./js/theme.js"'), "Service worker should precache theme.js.");
 assert(swSource.includes('"./js/passport.js"'), "Service worker should precache passport.js.");
