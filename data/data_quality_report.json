@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "datasetVersion": "2026-01-19-385-a6a7e0dd",
+  "datasetVersion": "2026-03-26-385-a6a7e0dd",
   "generatedFrom": "data/checkpoints.geojson",
-  "latestUpdatedAt": "2026-01-19T09:56:39.000000Z",
+  "latestUpdatedAt": "2026-03-26T13:51:21.000000Z",
   "summary": {
     "checked": 385,
     "errorCount": 0,
