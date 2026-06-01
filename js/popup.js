@@ -144,16 +144,16 @@ export function createPopupController({
 
     lastPopupFeature = feature;
 
-    if (!showMapPopup || !globalThis.maplibregl?.Popup) {
+    if (!showMapPopup || typeof map.openPopupElement !== "function") {
       notifyPopupChange(feature);
       map.easeTo({ center: feature.geometry.coordinates, zoom: Math.max(map.getZoom(), 7) });
       return;
     }
 
-    popupRef = new maplibregl.Popup({ maxWidth: "380px", closeButton: true, closeOnClick: true })
-      .setLngLat(lngLat || feature.geometry.coordinates)
-      .setHTML(buildPopupHtml(feature, getUserLocation()))
-      .addTo(map);
+    popupRef = map.openPopupElement({
+      coordinates: lngLat || feature.geometry.coordinates,
+      html: buildPopupHtml(feature, getUserLocation())
+    });
 
     if (typeof popupRef.on === "function") {
       popupRef.on("close", () => {

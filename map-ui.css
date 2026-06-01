@@ -655,8 +655,16 @@
     linear-gradient(135deg, rgba(8, 124, 107, 0.05), transparent 42%), #dbe7dc;
 }
 
-.app--research .maplibregl-canvas {
+.app--research .cesium-widget,
+.app--research .cesium-widget canvas {
+  width: 100%;
+  height: 100%;
   background-color: #dbe7dc;
+}
+
+.app--research .cesium-widget {
+  position: absolute;
+  inset: 0;
 }
 
 .app--research .mapWrap--local-base .map::after {
@@ -1137,12 +1145,13 @@
   opacity: 0.78;
 }
 
-.app--research .maplibregl-ctrl-bottom-right .maplibregl-ctrl {
-  margin-right: 300px;
+.app--research .cesium-widget-credits {
+  right: 304px;
+  bottom: 8px;
 }
 
-.app--research .mapWrap--passport-open .maplibregl-ctrl-bottom-right .maplibregl-ctrl {
-  margin-right: 452px;
+.app--research .mapWrap--passport-open .cesium-widget-credits {
+  right: 456px;
 }
 
 html[data-theme="dark"] .app--research {
@@ -1255,10 +1264,10 @@ html[data-theme="dark"] .app--research .preset.is-active {
     max-height: 72dvh;
   }
 
-  .app--research .maplibregl-ctrl-bottom-right .maplibregl-ctrl,
-  .app--research .mapWrap--passport-open .maplibregl-ctrl-bottom-right .maplibregl-ctrl {
-    margin-right: 10px;
-    margin-bottom: 210px;
+  .app--research .cesium-widget-credits,
+  .app--research .mapWrap--passport-open .cesium-widget-credits {
+    right: 10px;
+    bottom: 210px;
   }
 }
 

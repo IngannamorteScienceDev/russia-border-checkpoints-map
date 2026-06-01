@@ -117,10 +117,15 @@ async function readVisualIndex() {
   const source = await readFile(resolve(ROOT, "index.html"), "utf-8");
 
   return source
-    .replace(/\s*<link rel="stylesheet" href="https:\/\/unpkg\.com\/maplibre-gl@[^"]+" \/>\n/, "\n")
-    .replace(/\s*<link rel="stylesheet" href="\.\/js\/vendor\/maplibre-gl\.css" \/>\n/, "\n")
-    .replace(/\s*<script src="https:\/\/unpkg\.com\/maplibre-gl@[^"]+"><\/script>\n/, "\n")
-    .replace(/\s*<script src="\.\/js\/vendor\/maplibre-gl\.js"><\/script>\n/, "\n");
+    .replace(
+      /\s*<link rel="stylesheet" href="\.\/js\/vendor\/cesium\/Widgets\/widgets\.css" \/>\n/,
+      "\n"
+    )
+    .replace(
+      /\s*<script>\s*window\.CESIUM_BASE_URL = "\.\/js\/vendor\/cesium\/";\s*<\/script>\n/,
+      "\n"
+    )
+    .replace(/\s*<script src="\.\/js\/vendor\/cesium\/Cesium\.js"><\/script>\n/, "\n");
 }
 
 function createStaticServer() {

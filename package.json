@@ -16,6 +16,6 @@
     "qrcode-generator": "^2.0.4"
   },
   "dependencies": {
-    "maplibre-gl": "4.7.1"
+    "cesium": "1.141.0"
   }
 }

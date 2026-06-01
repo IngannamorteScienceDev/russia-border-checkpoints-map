@@ -346,195 +346,253 @@ globalThis.fetch = async (resource) => ({
   }
 });
 
-class FakeMap {
-  constructor(options = {}) {
-    this.sources = new Map();
-    this.layers = new Map();
-    this.listeners = new Map();
-    this.center = Array.isArray(options.center) ? [...options.center] : [0, 0];
-    this.zoom = typeof options.zoom === "number" ? options.zoom : 0;
-    initialMapOptions = {
-      center: [...this.center],
-      zoom: this.zoom
+const toRadians = (value) => (value * Math.PI) / 180;
+const toDegrees = (value) => (value * 180) / Math.PI;
+const fakeZoomToHeight = (zoom) => (40075016.68557849 * 2.5) / 2 ** zoom;
+
+class FakeColor {
+  constructor(value) {
+    this.value = value;
+  }
+
+  withAlpha(alpha) {
+    return new FakeColor(`${this.value}:${alpha}`);
+  }
+}
+
+class FakeEntityCollection {
+  constructor() {
+    this.values = [];
+  }
+
+  suspendEvents() {}
+
+  resumeEvents() {}
+
+  add(entity) {
+    this.values.push(entity);
+    return entity;
+  }
+
+  remove(entity) {
+    this.values = this.values.filter((item) => item !== entity);
+  }
+
+  removeAll() {
+    this.values = [];
+  }
+}
+
+class FakeDataSourceCollection {
+  constructor() {
+    this.values = [];
+  }
+
+  add(dataSource) {
+    this.values.push(dataSource);
+    return dataSource;
+  }
+}
+
+class FakeCamera {
+  constructor() {
+    this.center = [0, 0];
+    this.zoom = 0;
+    this.moveEnd = { addEventListener() {} };
+    this.positionCartographic = {
+      longitude: 0,
+      latitude: 0,
+      height: fakeZoomToHeight(0)
     };
-    this.boundsContains = () => true;
-    lastMapInstance = this;
   }
 
-  loaded() {
-    return true;
+  syncPosition() {
+    this.positionCartographic = {
+      longitude: toRadians(this.center[0]),
+      latitude: toRadians(this.center[1]),
+      height: fakeZoomToHeight(this.zoom)
+    };
   }
 
-  once(_event, cb) {
-    cb();
+  setView({ destination }) {
+    this.center = [destination.lng, destination.lat];
+    this.zoom = Math.log2((40075016.68557849 * 2.5) / destination.height);
+    this.syncPosition();
   }
 
-  addControl() {}
+  flyTo({ destination, complete }) {
+    if (destination?.isRectangle) {
+      this.center = [
+        (destination.west + destination.east) / 2,
+        (destination.south + destination.north) / 2
+      ];
+      this.zoom = 5.5;
+    } else {
+      this.center = [destination.lng, destination.lat];
+      this.zoom = Math.log2((40075016.68557849 * 2.5) / destination.height);
+    }
 
-  addSource(id, source) {
-    this.sources.set(id, {
-      ...source,
-      setData(data) {
-        this.data = data;
+    this.syncPosition();
+    complete?.();
+  }
+
+  pickEllipsoid() {
+    return { lng: this.center[0], lat: this.center[1] };
+  }
+
+  computeViewRectangle() {
+    return {
+      containsDegrees: (coordinates) => lastMapInstance?.boundsContains?.(coordinates) ?? true
+    };
+  }
+}
+
+class FakeViewer {
+  constructor() {
+    this.camera = new FakeCamera();
+    this.scene = {
+      canvas: { clientWidth: 1440, clientHeight: 900, style: {} },
+      globe: { ellipsoid: {}, baseColor: null, depthTestAgainstTerrain: false },
+      skyAtmosphere: { show: true },
+      moon: { show: true },
+      fog: { enabled: true },
+      pick: () => null,
+      requestRender() {}
+    };
+    this.imageryLayers = {
+      values: [],
+      add: (layer) => {
+        this.imageryLayers.values.push(layer);
+        return layer;
       },
-      getClusterExpansionZoom(_id, cb) {
-        cb(null, 5);
+      remove: (layer) => {
+        this.imageryLayers.values = this.imageryLayers.values.filter((item) => item !== layer);
       }
-    });
-  }
-
-  getSource(id) {
-    return this.sources.get(id);
-  }
-
-  removeSource(id) {
-    this.sources.delete(id);
-  }
-
-  addLayer(layer) {
-    this.layers.set(layer.id, {
-      ...layer,
-      layout: layer.layout ? { ...layer.layout } : {}
-    });
-  }
-
-  getLayer(id) {
-    return this.layers.get(id);
-  }
-
-  removeLayer(id) {
-    this.layers.delete(id);
-  }
-
-  on(eventName, maybeLayer, maybeHandler) {
-    const handler = typeof maybeLayer === "function" ? maybeLayer : maybeHandler;
-    if (typeof handler !== "function") return;
-
-    if (!this.listeners.has(eventName)) {
-      this.listeners.set(eventName, new Set());
-    }
-
-    this.listeners.get(eventName).add(handler);
-  }
-
-  off(eventName, maybeLayer, maybeHandler) {
-    const handler = typeof maybeLayer === "function" ? maybeLayer : maybeHandler;
-    if (typeof handler !== "function") return;
-
-    this.listeners.get(eventName)?.delete(handler);
-  }
-
-  emit(eventName) {
-    for (const handler of this.listeners.get(eventName) || []) {
-      handler();
-    }
-  }
-
-  easeTo(options = {}) {
-    if (Array.isArray(options.center)) {
-      this.center = [...options.center];
-    }
-
-    if (typeof options.zoom === "number") {
-      this.zoom = options.zoom;
-    }
-
-    this.emit("moveend");
-  }
-
-  fitBounds(bounds, options = {}) {
-    const [southWest, northEast] = bounds;
-    this.center = [(southWest[0] + northEast[0]) / 2, (southWest[1] + northEast[1]) / 2];
-
-    if (typeof options.maxZoom === "number") {
-      this.zoom = Math.min(Math.max(this.zoom, 5), options.maxZoom);
-    }
-
-    this.emit("moveend");
+    };
+    this.entities = new FakeEntityCollection();
+    this.dataSources = new FakeDataSourceCollection();
   }
 
   resize() {}
+}
 
-  getCanvas() {
-    return { style: {} };
-  }
-
-  getZoom() {
-    return this.zoom;
-  }
-
-  getCenter() {
-    return {
-      lng: this.center[0],
-      lat: this.center[1]
+class FakeCustomDataSource {
+  constructor(name) {
+    this.name = name;
+    this.entities = new FakeEntityCollection();
+    this.clustering = {
+      enabled: false,
+      pixelRange: 0,
+      minimumClusterSize: 0,
+      clusterBillboards: false,
+      clusterLabels: false,
+      clusterPoints: false,
+      clusterEvent: { addEventListener() {} }
     };
-  }
-
-  getBounds() {
-    return {
-      contains: (coordinates) => this.boundsContains(coordinates)
-    };
-  }
-
-  setLayoutProperty(id, prop, value) {
-    const layer = this.layers.get(id);
-    if (!layer) return;
-
-    if (!layer.layout) layer.layout = {};
-    layer.layout[prop] = value;
-  }
-
-  getLayoutProperty(id, prop) {
-    return this.layers.get(id)?.layout?.[prop] ?? "none";
   }
 }
 
-class FakeMarker {
-  setLngLat() {
-    return this;
-  }
-
-  addTo() {
-    return this;
-  }
-
-  remove() {}
-}
-
-class FakePopup {
+class FakeScreenSpaceEventHandler {
   constructor() {
-    this.listeners = new Map();
+    this.actions = new Map();
   }
 
-  setLngLat() {
-    return this;
+  setInputAction(handler, eventType) {
+    this.actions.set(eventType, handler);
   }
 
-  setHTML() {
-    return this;
+  destroy() {}
+}
+
+class FakeImageryLayer {
+  constructor(provider, options = {}) {
+    this.provider = provider;
+    this.show = options.show ?? true;
+    this.alpha = options.alpha ?? 1;
   }
 
-  addTo() {
-    return this;
-  }
-
-  on(eventName, handler) {
-    this.listeners.set(eventName, handler);
-    return this;
-  }
-
-  remove() {
-    this.listeners.get("close")?.();
+  static fromProviderAsync(providerPromise, options = {}) {
+    return new FakeImageryLayer(providerPromise, options);
   }
 }
 
-class FakeNavigationControl {}
+globalThis.Cesium = {
+  Viewer: FakeViewer,
+  CustomDataSource: FakeCustomDataSource,
+  ScreenSpaceEventHandler: FakeScreenSpaceEventHandler,
+  ScreenSpaceEventType: { LEFT_CLICK: "left-click", MOUSE_MOVE: "mouse-move" },
+  ImageryLayer: FakeImageryLayer,
+  TileMapServiceImageryProvider: {
+    fromUrl: async (url, options) => ({ url, options })
+  },
+  UrlTemplateImageryProvider: class {
+    constructor(options) {
+      this.options = options;
+    }
+  },
+  EllipsoidTerrainProvider: class {},
+  Cartesian2: class {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+    }
+  },
+  Cartesian3: {
+    fromDegrees(lng, lat, height = 0) {
+      return { lng, lat, height };
+    }
+  },
+  Cartographic: {
+    fromCartesian(cartesian) {
+      return {
+        longitude: toRadians(cartesian.lng),
+        latitude: toRadians(cartesian.lat),
+        height: cartesian.height || 0
+      };
+    },
+    fromDegrees(lng, lat) {
+      return {
+        longitude: toRadians(lng),
+        latitude: toRadians(lat),
+        lng,
+        lat
+      };
+    }
+  },
+  Rectangle: {
+    fromDegrees(west, south, east, north) {
+      return { isRectangle: true, west, south, east, north };
+    },
+    contains(rectangle, cartographic) {
+      const coordinates = [
+        cartographic.lng ?? toDegrees(cartographic.longitude),
+        cartographic.lat ?? toDegrees(cartographic.latitude)
+      ];
+      return rectangle.containsDegrees?.(coordinates) ?? true;
+    }
+  },
+  Color: {
+    fromCssColorString(value) {
+      return new FakeColor(value);
+    },
+    WHITE: new FakeColor("#ffffff")
+  },
+  HeightReference: { CLAMP_TO_GROUND: "clamp" },
+  LabelStyle: { FILL_AND_OUTLINE: "fill-and-outline" },
+  Math: { toDegrees },
+  buildModuleUrl(path) {
+    return `./js/vendor/cesium/${path}`;
+  }
+};
 
-globalThis.maplibregl = {
-  Map: FakeMap,
-  Marker: FakeMarker,
-  Popup: FakePopup,
-  NavigationControl: FakeNavigationControl
+globalThis.__KPP_MAP_READY__ = (map) => {
+  lastMapInstance = map;
+  const center = map.getCenter();
+  initialMapOptions = {
+    center: [center.lng, center.lat],
+    zoom: Number(map.getZoom().toFixed(1))
+  };
+  lastMapInstance.boundsContains = () => true;
 };
 
 URL.createObjectURL = () => "blob:test-download";
@@ -775,9 +833,9 @@ if (offlineStatus?.hidden !== false) {
 
 if (
   !initialMapOptions ||
-  initialMapOptions.center[0] !== 120.5 ||
-  initialMapOptions.center[1] !== 50.25 ||
-  initialMapOptions.zoom !== 5.5
+  Math.abs(initialMapOptions.center[0] - 120.5) > 0.000001 ||
+  Math.abs(initialMapOptions.center[1] - 50.25) > 0.000001 ||
+  Math.abs(initialMapOptions.zoom - 5.5) > 0.000001
 ) {
   throw new Error("Map view was not restored from URL.");
 }

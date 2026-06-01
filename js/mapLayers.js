@@ -1,251 +1,251 @@
 import {
   BOUNDARIES_LAYER_ID,
   BOUNDARIES_SOURCE,
-  BOUNDARIES_SOURCE_ID,
   ROADS_LAYER_ID,
   ROADS_SOURCE,
-  ROADS_SOURCE_ID,
   SATELLITE_LAYER_ID,
   SATELLITE_SOURCE,
-  SATELLITE_SOURCE_ID,
   TYPE_COLORS
 } from "./config.js";
 
-function ensureRasterSource(map, id, source) {
-  if (!map.getSource(id)) {
-    map.addSource(id, {
-      ...source,
-      tiles: [...source.tiles]
-    });
+const CHECKPOINT_SOURCE_ID = "checkpoints";
+const COMPATIBILITY_LAYER_IDS = [
+  "clusters",
+  "cluster-count",
+  "quality-points-alert",
+  "favorite-points-halo",
+  "points",
+  "points-hit"
+];
+
+function featureId(feature) {
+  return String(feature?.properties?.__id || "");
+}
+
+function entityId(feature) {
+  return `checkpoint-${featureId(feature)}`;
+}
+
+function colorForType(Cesium, type) {
+  return Cesium.Color.fromCssColorString(TYPE_COLORS[type] || TYPE_COLORS.Другое);
+}
+
+function qualityTone(feature) {
+  if (feature.properties?.__hasCriticalQualityIssues) return "critical";
+  if (feature.properties?.__hasQualityIssues) return "warning";
+  return "";
+}
+
+function featureBounds(features) {
+  const coordinates = features
+    .map((feature) => feature.geometry?.coordinates)
+    .filter(
+      (coords) => Array.isArray(coords) && Number.isFinite(coords[0]) && Number.isFinite(coords[1])
+    );
+
+  if (!coordinates.length) return null;
+
+  const lngs = coordinates.map((coords) => coords[0]);
+  const lats = coordinates.map((coords) => coords[1]);
+
+  return [
+    [Math.min(...lngs), Math.min(...lats)],
+    [Math.max(...lngs), Math.max(...lats)]
+  ];
+}
+
+function ensureCompatibilityLayer(map, id) {
+  if (!map.getLayer?.(id)) {
+    map.addLayer?.({ id, type: "cesium-entity", layout: { visibility: "visible" } });
   }
 }
 
-function ensureRasterLayer(map, id, sourceId, { visibility = "none", opacity = 1 } = {}) {
-  if (!map.getLayer(id)) {
-    map.addLayer({
-      id,
-      type: "raster",
-      source: sourceId,
-      layout: { visibility },
-      paint: { "raster-opacity": opacity }
-    });
+function setCompatibilitySourceData(map, features) {
+  const data = { type: "FeatureCollection", features };
+  const source = map.getSource?.(CHECKPOINT_SOURCE_ID);
+
+  if (source?.setData) {
+    source.setData(data);
+    return;
   }
+
+  map.addSource?.(CHECKPOINT_SOURCE_ID, { type: "geojson", data });
 }
 
 export function ensureSatelliteLayer(map) {
-  ensureRasterSource(map, SATELLITE_SOURCE_ID, SATELLITE_SOURCE);
-  ensureRasterLayer(map, SATELLITE_LAYER_ID, SATELLITE_SOURCE_ID);
+  if (map.ensureRasterLayer) {
+    map.ensureRasterLayer(SATELLITE_LAYER_ID, SATELLITE_SOURCE, { visibility: "none" });
+    map.ensureRasterLayer(BOUNDARIES_LAYER_ID, BOUNDARIES_SOURCE, {
+      visibility: "none",
+      opacity: 0.92
+    });
+    map.ensureRasterLayer(ROADS_LAYER_ID, ROADS_SOURCE, { visibility: "none", opacity: 0.9 });
+    return;
+  }
 
-  ensureRasterSource(map, BOUNDARIES_SOURCE_ID, BOUNDARIES_SOURCE);
-  ensureRasterLayer(map, BOUNDARIES_LAYER_ID, BOUNDARIES_SOURCE_ID, { opacity: 0.92 });
-
-  ensureRasterSource(map, ROADS_SOURCE_ID, ROADS_SOURCE);
-  ensureRasterLayer(map, ROADS_LAYER_ID, ROADS_SOURCE_ID, { opacity: 0.9 });
+  [SATELLITE_LAYER_ID, BOUNDARIES_LAYER_ID, ROADS_LAYER_ID].forEach((id) =>
+    ensureCompatibilityLayer(map, id)
+  );
 }
 
 export function setMapReferenceVisibility(map, { satellite, boundaries, roads }) {
-  if (map.getLayer(SATELLITE_LAYER_ID)) {
-    map.setLayoutProperty(SATELLITE_LAYER_ID, "visibility", satellite ? "visible" : "none");
+  if (map.getLayer?.(SATELLITE_LAYER_ID)) {
+    map.setLayoutProperty?.(SATELLITE_LAYER_ID, "visibility", satellite ? "visible" : "none");
   }
 
-  if (map.getLayer(BOUNDARIES_LAYER_ID)) {
-    map.setLayoutProperty(
+  if (map.getLayer?.(BOUNDARIES_LAYER_ID)) {
+    map.setLayoutProperty?.(
       BOUNDARIES_LAYER_ID,
       "visibility",
       satellite && boundaries ? "visible" : "none"
     );
   }
 
-  if (map.getLayer(ROADS_LAYER_ID)) {
-    map.setLayoutProperty(ROADS_LAYER_ID, "visibility", satellite && roads ? "visible" : "none");
+  if (map.getLayer?.(ROADS_LAYER_ID)) {
+    map.setLayoutProperty?.(ROADS_LAYER_ID, "visibility", satellite && roads ? "visible" : "none");
   }
 }
 
 export function createCheckpointsLayerController({ map, openPopup }) {
-  const handlers = {
-    clustersClick: null,
-    pointsClick: null,
-    enterPoints: null,
-    leavePoints: null
-  };
+  let dataSource = null;
+  let clickHandler = null;
+
+  function styleCluster(Cesium, clusteredEntities, cluster) {
+    const count = clusteredEntities.length;
+
+    cluster.billboard.show = false;
+    cluster.point.show = true;
+    cluster.point.pixelSize = count >= 80 ? 32 : count >= 30 ? 27 : 22;
+    cluster.point.color = Cesium.Color.fromCssColorString("#3b82f6").withAlpha(0.96);
+    cluster.point.outlineColor = Cesium.Color.fromCssColorString("#020617");
+    cluster.point.outlineWidth = 3;
+
+    cluster.label.show = true;
+    cluster.label.text = count.toLocaleString("ru-RU");
+    cluster.label.fillColor = Cesium.Color.fromCssColorString("#e5e7eb");
+    cluster.label.outlineColor = Cesium.Color.fromCssColorString("#020617");
+    cluster.label.outlineWidth = 3;
+    cluster.label.style = Cesium.LabelStyle.FILL_AND_OUTLINE;
+    cluster.label.font = "700 13px system-ui, sans-serif";
+    cluster.label.disableDepthTestDistance = Number.POSITIVE_INFINITY;
+  }
+
+  function bindCesiumEvents() {
+    if (!map.isCesium || clickHandler) return;
+
+    const { Cesium, viewer } = map;
+    clickHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+
+    clickHandler.setInputAction((movement) => {
+      const picked = viewer.scene.pick(movement.position);
+      const pickedId = picked?.id;
+
+      if (Array.isArray(pickedId)) {
+        const clusteredFeatures = pickedId.map((entity) => entity.kppFeature).filter(Boolean);
+        const bounds = featureBounds(clusteredFeatures);
+        if (bounds) map.fitBounds(bounds);
+        return;
+      }
+
+      const feature = pickedId?.kppFeature;
+      if (!feature) return;
+      openPopup(feature, feature.geometry.coordinates);
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    clickHandler.setInputAction((movement) => {
+      const picked = viewer.scene.pick(movement.endPosition);
+      const pickedId = picked?.id;
+      const hasCheckpoint = Array.isArray(pickedId)
+        ? pickedId.some((entity) => entity.kppFeature)
+        : Boolean(pickedId?.kppFeature);
+
+      viewer.scene.canvas.style.cursor = hasCheckpoint ? "pointer" : "";
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+  }
+
+  function ensureDataSource() {
+    if (!map.isCesium) return null;
+    if (dataSource) return dataSource;
+
+    const { Cesium, viewer } = map;
+    dataSource = new Cesium.CustomDataSource(CHECKPOINT_SOURCE_ID);
+    dataSource.clustering.enabled = true;
+    dataSource.clustering.pixelRange = 52;
+    dataSource.clustering.minimumClusterSize = 3;
+    dataSource.clustering.clusterBillboards = false;
+    dataSource.clustering.clusterLabels = false;
+    dataSource.clustering.clusterPoints = true;
+    dataSource.clustering.clusterEvent.addEventListener((clusteredEntities, cluster) => {
+      styleCluster(Cesium, clusteredEntities, cluster);
+    });
+
+    viewer.dataSources.add(dataSource);
+    bindCesiumEvents();
+    return dataSource;
+  }
+
+  function addEntityForFeature(dataSourceRef, feature) {
+    const { Cesium } = map;
+    const coordinates = feature.geometry?.coordinates;
+    if (!Array.isArray(coordinates)) return;
+
+    const props = feature.properties || {};
+    const tone = qualityTone(feature);
+    const isFavorite = props.__isFavorite === true;
+    const color = colorForType(Cesium, props.__type);
+    const outlineColor = isFavorite
+      ? "#facc15"
+      : tone === "critical"
+        ? "#fecaca"
+        : tone === "warning"
+          ? "#fde68a"
+          : "#020617";
+
+    const entity = dataSourceRef.entities.add({
+      id: entityId(feature),
+      name: props.__name || props.__id || "КПП",
+      position: Cesium.Cartesian3.fromDegrees(coordinates[0], coordinates[1]),
+      point: {
+        pixelSize: isFavorite ? 14 : tone ? 12 : 10,
+        color,
+        outlineColor: Cesium.Color.fromCssColorString(outlineColor),
+        outlineWidth: isFavorite ? 4 : tone ? 3 : 2,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY
+      },
+      properties: props
+    });
+
+    entity.kppFeature = feature;
+  }
+
+  function renderCesiumFeatures(features) {
+    const dataSourceRef = ensureDataSource();
+    if (!dataSourceRef) return;
+
+    dataSourceRef.entities.suspendEvents();
+    dataSourceRef.entities.removeAll();
+    features.forEach((feature) => addEntityForFeature(dataSourceRef, feature));
+    dataSourceRef.entities.resumeEvents();
+    map.requestRender?.();
+  }
 
   function updateSourceData(features) {
-    const source = map.getSource("checkpoints");
-    if (!source) return;
-    source.setData({ type: "FeatureCollection", features });
-  }
-
-  function safeRemoveLayer(id) {
-    if (map.getLayer(id)) map.removeLayer(id);
-  }
-
-  function safeRemoveSource(id) {
-    if (map.getSource(id)) map.removeSource(id);
-  }
-
-  function unbindLayerEvents() {
-    if (handlers.clustersClick) map.off("click", "clusters", handlers.clustersClick);
-    if (handlers.pointsClick) map.off("click", "points-hit", handlers.pointsClick);
-    if (handlers.enterPoints) map.off("mouseenter", "points-hit", handlers.enterPoints);
-    if (handlers.leavePoints) map.off("mouseleave", "points-hit", handlers.leavePoints);
-
-    handlers.clustersClick = null;
-    handlers.pointsClick = null;
-    handlers.enterPoints = null;
-    handlers.leavePoints = null;
+    setCompatibilitySourceData(map, features);
+    if (map.isCesium) renderCesiumFeatures(features);
   }
 
   function rebuildLayers(features) {
-    unbindLayerEvents();
-
-    [
-      "clusters",
-      "cluster-count",
-      "quality-points-alert",
-      "favorite-points-halo",
-      "points",
-      "points-hit"
-    ].forEach(safeRemoveLayer);
-    safeRemoveSource("checkpoints");
-
-    map.addSource("checkpoints", {
-      type: "geojson",
-      data: { type: "FeatureCollection", features },
-      cluster: true,
-      clusterRadius: 52,
-      clusterMaxZoom: 10
-    });
-
-    map.addLayer({
-      id: "clusters",
-      type: "circle",
-      source: "checkpoints",
-      filter: ["has", "point_count"],
-      paint: {
-        "circle-color": "#3b82f6",
-        "circle-radius": ["step", ["get", "point_count"], 16, 30, 22, 80, 28],
-        "circle-stroke-width": 2,
-        "circle-stroke-color": "#020617"
-      }
-    });
-
-    map.addLayer({
-      id: "cluster-count",
-      type: "symbol",
-      source: "checkpoints",
-      filter: ["has", "point_count"],
-      layout: { "text-field": "{point_count_abbreviated}", "text-size": 12 },
-      paint: { "text-color": "#e5e7eb" }
-    });
-
-    map.addLayer({
-      id: "favorite-points-halo",
-      type: "circle",
-      source: "checkpoints",
-      filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "__isFavorite"], true]],
-      paint: {
-        "circle-radius": 11,
-        "circle-color": "#facc15",
-        "circle-opacity": 0.28,
-        "circle-stroke-width": 1,
-        "circle-stroke-color": "#fef08a"
-      }
-    });
-
-    map.addLayer({
-      id: "quality-points-alert",
-      type: "circle",
-      source: "checkpoints",
-      filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "__hasQualityIssues"], true]],
-      paint: {
-        "circle-radius": ["case", ["==", ["get", "__hasCriticalQualityIssues"], true], 15, 13],
-        "circle-color": [
-          "case",
-          ["==", ["get", "__hasCriticalQualityIssues"], true],
-          "#ef4444",
-          "#f59e0b"
-        ],
-        "circle-opacity": 0.24,
-        "circle-stroke-width": 1,
-        "circle-stroke-color": [
-          "case",
-          ["==", ["get", "__hasCriticalQualityIssues"], true],
-          "#fecaca",
-          "#fde68a"
-        ]
-      }
-    });
-
-    map.addLayer({
-      id: "points",
-      type: "circle",
-      source: "checkpoints",
-      filter: ["!", ["has", "point_count"]],
-      paint: {
-        "circle-radius": 6,
-        "circle-color": [
-          "match",
-          ["get", "__type"],
-          "Автомобильный",
-          TYPE_COLORS.Автомобильный,
-          "Железнодорожный",
-          TYPE_COLORS.Железнодорожный,
-          "Воздушный",
-          TYPE_COLORS.Воздушный,
-          "Морской",
-          TYPE_COLORS.Морской,
-          "Речной",
-          TYPE_COLORS.Речной,
-          "Пешеходный",
-          TYPE_COLORS.Пешеходный,
-          TYPE_COLORS.Другое
-        ],
-        "circle-stroke-width": ["case", ["==", ["get", "__isFavorite"], true], 4, 2],
-        "circle-stroke-color": ["case", ["==", ["get", "__isFavorite"], true], "#facc15", "#020617"]
-      }
-    });
-
-    map.addLayer({
-      id: "points-hit",
-      type: "circle",
-      source: "checkpoints",
-      filter: ["!", ["has", "point_count"]],
-      paint: {
-        "circle-radius": 18,
-        "circle-opacity": 0
-      }
-    });
-
-    handlers.clustersClick = (event) => {
-      const feature = event.features?.[0];
-      if (!feature) return;
-
-      const source = map.getSource("checkpoints");
-      source.getClusterExpansionZoom(feature.properties.cluster_id, (error, zoom) => {
-        if (!error) map.easeTo({ center: feature.geometry.coordinates, zoom });
-      });
-    };
-
-    handlers.enterPoints = () => {
-      map.getCanvas().style.cursor = "pointer";
-    };
-
-    handlers.leavePoints = () => {
-      map.getCanvas().style.cursor = "";
-    };
-
-    handlers.pointsClick = (event) => {
-      openPopup(event.features?.[0], event.lngLat);
-    };
-
-    map.on("click", "clusters", handlers.clustersClick);
-    map.on("mouseenter", "points-hit", handlers.enterPoints);
-    map.on("mouseleave", "points-hit", handlers.leavePoints);
-    map.on("click", "points-hit", handlers.pointsClick);
+    COMPATIBILITY_LAYER_IDS.forEach((id) => ensureCompatibilityLayer(map, id));
+    updateSourceData(features);
   }
 
   return {
     rebuildLayers,
-    updateSourceData
+    updateSourceData,
+    destroy() {
+      clickHandler?.destroy?.();
+      clickHandler = null;
+    }
   };
 }

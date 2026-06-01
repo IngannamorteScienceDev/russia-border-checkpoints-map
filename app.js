@@ -1,6 +1,7 @@
-import { SATELLITE_LAYER_ID, STYLE_MAP } from "./js/config.js";
+import { SATELLITE_LAYER_ID } from "./js/config.js";
 import { toggleCompareId } from "./js/compare.js";
 import { buildDatasetMeta, loadFeatures, filterFeatures } from "./js/data.js";
+import { createCesiumGlobe } from "./js/cesiumGlobe.js";
 import {
   buildDatasetSnapshot,
   loadDatasetSnapshot,
@@ -73,7 +74,7 @@ const QUICK_FILTER_PRESETS = {
 };
 const initialMapView = getMapViewStateFromUrl(DEFAULT_MAP_VIEW);
 const initialReferenceLayerState = getReferenceLayerStateFromUrl();
-const isMapLibreAvailable = Boolean(globalThis.maplibregl?.Map);
+const isCesiumAvailable = Boolean(globalThis.Cesium?.Viewer);
 
 const state = {
   allFeatures: [],
@@ -189,19 +190,13 @@ function createFallbackMap({ center, zoom }) {
   };
 }
 
-const map = isMapLibreAvailable
-  ? new maplibregl.Map({
+const map = isCesiumAvailable
+  ? createCesiumGlobe({
       container: "map",
-      style: STYLE_MAP,
       center: initialMapView.center,
-      zoom: initialMapView.zoom,
-      antialias: true
+      zoom: initialMapView.zoom
     })
   : createFallbackMap(initialMapView);
-
-if (isMapLibreAvailable) {
-  map.addControl(new maplibregl.NavigationControl(), "bottom-right");
-}
 
 const popupController = createPopupController({
   map,
@@ -280,7 +275,7 @@ function syncMapFallbackStatus() {
   dom.styleToggleEl.disabled = true;
   if (dom.boundariesToggleEl) dom.boundariesToggleEl.disabled = true;
   if (dom.roadsToggleEl) dom.roadsToggleEl.disabled = true;
-  dom.styleToggleEl.textContent = "Карта недоступна";
+  dom.styleToggleEl.textContent = "Глобус недоступен";
 }
 
 function renderAll() {
@@ -886,13 +881,9 @@ function toggleViewportOnly() {
 
 function updateUserMarker() {
   if (!state.userLocation) return;
-  if (!globalThis.maplibregl?.Marker) return;
 
   if (state.userMarker) state.userMarker.remove();
-
-  state.userMarker = new maplibregl.Marker({ color: "#f97316" })
-    .setLngLat(state.userLocation)
-    .addTo(map);
+  state.userMarker = map.addUserLocationMarker?.(state.userLocation) || null;
 }
 
 function setGeoButtonLoading(isLoading) {
@@ -1000,7 +991,7 @@ async function init() {
   syncMapFallbackStatus();
 
   try {
-    setProgress(10, "Подключаем карту...");
+    setProgress(10, "Подключаем глобус...");
     await new Promise((resolve) => (map.loaded() ? resolve() : map.once("load", resolve)));
 
     ensureSatelliteLayer(map);

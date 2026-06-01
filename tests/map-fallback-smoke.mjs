@@ -104,28 +104,28 @@ globalThis.fetch = async () => ({
   }
 });
 
-delete globalThis.maplibregl;
+delete globalThis.Cesium;
 await import(new URL("../app.js", import.meta.url));
 await new Promise((resolve) => setTimeout(resolve, 10));
 
 assert(elements.get("mapFallback")?.hidden === false, "Map fallback notice was not shown.");
 assert(
   elements.get("styleToggle")?.disabled === true,
-  "Satellite toggle should be disabled without MapLibre."
+  "Satellite toggle should be disabled without Cesium."
 );
 assert(
   elements.get("boundariesToggle")?.disabled === true &&
     elements.get("roadsToggle")?.disabled === true,
-  "Reference layer toggles should be disabled without MapLibre."
+  "Reference layer toggles should be disabled without Cesium."
 );
 assert(
-  elements.get("styleToggle")?.textContent.includes("Карта"),
-  "Satellite toggle should explain that the map is unavailable."
+  elements.get("styleToggle")?.textContent.includes("Глобус"),
+  "Satellite toggle should explain that the globe is unavailable."
 );
 assert(
   elements.get("list")?.innerHTML.includes("Тестовый КПП"),
-  "Checkpoint list should render even when MapLibre is unavailable."
+  "Checkpoint list should render even when Cesium is unavailable."
 );
-assert(elements.get("stats")?.innerHTML.includes("1"), "Stats should render without MapLibre.");
+assert(elements.get("stats")?.innerHTML.includes("1"), "Stats should render without Cesium.");
 
 console.log("map fallback smoke test passed");

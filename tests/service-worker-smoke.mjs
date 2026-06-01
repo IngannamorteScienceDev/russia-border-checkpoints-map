@@ -40,10 +40,11 @@ assert(
   "App shell should include the maskable PWA icon."
 );
 assert(
-  appShellUrls.includes("./js/vendor/maplibre-gl.css") &&
-    appShellUrls.includes("./js/vendor/maplibre-gl.js") &&
-    appShellUrls.includes("./js/vendor/maplibre-gl.LICENSE.txt"),
-  "App shell should include the local MapLibre runtime."
+  appShellUrls.includes("./js/vendor/cesium/Widgets/widgets.css") &&
+    appShellUrls.includes("./js/vendor/cesium/Cesium.js") &&
+    appShellUrls.includes("./js/vendor/cesium/LICENSE.md") &&
+    appShellUrls.includes("./js/vendor/cesium/Assets/Textures/NaturalEarthII/tilemapresource.xml"),
+  "App shell should include the local Cesium runtime."
 );
 
 for (const appShellUrl of appShellUrls) {

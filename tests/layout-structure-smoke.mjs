@@ -32,13 +32,14 @@ assert(
   "Dedicated map UI stylesheet should load after the shared stylesheet."
 );
 assert(
-  indexHtml.includes('href="./js/vendor/maplibre-gl.css"') &&
-    indexHtml.includes('src="./js/vendor/maplibre-gl.js"'),
-  "Main page should load the local MapLibre runtime instead of the CDN."
+  indexHtml.includes('href="./js/vendor/cesium/Widgets/widgets.css"') &&
+    indexHtml.includes('src="./js/vendor/cesium/Cesium.js"') &&
+    indexHtml.includes("CESIUM_BASE_URL"),
+  "Main page should load the local Cesium runtime instead of the CDN."
 );
 assert(
-  !indexHtml.includes("unpkg.com/maplibre-gl"),
-  "Main page should not depend on the MapLibre CDN."
+  !indexHtml.includes("unpkg.com/cesium") && !indexHtml.includes("cesium.com/downloads"),
+  "Main page should not depend on the Cesium CDN."
 );
 assert(
   indexHtml.includes('class="app app--research"') && !indexHtml.includes("app--redesign"),
@@ -125,14 +126,19 @@ assert(swSource.includes('"./js/theme.js"'), "Service worker should precache the
 assert(swSource.includes('"./js/passport.js"'), "Service worker should precache passport.js.");
 assert(swSource.includes('"./js/enrichment.js"'), "Service worker should precache enrichment.js.");
 assert(
+  swSource.includes('"./js/cesiumGlobe.js"'),
+  "Service worker should precache cesiumGlobe.js."
+);
+assert(
   swSource.includes('"./js/sourceTrust.js"'),
   "Service worker should precache sourceTrust.js."
 );
 assert(
-  swSource.includes('"./js/vendor/maplibre-gl.css"') &&
-    swSource.includes('"./js/vendor/maplibre-gl.js"') &&
-    swSource.includes('"./js/vendor/maplibre-gl.LICENSE.txt"'),
-  "Service worker should precache the local MapLibre runtime."
+  swSource.includes('"./js/vendor/cesium/Widgets/widgets.css"') &&
+    swSource.includes('"./js/vendor/cesium/Cesium.js"') &&
+    swSource.includes('"./js/vendor/cesium/LICENSE.md"') &&
+    swSource.includes('"./js/vendor/cesium/Assets/Textures/NaturalEarthII/tilemapresource.xml"'),
+  "Service worker should precache the local Cesium runtime."
 );
 assert(
   swSource.includes('"./data/checkpoint_enrichment.json"'),

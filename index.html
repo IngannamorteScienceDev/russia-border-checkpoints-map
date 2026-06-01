@@ -20,7 +20,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" href="./js/vendor/maplibre-gl.css" />
+    <link rel="stylesheet" href="./js/vendor/cesium/Widgets/widgets.css" />
     <link rel="stylesheet" href="./style.css" />
     <link rel="stylesheet" href="./map-ui.css" />
   </head>
@@ -227,7 +227,7 @@
           hidden
         ></button>
         <div class="map-chrome" aria-hidden="true">
-          <div class="map-chrome__title">385 КПП на карте</div>
+          <div class="map-chrome__title">385 КПП на глобусе</div>
           <div class="map-chrome__text">Клик по точке открывает паспорт и источники</div>
         </div>
 
@@ -387,17 +387,20 @@
         <div id="map" class="map"></div>
         <div id="mapFallback" class="map-fallback" role="status" hidden>
           <div>
-            <b>Карта временно недоступна</b>
+            <b>Глобус временно недоступен</b>
             <span
-              >Картографический runtime не загрузился. Данные, фильтры, избранное и экспорт
-              продолжат работать.</span
+              >CesiumJS runtime не загрузился. Данные, фильтры, избранное и экспорт продолжат
+              работать.</span
             >
           </div>
         </div>
       </main>
     </div>
 
-    <script src="./js/vendor/maplibre-gl.js"></script>
+    <script>
+      window.CESIUM_BASE_URL = "./js/vendor/cesium/";
+    </script>
+    <script src="./js/vendor/cesium/Cesium.js"></script>
     <script type="module" src="./app.js"></script>
   </body>
 </html>

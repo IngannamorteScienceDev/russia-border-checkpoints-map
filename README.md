@@ -4,7 +4,7 @@
 [![Status](https://img.shields.io/badge/status-stable-success)](https://github.com/IngannamorteScienceDev/russia-border-checkpoints-map)
 [![License](https://img.shields.io/badge/license-Personal%20Use-lightgrey)](./LICENSE)
 [![Frontend](https://img.shields.io/badge/frontend-HTML%20%7C%20CSS%20%7C%20JS-orange)](#)
-[![Map](https://img.shields.io/badge/map-MapLibre%20GL-blueviolet)](https://maplibre.org/)
+[![Map](https://img.shields.io/badge/map-CesiumJS-blueviolet)](https://cesium.com/platform/cesiumjs/)
 [![Data](https://img.shields.io/badge/data-GeoJSON-yellow)](#)
 [![Pipeline](https://img.shields.io/badge/data%20pipeline-Python-informational)](#)
 [![GitHub Pages](https://img.shields.io/badge/demo-GitHub%20Pages-black?logo=github)](https://ingannamortesciencedev.github.io/russia-border-checkpoints-map/)
@@ -17,7 +17,7 @@
 
 ## Возможности
 
-- интерактивная карта КПП на базе MapLibre GL;
+- интерактивный CesiumJS-глобус КПП;
 - кластеризация точек и масштабирование по клику;
 - поиск по названию, региону, стране и типу;
 - фильтрация по типу и статусу;

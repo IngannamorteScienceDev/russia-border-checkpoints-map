@@ -14,7 +14,7 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
-        maplibregl: "readonly"
+        Cesium: "readonly"
       }
     },
     rules: {
