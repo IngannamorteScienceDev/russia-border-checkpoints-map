@@ -1,68 +1,18 @@
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
 const swSource = await readFile(new URL("../sw.js", import.meta.url), "utf-8");
-const appShellMatch = swSource.match(/const APP_SHELL_URLS = \[([\s\S]*?)\];/);
 
-assert(appShellMatch, "Service worker should declare APP_SHELL_URLS.");
-
-const appShellUrls = [...appShellMatch[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
-
-assert(appShellUrls.includes("./"), "App shell should include the app root.");
-assert(appShellUrls.includes("./index.html"), "App shell should include index.html.");
-assert(appShellUrls.includes("./versions.html"), "App shell should include versions.html.");
-assert(appShellUrls.includes("./manifest.webmanifest"), "App shell should include PWA manifest.");
 assert(
-  appShellUrls.includes("./data/checkpoints.geojson"),
-  "App shell should include GeoJSON data."
+  swSource.includes("LEGACY_CACHE_PREFIX"),
+  "Service worker should only exist to clean previous app-shell caches."
 );
-assert(
-  appShellUrls.includes("./data/checkpoint_enrichment.json"),
-  "App shell should include checkpoint enrichment data."
-);
-assert(
-  appShellUrls.includes("./data/research_coverage_report.json"),
-  "App shell should include research coverage data."
-);
-assert(
-  appShellUrls.includes("./data/dataset_changelog.json"),
-  "App shell should include dataset changelog."
-);
-assert(
-  appShellUrls.includes("./data/data_quality_report.json"),
-  "App shell should include the data quality report."
-);
-assert(
-  appShellUrls.includes("./icons/maskable-icon.svg"),
-  "App shell should include the maskable PWA icon."
-);
-assert(
-  appShellUrls.includes("./js/vendor/cesium/Widgets/widgets.css") &&
-    appShellUrls.includes("./js/vendor/cesium/Cesium.js") &&
-    appShellUrls.includes("./js/vendor/cesium/LICENSE.md") &&
-    appShellUrls.includes("./js/vendor/cesium/Assets/Textures/NaturalEarthII/tilemapresource.xml"),
-  "App shell should include the local Cesium runtime."
-);
-
-for (const appShellUrl of appShellUrls) {
-  assert(!/^https?:\/\//.test(appShellUrl), `App shell URL should be local: ${appShellUrl}`);
-  if (appShellUrl === "./") continue;
-
-  await access(new URL(`..${appShellUrl.slice(1)}`, import.meta.url));
-}
-
-assert(swSource.includes('addEventListener("install"'), "Service worker should handle install.");
-assert(swSource.includes("cache.addAll"), "Service worker should precache the app shell.");
-assert(
-  swSource.includes('request.mode === "navigate"'),
-  "Service worker should handle navigation."
-);
-assert(
-  swSource.includes('addEventListener("fetch"'),
-  "Service worker should handle same-origin fetches."
-);
+assert(swSource.includes("caches.keys"), "Service worker should enumerate legacy caches.");
+assert(swSource.includes("registration.unregister"), "Service worker should unregister itself.");
+assert(!swSource.includes("APP_SHELL_URLS"), "Minimal app should not precache an app shell.");
+assert(!swSource.includes('addEventListener("fetch"'), "Minimal app should not intercept fetches.");
 
 console.log("service worker smoke test passed");

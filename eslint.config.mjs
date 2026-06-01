@@ -3,7 +3,15 @@ import globals from "globals";
 
 export default [
   {
-    ignores: [".venv/**", "data/**", "frontend/**", "js/vendor/**", "raw_data/**", "scripts/**"]
+    ignores: [
+      ".tmp-chrome-*/**",
+      ".venv/**",
+      "data/**",
+      "frontend/**",
+      "js/vendor/**",
+      "raw_data/**",
+      "scripts/**"
+    ]
   },
   js.configs.recommended,
   {

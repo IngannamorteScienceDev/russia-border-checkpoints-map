@@ -1,4 +1,5 @@
 .venv/
+.tmp-chrome-*/
 data/
 frontend/
 raw_data/

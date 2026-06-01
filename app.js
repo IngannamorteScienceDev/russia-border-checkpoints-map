@@ -1,1052 +1,175 @@
-import { SATELLITE_LAYER_ID } from "./js/config.js";
-import { toggleCompareId } from "./js/compare.js";
-import { buildDatasetMeta, loadFeatures, filterFeatures } from "./js/data.js";
-import { createCesiumGlobe } from "./js/cesiumGlobe.js";
-import {
-  buildDatasetSnapshot,
-  loadDatasetSnapshot,
-  saveDatasetSnapshot,
-  summarizeDatasetChanges
-} from "./js/datasetChanges.js";
-import { getDomElements } from "./js/dom.js";
-import {
-  applyFeatureEnrichmentToFeatures,
-  getFeatureEnrichment,
-  loadCheckpointEnrichment
-} from "./js/enrichment.js";
-import { exportFeaturesAsCsv, exportFeaturesAsGeoJson } from "./js/export.js";
-import { loadFavoriteIds, saveFavoriteIds, toggleFavoriteId } from "./js/favorites.js";
-import { haversine } from "./js/geo.js";
-import {
-  createCheckpointsLayerController,
-  ensureSatelliteLayer,
-  setMapReferenceVisibility
-} from "./js/mapLayers.js";
-import { renderCheckpointPassport } from "./js/passport.js";
-import { createPopupController } from "./js/popup.js";
-import {
-  applyQualityReportToFeatures,
-  getQualityFlags,
-  loadDataQualityReport
-} from "./js/quality.js";
-import {
-  buildLegend,
-  fillFilters,
-  renderCompare,
-  renderDatasetChanges,
-  renderList,
-  renderNearestOpen,
-  renderRecent,
-  renderResearchQueue,
-  renderShareSheet,
-  renderStats
-} from "./js/render.js";
-import { loadRecentIds, prependRecentId, saveRecentIds } from "./js/recent.js";
-import { registerAppShellServiceWorker } from "./js/serviceWorker.js";
-import { copyText } from "./js/share.js";
-import { setupThemeToggle } from "./js/theme.js";
-import {
-  applyFilterStateFromUrl,
-  getMapViewStateFromUrl,
-  getSelectedCheckpointIdFromUrl,
-  syncFilterStateToUrl,
-  syncMapViewToUrl,
-  syncSelectedCheckpointToUrl,
-  getSatelliteModeFromUrl,
-  syncSatelliteModeToUrl,
-  getReferenceLayerStateFromUrl,
-  syncReferenceLayerStateToUrl
-} from "./js/urlState.js";
+import { TYPE_COLORS } from "./js/config.js";
+import { buildDatasetSummary, formatCoordinates, loadCheckpoints } from "./js/checkpoints.js";
+import { createCheckpointLayer, createGlobe } from "./js/cesiumGlobe.js";
 
-const dom = getDomElements();
-setupThemeToggle({ button: dom.themeToggleEl });
-registerAppShellServiceWorker();
-
-const DEFAULT_MAP_VIEW = {
-  center: [90, 61],
-  zoom: 4
-};
-const QUICK_FILTER_PRESETS = {
-  open: { status: "Действует" },
-  auto: { type: "Автомобильный" },
-  rail: { type: "Железнодорожный" },
-  air: { type: "Воздушный" }
-};
-const initialMapView = getMapViewStateFromUrl(DEFAULT_MAP_VIEW);
-const initialReferenceLayerState = getReferenceLayerStateFromUrl();
-const isCesiumAvailable = Boolean(globalThis.Cesium?.Viewer);
-
-const state = {
-  allFeatures: [],
-  viewFeatures: [],
-  datasetMeta: null,
-  datasetChangeSummary: null,
-  checkpointEnrichment: null,
-  dataQualityReport: null,
-  favoriteIds: loadFavoriteIds(),
-  recentIds: loadRecentIds(),
-  compareIds: [],
-  selectedFeature: null,
-  showFavoritesOnly: false,
-  showViewportOnly: false,
-  showBoundariesLayer: initialReferenceLayerState.boundaries,
-  showRoadsLayer: initialReferenceLayerState.roads,
-  shareSheetOpen: false,
-  userLocation: null,
-  userMarker: null,
-  debounceTimer: null,
-  shareFeedbackTimer: null
+const dom = {
+  loader: document.getElementById("loader"),
+  loaderProgress: document.getElementById("loaderProgress"),
+  loaderText: document.getElementById("loaderText"),
+  map: document.getElementById("map"),
+  fallback: document.getElementById("mapFallback"),
+  stats: document.getElementById("stats"),
+  legend: document.getElementById("legend"),
+  inspector: document.getElementById("checkpointInspector")
 };
 
-function createFallbackMap({ center, zoom }) {
-  const sources = new Map();
-  const layers = new Map();
-  const listeners = new Map();
-  const canvas = { style: {} };
-  let currentCenter = [...center];
-  let currentZoom = zoom;
+let checkpointLayer = null;
 
-  function emit(eventName) {
-    for (const handler of listeners.get(eventName) || []) handler();
-  }
-
-  return {
-    isFallback: true,
-    loaded: () => true,
-    once(_eventName, callback) {
-      callback();
-    },
-    addControl() {},
-    addSource(id, source) {
-      sources.set(id, {
-        ...source,
-        data: source.data,
-        setData(data) {
-          this.data = data;
-        },
-        getClusterExpansionZoom(_id, callback) {
-          callback(null, currentZoom);
-        }
-      });
-    },
-    getSource(id) {
-      return sources.get(id);
-    },
-    removeSource(id) {
-      sources.delete(id);
-    },
-    addLayer(layer) {
-      layers.set(layer.id, { ...layer, layout: layer.layout ? { ...layer.layout } : {} });
-    },
-    getLayer(id) {
-      return layers.get(id);
-    },
-    removeLayer(id) {
-      layers.delete(id);
-    },
-    on(eventName, maybeLayer, maybeHandler) {
-      const handler = typeof maybeLayer === "function" ? maybeLayer : maybeHandler;
-      if (typeof handler !== "function") return;
-      if (!listeners.has(eventName)) listeners.set(eventName, new Set());
-      listeners.get(eventName).add(handler);
-    },
-    off(eventName, maybeLayer, maybeHandler) {
-      const handler = typeof maybeLayer === "function" ? maybeLayer : maybeHandler;
-      listeners.get(eventName)?.delete(handler);
-    },
-    easeTo(options = {}) {
-      if (Array.isArray(options.center)) currentCenter = [...options.center];
-      if (typeof options.zoom === "number") currentZoom = options.zoom;
-      emit("moveend");
-    },
-    fitBounds(bounds, options = {}) {
-      const [southWest, northEast] = bounds;
-      currentCenter = [(southWest[0] + northEast[0]) / 2, (southWest[1] + northEast[1]) / 2];
-      if (typeof options.maxZoom === "number") currentZoom = Math.min(currentZoom, options.maxZoom);
-      emit("moveend");
-    },
-    resize() {},
-    getCanvas() {
-      return canvas;
-    },
-    getZoom() {
-      return currentZoom;
-    },
-    getCenter() {
-      return { lng: currentCenter[0], lat: currentCenter[1] };
-    },
-    getBounds() {
-      return { contains: () => true };
-    },
-    setLayoutProperty(id, prop, value) {
-      const layer = layers.get(id);
-      if (!layer) return;
-      if (!layer.layout) layer.layout = {};
-      layer.layout[prop] = value;
-    },
-    getLayoutProperty(id, prop) {
-      return layers.get(id)?.layout?.[prop] ?? "none";
-    }
-  };
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
-const map = isCesiumAvailable
-  ? createCesiumGlobe({
-      container: "map",
-      center: initialMapView.center,
-      zoom: initialMapView.zoom
-    })
-  : createFallbackMap(initialMapView);
-
-const popupController = createPopupController({
-  map,
-  getUserLocation: () => state.userLocation,
-  onPopupChange: (feature) => {
-    state.selectedFeature = feature || null;
-    syncSelectedCheckpointToUrl(feature?.properties?.__id || "");
-    renderAll();
+function safeUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return ["http:", "https:"].includes(url.protocol) ? url.toString() : "";
+  } catch {
+    return "";
   }
-});
-
-const layerController = createCheckpointsLayerController({
-  map,
-  openPopup: openFeaturePopup
-});
+}
 
 function setProgress(percent, text) {
-  if (dom.loaderProgressEl) dom.loaderProgressEl.style.width = `${percent}%`;
-  if (dom.loaderTextEl && text) dom.loaderTextEl.textContent = text;
+  if (dom.loaderProgress) dom.loaderProgress.style.width = `${percent}%`;
+  if (dom.loaderText && text) dom.loaderText.textContent = text;
 }
 
-function hideLoaderOnce() {
-  if (!dom.loaderEl) return;
+function hideLoader() {
+  if (!dom.loader) return;
 
-  dom.loaderEl.style.opacity = "0";
-  dom.loaderEl.style.pointerEvents = "none";
-
-  setTimeout(() => {
-    if (dom.loaderEl && dom.loaderEl.parentNode) {
-      dom.loaderEl.parentNode.removeChild(dom.loaderEl);
-    }
-  }, 250);
+  dom.loader.classList.add("loader--hidden");
+  setTimeout(() => dom.loader?.remove(), 260);
 }
 
-function setPanelControlsState(isOpen) {
-  const expanded = String(isOpen);
-  dom.mobileToggleEl?.setAttribute("aria-expanded", expanded);
-  dom.mobileToggleFloatingEl?.setAttribute("aria-expanded", expanded);
+function showFallback(message) {
+  if (!dom.fallback) return;
 
-  if (dom.panelScrimEl) {
-    dom.panelScrimEl.hidden = !isOpen;
-    dom.panelScrimEl.classList.toggle("is-visible", isOpen);
-  }
+  dom.fallback.hidden = false;
+  dom.fallback.querySelector("span").textContent = message;
 }
 
-function resizeMapAfterPanelChange() {
-  setTimeout(() => map.resize(), 200);
+function renderStats(summary) {
+  dom.stats.innerHTML = `
+    <div class="stat">
+      <span>КПП</span>
+      <b>${summary.total}</b>
+    </div>
+    <div class="stat">
+      <span>Стран</span>
+      <b>${summary.countryCount}</b>
+    </div>
+    <div class="stat">
+      <span>Типов</span>
+      <b>${Object.keys(summary.typeCounts).length}</b>
+    </div>
+  `;
 }
 
-function setPanelOpen(isOpen) {
-  dom.panelEl?.classList.toggle("open", isOpen);
-  setPanelControlsState(isOpen);
-  resizeMapAfterPanelChange();
+function renderLegend() {
+  dom.legend.innerHTML = `
+    <div class="legend__title">Типы КПП</div>
+    <div class="legend__items">
+      ${Object.entries(TYPE_COLORS)
+        .map(
+          ([type, color]) => `
+            <div class="legend__item">
+              <span style="background:${color}" aria-hidden="true"></span>
+              ${escapeHtml(type)}
+            </div>
+          `
+        )
+        .join("")}
+    </div>
+  `;
 }
 
-function togglePanel() {
-  const isOpen = Boolean(dom.panelEl?.classList.toggle("open"));
-  setPanelControlsState(isOpen);
-  resizeMapAfterPanelChange();
+function detailRow(label, value) {
+  if (!value) return "";
+
+  return `
+    <div class="inspector__row">
+      <span>${escapeHtml(label)}</span>
+      <b>${escapeHtml(value)}</b>
+    </div>
+  `;
 }
 
-function syncOfflineStatus() {
-  if (!dom.offlineStatusEl) return;
-
-  const isOffline = globalThis.navigator?.onLine === false;
-  dom.offlineStatusEl.hidden = !isOffline;
-  dom.offlineStatusEl.classList.toggle("is-visible", isOffline);
-  dom.offlineStatusEl.textContent = isOffline ? "Офлайн: показываем сохраненную версию карты" : "";
-}
-
-function syncMapFallbackStatus() {
-  if (!map.isFallback) return;
-
-  dom.mapWrapEl?.classList.add("mapWrap--fallback");
-  if (dom.mapFallbackEl) dom.mapFallbackEl.hidden = false;
-  dom.styleToggleEl.disabled = true;
-  if (dom.boundariesToggleEl) dom.boundariesToggleEl.disabled = true;
-  if (dom.roadsToggleEl) dom.roadsToggleEl.disabled = true;
-  dom.styleToggleEl.textContent = "Глобус недоступен";
-}
-
-function renderAll() {
-  const nearestOpenFeature = getNearestOpenFeature();
-
-  renderStats({
-    statsEl: dom.statsEl,
-    allFeatures: state.allFeatures,
-    viewFeatures: state.viewFeatures,
-    datasetMeta: state.datasetMeta,
-    activeFilterCount: getActiveFilterCount(),
-    favoriteCount: getFavoriteCount()
-  });
-
-  renderResearchQueue({
-    queueEl: dom.researchQueueEl,
-    allFeatures: state.allFeatures,
-    viewFeatures: state.viewFeatures,
-    activeResearchFilter: dom.researchEl?.value || "all",
-    onFilter: setResearchFilter
-  });
-
-  renderList({
-    listEl: dom.listEl,
-    emptyEl: dom.emptyEl,
-    viewFeatures: state.viewFeatures,
-    userLocation: state.userLocation,
-    favoriteIds: state.favoriteIds,
-    compareIds: state.compareIds,
-    nearestOpenId: nearestOpenFeature?.properties.__id || "",
-    sortMode: dom.sortEl.value,
-    onItemClick: focusById,
-    onFavoriteToggle: toggleFavorite,
-    onCopyCoordinates: copyCheckpointCoordinates,
-    onCompareToggle: toggleCompare
-  });
-
-  renderRecent({
-    recentEl: dom.recentEl,
-    recentFeatures: getRecentFeatures(),
-    onItemClick: focusById
-  });
-
-  renderNearestOpen({
-    nearestOpenEl: dom.nearestOpenEl,
-    feature: nearestOpenFeature,
-    userLocation: state.userLocation,
-    onItemClick: focusById
-  });
-
-  renderCompare({
-    compareEl: dom.compareEl,
-    compareFeatures: getCompareFeatures(),
-    onItemClick: focusById,
-    onRemove: removeCompareItem,
-    onClear: clearCompare
-  });
-
-  renderShareSheet({
-    shareSheetEl: dom.shareSheetEl,
-    shareUrl: window.location.href,
-    isOpen: state.shareSheetOpen,
-    canNativeShare: typeof navigator.share === "function",
-    onCopy: copyShareLink,
-    onNativeShare: shareViaNavigator,
-    onClose: closeShareSheet
-  });
-
-  renderDatasetChanges({
-    changesEl: dom.datasetChangesEl,
-    summary: state.datasetChangeSummary
-  });
-
-  dom.mapWrapEl?.classList.toggle("mapWrap--passport-open", Boolean(state.selectedFeature));
-  renderCheckpointPassport({
-    passportEl: dom.passportEl,
-    feature: state.selectedFeature,
-    userLocation: state.userLocation,
-    enrichment: getFeatureEnrichment(state.checkpointEnrichment, state.selectedFeature),
-    favoriteIds: state.favoriteIds,
-    compareIds: state.compareIds,
-    onClose: closeSelectedCheckpoint,
-    onFavoriteToggle: toggleFavorite,
-    onCopyCoordinates: copyCheckpointCoordinates,
-    onCompareToggle: toggleCompare
-  });
-
-  syncFavoritesButton();
-  syncPresetButtons();
-  syncFitResultsButton();
-  syncViewportOnlyButton();
-  syncExportButtons();
-}
-
-function syncCurrentMapView() {
-  const mapCenter = map.getCenter();
-  const center = Array.isArray(mapCenter) ? mapCenter : [mapCenter?.lng, mapCenter?.lat];
-
-  syncMapViewToUrl({
-    center,
-    zoom: map.getZoom()
-  });
-
-  if (state.showViewportOnly) {
-    applyFilters();
-  }
-}
-
-function isSatelliteVisible() {
-  return map.getLayoutProperty(SATELLITE_LAYER_ID, "visibility") === "visible";
-}
-
-function syncMapLayerButtons() {
-  const satelliteEnabled = isSatelliteVisible();
-
-  dom.styleToggleEl.textContent = satelliteEnabled ? "Спутник включен" : "Схема включена";
-  dom.styleToggleEl.classList.toggle("is-active", satelliteEnabled);
-  dom.styleToggleEl.setAttribute?.("aria-pressed", satelliteEnabled ? "true" : "false");
-  dom.mapWrapEl?.classList.toggle("mapWrap--satellite", satelliteEnabled);
-  dom.mapWrapEl?.classList.toggle("mapWrap--local-base", !satelliteEnabled && !map.isFallback);
-
-  if (dom.boundariesToggleEl) {
-    dom.boundariesToggleEl.disabled = !satelliteEnabled || map.isFallback;
-    dom.boundariesToggleEl.classList.toggle(
-      "is-active",
-      satelliteEnabled && state.showBoundariesLayer
-    );
-    dom.boundariesToggleEl.setAttribute?.(
-      "aria-pressed",
-      satelliteEnabled && state.showBoundariesLayer ? "true" : "false"
-    );
-  }
-
-  if (dom.roadsToggleEl) {
-    dom.roadsToggleEl.disabled = !satelliteEnabled || map.isFallback;
-    dom.roadsToggleEl.classList.toggle("is-active", satelliteEnabled && state.showRoadsLayer);
-    dom.roadsToggleEl.setAttribute?.(
-      "aria-pressed",
-      satelliteEnabled && state.showRoadsLayer ? "true" : "false"
-    );
-  }
-}
-
-function syncMapLayerVisibility() {
-  setMapReferenceVisibility(map, {
-    satellite: isSatelliteVisible(),
-    boundaries: state.showBoundariesLayer,
-    roads: state.showRoadsLayer
-  });
-  syncMapLayerButtons();
-}
-
-function setSatelliteMode(enabled, { syncUrl = true } = {}) {
-  if (map.isFallback) {
-    syncSatelliteModeToUrl(false);
-    syncMapFallbackStatus();
-    return;
-  }
-
-  setMapReferenceVisibility(map, {
-    satellite: enabled,
-    boundaries: state.showBoundariesLayer,
-    roads: state.showRoadsLayer
-  });
-
-  syncMapLayerButtons();
-
-  if (syncUrl) {
-    syncSatelliteModeToUrl(enabled);
-  }
-}
-
-function toggleBoundariesLayer() {
-  state.showBoundariesLayer = !state.showBoundariesLayer;
-  syncMapLayerVisibility();
-  syncReferenceLayerStateToUrl({
-    boundaries: state.showBoundariesLayer,
-    roads: state.showRoadsLayer
-  });
-}
-
-function toggleRoadsLayer() {
-  state.showRoadsLayer = !state.showRoadsLayer;
-  syncMapLayerVisibility();
-  syncReferenceLayerStateToUrl({
-    boundaries: state.showBoundariesLayer,
-    roads: state.showRoadsLayer
-  });
-}
-
-function getActiveFilterCount() {
-  const activeSelectValue = (el) => (el?.value && el.value !== "all" ? el.value : "");
-  const filterValues = [
-    dom.searchEl.value.trim(),
-    activeSelectValue(dom.typeEl),
-    activeSelectValue(dom.statusEl),
-    activeSelectValue(dom.countryEl),
-    activeSelectValue(dom.subjectEl),
-    activeSelectValue(dom.districtEl),
-    activeSelectValue(dom.legalStatusEl),
-    activeSelectValue(dom.patternEl),
-    activeSelectValue(dom.corridorEl),
-    activeSelectValue(dom.researchEl),
-    state.showFavoritesOnly ? "favorites" : "",
-    state.showViewportOnly ? "viewport" : ""
-  ].filter(Boolean);
-
-  return filterValues.length;
-}
-
-function getFavoriteCount() {
-  return state.allFeatures.filter((feature) => state.favoriteIds.has(feature.properties.__id))
-    .length;
-}
-
-function getRecentFeatures() {
-  const featuresById = new Map(
-    state.allFeatures.map((feature) => [feature.properties.__id, feature])
-  );
-
-  return state.recentIds.map((id) => featuresById.get(id)).filter(Boolean);
-}
-
-function getCompareFeatures() {
-  const featuresById = new Map(
-    state.allFeatures.map((feature) => [feature.properties.__id, feature])
-  );
-
-  return state.compareIds.map((id) => featuresById.get(id)).filter(Boolean);
-}
-
-function getNearestOpenFeature() {
-  if (!state.userLocation) return null;
-
-  return (
-    state.viewFeatures
-      .filter((feature) => feature.properties.__status === "Действует")
-      .sort(
-        (a, b) =>
-          haversine(state.userLocation, a.geometry.coordinates) -
-          haversine(state.userLocation, b.geometry.coordinates)
-      )[0] || null
-  );
-}
-
-function syncFavoritesButton() {
-  const favoriteCount = getFavoriteCount();
-
-  dom.favoritesOnlyEl.textContent = `★ Избранные (${favoriteCount})`;
-  dom.favoritesOnlyEl.disabled = favoriteCount === 0 && !state.showFavoritesOnly;
-  dom.favoritesOnlyEl.classList.toggle("is-active", state.showFavoritesOnly);
-  dom.favoritesOnlyEl.setAttribute?.("aria-pressed", state.showFavoritesOnly ? "true" : "false");
-}
-
-function setSortMode(value) {
-  dom.sortEl.value = value;
-  syncFilterStateToUrl(dom);
-  renderAll();
-}
-
-function getFeatureBounds(features) {
-  const coordinates = features
-    .map((feature) => feature.geometry?.coordinates)
-    .filter(
-      (coords) => Array.isArray(coords) && Number.isFinite(coords[0]) && Number.isFinite(coords[1])
-    );
-
-  if (!coordinates.length) return null;
-
-  const lngs = coordinates.map((coords) => coords[0]);
-  const lats = coordinates.map((coords) => coords[1]);
-
-  return {
-    coordinates,
-    bounds: [
-      [Math.min(...lngs), Math.min(...lats)],
-      [Math.max(...lngs), Math.max(...lats)]
-    ]
-  };
-}
-
-function fitMapToFeatures(features = state.viewFeatures) {
-  const featureBounds = getFeatureBounds(features);
-  if (!featureBounds) return;
-
-  if (featureBounds.coordinates.length === 1) {
-    map.easeTo({
-      center: featureBounds.coordinates[0],
-      zoom: Math.max(map.getZoom(), 8)
-    });
-    return;
-  }
-
-  map.fitBounds(featureBounds.bounds, {
-    padding: window.matchMedia("(max-width: 900px)").matches
-      ? 56
-      : { top: 80, right: 80, bottom: 80, left: 460 },
-    maxZoom: 8
-  });
-}
-
-function syncFitResultsButton() {
-  dom.fitResultsEl.disabled = state.viewFeatures.length === 0;
-}
-
-function syncViewportOnlyButton() {
-  dom.viewportOnlyEl.classList.toggle("is-active", state.showViewportOnly);
-  dom.viewportOnlyEl.setAttribute?.("aria-pressed", state.showViewportOnly ? "true" : "false");
-}
-
-function setSelectIfAllowed(el, value) {
-  if (!value) return;
-  if (Array.isArray(el.__options) && !el.__options.includes(value)) return;
-  el.value = value;
-}
-
-function matchesQuickPreset(presetName) {
-  const preset = QUICK_FILTER_PRESETS[presetName];
-  if (!preset) return false;
-
-  return Object.entries(preset).every(([key, value]) => {
-    if (key === "type") return dom.typeEl.value === value;
-    if (key === "status") return dom.statusEl.value === value;
-    return false;
-  });
-}
-
-function syncPresetButtons() {
-  dom.presetsEl.querySelectorAll("[data-preset]").forEach((button) => {
-    button.classList.toggle("is-active", matchesQuickPreset(button.dataset.preset));
-  });
-}
-
-function applyQuickPreset(presetName) {
-  const preset = QUICK_FILTER_PRESETS[presetName];
-  if (!preset) return;
-
-  setSelectIfAllowed(dom.typeEl, preset.type);
-  setSelectIfAllowed(dom.statusEl, preset.status);
-  applyFilters();
-}
-
-function setResearchFilter(value) {
-  if (!dom.researchEl) return;
-  setSelectIfAllowed(dom.researchEl, value);
-  applyFilters();
-}
-
-function applyFilters() {
-  const filteredFeatures = filterFeatures(state.allFeatures, {
-    query: dom.searchEl.value,
-    type: dom.typeEl.value,
-    status: dom.statusEl.value,
-    country: dom.countryEl.value,
-    subject: dom.subjectEl.value,
-    district: dom.districtEl?.value || "all",
-    legalStatus: dom.legalStatusEl?.value || "all",
-    pattern: dom.patternEl?.value || "all",
-    corridor: dom.corridorEl?.value || "all",
-    research: dom.researchEl?.value || "all"
-  });
-
-  state.viewFeatures = state.showFavoritesOnly
-    ? filteredFeatures.filter((feature) => state.favoriteIds.has(feature.properties.__id))
-    : filteredFeatures;
-
-  if (state.showViewportOnly) {
-    state.viewFeatures = filterFeaturesToViewport(state.viewFeatures);
-  }
-
-  syncMapSourceData();
-  closePopupIfHidden();
-  syncFilterStateToUrl(dom);
-  renderAll();
-}
-
-function getMapFeatures(features = state.viewFeatures) {
-  return features.map((feature) => {
-    const qualityFlags = getQualityFlags(feature);
-
-    return {
-      ...feature,
-      properties: {
-        ...feature.properties,
-        __isFavorite: state.favoriteIds.has(feature.properties.__id),
-        __hasQualityIssues: qualityFlags.length > 0,
-        __hasCriticalQualityIssues: qualityFlags.some((flag) => flag.level === "critical")
-      }
-    };
-  });
-}
-
-function syncMapSourceData() {
-  layerController.updateSourceData(getMapFeatures());
-}
-
-function resetFilters() {
-  dom.searchEl.value = "";
-  dom.typeEl.value = "all";
-  dom.statusEl.value = "all";
-  dom.countryEl.value = "all";
-  dom.subjectEl.value = "all";
-  if (dom.districtEl) dom.districtEl.value = "all";
-  if (dom.legalStatusEl) dom.legalStatusEl.value = "all";
-  if (dom.patternEl) dom.patternEl.value = "all";
-  if (dom.corridorEl) dom.corridorEl.value = "all";
-  if (dom.researchEl) dom.researchEl.value = "all";
-  state.showFavoritesOnly = false;
-  state.showViewportOnly = false;
-  applyFilters();
-}
-
-function filterFeaturesToViewport(features) {
-  const bounds = map.getBounds?.();
-  if (!bounds?.contains) return features;
-
-  return features.filter((feature) => {
-    const coordinates = feature.geometry?.coordinates;
-    return Array.isArray(coordinates) && bounds.contains(coordinates);
-  });
-}
-
-function syncExportButtons() {
-  const disabled = state.viewFeatures.length === 0;
-
-  dom.exportCsvEl.disabled = disabled;
-  dom.exportGeoJsonEl.disabled = disabled;
-}
-
-function exportCurrentView(format) {
-  if (!state.viewFeatures.length) return;
-
-  const options = {
-    hasFilters: getActiveFilterCount() > 0
-  };
-
-  if (format === "csv") {
-    exportFeaturesAsCsv(state.viewFeatures, options);
-    return;
-  }
-
-  exportFeaturesAsGeoJson(state.viewFeatures, options);
-}
-
-function getFeatureById(id, features = state.allFeatures) {
-  return features.find((item) => item.properties.__id === id) || null;
-}
-
-function closePopupIfHidden() {
-  const selectedFeature = state.selectedFeature || popupController.getLastPopupFeature();
-  if (!selectedFeature) return;
-
-  const isVisible = state.viewFeatures.some(
-    (item) => item.properties.__id === selectedFeature.properties.__id
-  );
-
-  if (!isVisible) {
-    popupController.closePopup();
-  }
-}
-
-function closeSelectedCheckpoint() {
-  popupController.closePopup();
-}
-
-function handleGlobalKeydown(event) {
-  if (event.key !== "Escape") return;
-
-  if (dom.panelEl?.classList.contains("open")) {
-    setPanelOpen(false);
-    event.preventDefault?.();
-    return;
-  }
-
-  if (state.shareSheetOpen) {
-    closeShareSheet();
-    event.preventDefault?.();
-    return;
-  }
-
-  if (state.selectedFeature) {
-    closeSelectedCheckpoint();
-    event.preventDefault?.();
-  }
-}
-
-function restoreSelectedCheckpointFromUrl() {
-  const selectedId = getSelectedCheckpointIdFromUrl();
-  if (!selectedId) return;
-
-  const feature = getFeatureById(selectedId, state.viewFeatures);
-
+function renderInspector(feature) {
   if (!feature) {
-    syncSelectedCheckpointToUrl("");
+    dom.inspector.hidden = true;
+    dom.inspector.innerHTML = "";
     return;
   }
 
-  openFeaturePopup(feature, feature.geometry.coordinates);
-}
+  const props = feature.properties || {};
+  const sourceUrl = safeUrl(props.__source);
+  const coords = formatCoordinates(feature.geometry?.coordinates);
 
-function setShareButtonLabel(text) {
-  dom.shareLinkEl.textContent = text;
-
-  clearTimeout(state.shareFeedbackTimer);
-  state.shareFeedbackTimer = setTimeout(() => {
-    dom.shareLinkEl.textContent = "Поделиться ссылкой";
-  }, 1800);
-}
-
-async function shareCurrentView() {
-  state.shareSheetOpen = true;
-  await copyShareLink();
-  renderAll();
-}
-
-async function copyShareLink() {
-  const copied = await copyText(window.location.href);
-  setShareButtonLabel(copied ? "Ссылка скопирована" : "Скопируйте ссылку вручную");
-}
-
-async function shareViaNavigator() {
-  if (typeof navigator.share !== "function") return;
-
-  try {
-    await navigator.share({
-      title: document.title || "КПП РФ",
-      url: window.location.href
-    });
-  } catch (_error) {
-    // User cancellation is a normal share-sheet outcome.
-  }
-}
-
-function closeShareSheet() {
-  state.shareSheetOpen = false;
-  renderAll();
-}
-
-function focusById(id) {
-  const feature = getFeatureById(id, state.viewFeatures) || getFeatureById(id, state.allFeatures);
-
-  if (feature) openFeaturePopup(feature, feature.geometry.coordinates);
-}
-
-function trackRecentCheckpoint(id) {
-  state.recentIds = prependRecentId(state.recentIds, id);
-  saveRecentIds(state.recentIds);
-}
-
-function openFeaturePopup(feature, lngLat) {
-  if (!feature) return;
-
-  state.selectedFeature = feature;
-  trackRecentCheckpoint(feature.properties.__id);
-  renderAll();
-  popupController.openPopup(feature, lngLat || feature.geometry.coordinates);
-}
-
-function toggleFavorite(id) {
-  state.favoriteIds = toggleFavoriteId(state.favoriteIds, id);
-  saveFavoriteIds(state.favoriteIds);
-
-  if (state.showFavoritesOnly) {
-    applyFilters();
-    return;
-  }
-
-  syncMapSourceData();
-  renderAll();
-}
-
-function toggleFavoritesOnly() {
-  state.showFavoritesOnly = !state.showFavoritesOnly;
-  applyFilters();
-}
-
-async function copyCheckpointCoordinates(id) {
-  const feature = getFeatureById(id, state.allFeatures);
-  if (!feature) return false;
-
-  return copyText(feature.properties.__coords || "");
-}
-
-function toggleCompare(id) {
-  state.compareIds = toggleCompareId(state.compareIds, id);
-  renderAll();
-}
-
-function removeCompareItem(id) {
-  state.compareIds = state.compareIds.filter((item) => item !== id);
-  renderAll();
-}
-
-function clearCompare() {
-  state.compareIds = [];
-  renderAll();
-}
-
-function toggleViewportOnly() {
-  state.showViewportOnly = !state.showViewportOnly;
-  applyFilters();
-}
-
-function updateUserMarker() {
-  if (!state.userLocation) return;
-
-  if (state.userMarker) state.userMarker.remove();
-  state.userMarker = map.addUserLocationMarker?.(state.userLocation) || null;
-}
-
-function setGeoButtonLoading(isLoading) {
-  dom.geoBtnEl.disabled = isLoading;
-  dom.nearestBtnEl.disabled = isLoading;
-  dom.geoBtnEl.textContent = isLoading ? "Ищем..." : "Гео";
-  dom.nearestBtnEl.textContent = isLoading ? "Ищем..." : "Ближайшие";
-}
-
-function requestUserLocation({ setDistanceSort = false } = {}) {
-  if (!navigator.geolocation) return;
-
-  setGeoButtonLoading(true);
-
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      state.userLocation = [position.coords.longitude, position.coords.latitude];
-      updateUserMarker();
-
-      if (setDistanceSort) {
-        setSortMode("distance");
-      } else {
-        renderAll();
+  dom.inspector.hidden = false;
+  dom.inspector.innerHTML = `
+    <article class="inspector__card">
+      <button class="inspector__close" type="button" aria-label="Закрыть карточку">×</button>
+      <div class="inspector__eyebrow">Пункт пропуска</div>
+      <h2>${escapeHtml(props.__name)}</h2>
+      <div class="inspector__chips">
+        <span>${escapeHtml(props.__type)}</span>
+        <span>${escapeHtml(props.__status)}</span>
+      </div>
+      <div class="inspector__grid">
+        ${detailRow("ID", props.__id)}
+        ${detailRow("Сопредельная страна", props.__country)}
+        ${detailRow("Субъект РФ", props.__subject)}
+        ${detailRow("Координаты", coords)}
+      </div>
+      ${
+        sourceUrl
+          ? `<a class="inspector__source" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">Открыть источник</a>`
+          : ""
       }
+    </article>
+  `;
 
-      popupController.refreshPopup();
-      setGeoButtonLoading(false);
-    },
-    () => {
-      setGeoButtonLoading(false);
-    },
-    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-  );
-}
-
-function attachUi() {
-  map.on("moveend", syncCurrentMapView);
-  globalThis.window?.addEventListener?.("online", syncOfflineStatus);
-  globalThis.window?.addEventListener?.("offline", syncOfflineStatus);
-  setPanelControlsState(false);
-
-  dom.searchEl.oninput = () => {
-    clearTimeout(state.debounceTimer);
-    state.debounceTimer = setTimeout(applyFilters, 200);
-  };
-
-  dom.typeEl.onchange = applyFilters;
-  dom.statusEl.onchange = applyFilters;
-  dom.countryEl.onchange = applyFilters;
-  dom.subjectEl.onchange = applyFilters;
-  [dom.districtEl, dom.legalStatusEl, dom.patternEl, dom.corridorEl, dom.researchEl].forEach(
-    (filterEl) => {
-      if (filterEl) filterEl.onchange = applyFilters;
-    }
-  );
-  dom.presetsEl.onclick = (event) => {
-    applyQuickPreset(event.target?.dataset?.preset);
-  };
-  dom.sortEl.onchange = () => {
-    syncFilterStateToUrl(dom);
-    renderAll();
-  };
-  dom.resetFiltersEl.onclick = resetFilters;
-  dom.exportCsvEl.onclick = () => exportCurrentView("csv");
-  dom.exportGeoJsonEl.onclick = () => exportCurrentView("geojson");
-  dom.shareLinkEl.onclick = shareCurrentView;
-  dom.nearestBtnEl.onclick = () => requestUserLocation({ setDistanceSort: true });
-  dom.favoritesOnlyEl.onclick = toggleFavoritesOnly;
-  dom.fitResultsEl.onclick = () => fitMapToFeatures();
-  dom.viewportOnlyEl.onclick = toggleViewportOnly;
-
-  dom.styleToggleEl.onclick = () => {
-    setSatelliteMode(!isSatelliteVisible());
-  };
-
-  if (dom.boundariesToggleEl) {
-    dom.boundariesToggleEl.onclick = toggleBoundariesLayer;
-  }
-
-  if (dom.roadsToggleEl) {
-    dom.roadsToggleEl.onclick = toggleRoadsLayer;
-  }
-
-  dom.geoBtnEl.onclick = () => {
-    requestUserLocation();
-  };
-
-  if (dom.mobileToggleEl) {
-    dom.mobileToggleEl.onclick = togglePanel;
-  }
-
-  if (dom.mobileToggleFloatingEl) {
-    dom.mobileToggleFloatingEl.onclick = () => setPanelOpen(true);
-  }
-
-  if (dom.panelScrimEl) {
-    dom.panelScrimEl.onclick = () => setPanelOpen(false);
-  }
-
-  globalThis.window?.addEventListener?.("keydown", handleGlobalKeydown);
+  dom.inspector.querySelector(".inspector__close")?.addEventListener("click", () => {
+    checkpointLayer?.clearSelection();
+    renderInspector(null);
+  });
 }
 
 async function init() {
-  syncOfflineStatus();
-  syncMapFallbackStatus();
-
   try {
-    setProgress(10, "Подключаем глобус...");
-    await new Promise((resolve) => (map.loaded() ? resolve() : map.once("load", resolve)));
+    if (!globalThis.Cesium?.Viewer) {
+      showFallback("CesiumJS runtime не загрузился. Проверьте локальные vendor-файлы.");
+      hideLoader();
+      return;
+    }
 
-    ensureSatelliteLayer(map);
-    setSatelliteMode(getSatelliteModeFromUrl(true), { syncUrl: false });
+    setProgress(15, "Запускаем Cesium-глобус...");
+    const viewer = createGlobe({ container: dom.map });
 
-    setProgress(25, "Загружаем КПП...");
-    state.allFeatures = await loadFeatures({ setProgress });
-    state.viewFeatures = state.allFeatures;
+    setProgress(45, "Загружаем точки КПП...");
+    const features = await loadCheckpoints({ onProgress: setProgress });
+    const summary = buildDatasetSummary(features);
 
-    setProgress(34, "Подключаем отчет качества...");
-    state.dataQualityReport = await loadDataQualityReport();
-    state.allFeatures = applyQualityReportToFeatures(state.allFeatures, state.dataQualityReport);
-    state.viewFeatures = state.allFeatures;
-    state.datasetMeta = buildDatasetMeta(state.allFeatures);
-
-    setProgress(42, "Загружаем слой обогащений...");
-    state.checkpointEnrichment = await loadCheckpointEnrichment();
-    state.allFeatures = applyFeatureEnrichmentToFeatures(
-      state.allFeatures,
-      state.checkpointEnrichment
-    );
-    state.viewFeatures = state.allFeatures;
-
-    const currentSnapshot = buildDatasetSnapshot(state.allFeatures, state.datasetMeta);
-    state.datasetChangeSummary = summarizeDatasetChanges(loadDatasetSnapshot(), currentSnapshot);
-    saveDatasetSnapshot(currentSnapshot);
-
-    setProgress(55, "Настраиваем интерфейс...");
-    buildLegend(dom.legendEl);
-    fillFilters({
-      allFeatures: state.allFeatures,
-      typeEl: dom.typeEl,
-      statusEl: dom.statusEl,
-      countryEl: dom.countryEl,
-      subjectEl: dom.subjectEl,
-      districtEl: dom.districtEl,
-      legalStatusEl: dom.legalStatusEl,
-      patternEl: dom.patternEl,
-      corridorEl: dom.corridorEl
+    setProgress(75, "Рисуем КПП на глобусе...");
+    checkpointLayer = createCheckpointLayer({
+      viewer,
+      features,
+      onSelect: renderInspector
     });
-    applyFilterStateFromUrl(dom);
-    attachUi();
-    syncCurrentMapView();
-    applyFilters();
 
-    setProgress(80, "Строим слои...");
-    layerController.rebuildLayers(getMapFeatures());
-    restoreSelectedCheckpointFromUrl();
-
+    renderStats(summary);
+    renderLegend();
     setProgress(100, "Готово");
-    setTimeout(hideLoaderOnce, 150);
+
+    globalThis.__KPP_GLOBE_READY__?.({ viewer, features, checkpointLayer });
+    hideLoader();
   } catch (error) {
     console.error(error);
-    setProgress(100, "Ошибка");
-    if (dom.loaderTextEl) dom.loaderTextEl.textContent = String(error?.message || error);
+    showFallback(String(error?.message || error));
+    setProgress(100, "Ошибка загрузки");
   }
 }
 

@@ -1,40 +1,18 @@
-export const SATELLITE_LAYER_ID = "sat-layer";
-export const BOUNDARIES_LAYER_ID = "esri-boundaries-places-layer";
-export const ROADS_LAYER_ID = "esri-transportation-layer";
-
-export const SATELLITE_SOURCE = {
-  type: "raster",
-  tiles: [
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-  ],
-  tileSize: 256,
-  attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community"
-};
-
-export const BOUNDARIES_SOURCE = {
-  type: "raster",
-  tiles: [
-    "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-  ],
-  tileSize: 256,
-  attribution: "Reference tiles &copy; Esri"
-};
-
-export const ROADS_SOURCE = {
-  type: "raster",
-  tiles: [
-    "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
-  ],
-  tileSize: 256,
-  attribution: "Transportation tiles &copy; Esri"
+export const DEFAULT_CAMERA = {
+  west: 18,
+  south: 35,
+  east: 180,
+  north: 82
 };
 
 export const TYPE_COLORS = {
-  Автомобильный: "#3b82f6",
-  Железнодорожный: "#22c55e",
-  Воздушный: "#a855f7",
-  Морской: "#0ea5e9",
-  Речной: "#14b8a6",
-  Пешеходный: "#f97316",
-  Другое: "#64748b"
+  Автомобильный: "#2f80ed",
+  Железнодорожный: "#27ae60",
+  Воздушный: "#9b51e0",
+  Морской: "#0097a7",
+  Речной: "#00a676",
+  Пешеходный: "#f2994a",
+  Другое: "#7b8794"
 };
+
+export const UNKNOWN_VALUE = "Не указано";

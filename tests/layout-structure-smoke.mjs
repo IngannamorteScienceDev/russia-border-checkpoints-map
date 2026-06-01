@@ -1,152 +1,58 @@
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-function indexOfOrThrow(source, needle, message) {
-  const index = source.indexOf(needle);
-  assert(index !== -1, message);
-  return index;
-}
-
 const indexHtml = await readFile(new URL("../index.html", import.meta.url), "utf-8");
 const styleCss = await readFile(new URL("../style.css", import.meta.url), "utf-8");
-const mapUiCss = await readFile(new URL("../map-ui.css", import.meta.url), "utf-8");
 const appSource = await readFile(new URL("../app.js", import.meta.url), "utf-8");
-const swSource = await readFile(new URL("../sw.js", import.meta.url), "utf-8");
 
-const sharedStyleIndex = indexOfOrThrow(
-  indexHtml,
-  'href="./style.css"',
-  "Main page should load the shared stylesheet."
-);
-const mapUiStyleIndex = indexOfOrThrow(
-  indexHtml,
-  'href="./map-ui.css"',
-  "Main page should load the dedicated map UI stylesheet."
-);
-
+assert(indexHtml.includes('id="map"'), "Main page should include the Cesium container.");
 assert(
-  sharedStyleIndex < mapUiStyleIndex,
-  "Dedicated map UI stylesheet should load after the shared stylesheet."
+  indexHtml.includes('id="checkpointInspector"'),
+  "Main page should include the checkpoint inspector."
+);
+assert(indexHtml.includes('id="legend"'), "Main page should include the type legend.");
+assert(indexHtml.includes('id="stats"'), "Main page should include minimal stats.");
+assert(
+  indexHtml.includes("CESIUM_BASE_URL"),
+  "Main page should configure the local Cesium base URL."
 );
 assert(
-  indexHtml.includes('href="./js/vendor/cesium/Widgets/widgets.css"') &&
-    indexHtml.includes('src="./js/vendor/cesium/Cesium.js"') &&
-    indexHtml.includes("CESIUM_BASE_URL"),
-  "Main page should load the local Cesium runtime instead of the CDN."
-);
-assert(
-  !indexHtml.includes("unpkg.com/cesium") && !indexHtml.includes("cesium.com/downloads"),
-  "Main page should not depend on the Cesium CDN."
-);
-assert(
-  indexHtml.includes('class="app app--research"') && !indexHtml.includes("app--redesign"),
-  "Main page should use the redesigned map shell as the default app layout."
+  indexHtml.includes('src="./js/vendor/cesium/Cesium.js"') &&
+    indexHtml.includes('href="./js/vendor/cesium/Widgets/widgets.css"'),
+  "Main page should load the local Cesium runtime."
 );
 
-const panelStart = indexOfOrThrow(indexHtml, '<aside id="panel"', "Main panel should exist.");
-const panelEnd = indexOfOrThrow(indexHtml, "</aside>", "Main panel should close.");
-const mainStart = indexOfOrThrow(indexHtml, '<main id="mapWrap"', "Map wrapper should exist.");
-const mainEnd = indexOfOrThrow(indexHtml, "</main>", "Map wrapper should close.");
-const panelHtml = indexHtml.slice(panelStart, panelEnd);
-const mapHtml = indexHtml.slice(mainStart, mainEnd);
+for (const removedId of [
+  "searchInput",
+  "typeFilter",
+  "favoritesOnly",
+  "shareLink",
+  "exportCsv",
+  "themeToggle",
+  "versions.html"
+]) {
+  assert(
+    !indexHtml.includes(removedId),
+    `Old feature should be removed from the shell: ${removedId}`
+  );
+}
 
-assert(panelHtml.includes('id="controls"'), "Search controls should stay in the left panel.");
-assert(panelHtml.includes('id="stats"'), "Stats should stay in the left panel.");
+assert(!indexHtml.includes('rel="manifest"'), "Minimal shell should not register as a PWA.");
+assert(!indexHtml.includes("map-ui.css"), "Dedicated old map UI stylesheet should be removed.");
+assert(styleCss.includes(".globe-shell"), "Styles should define the new globe-first shell.");
+assert(styleCss.includes("@media (max-width: 760px)"), "Styles should include a mobile layout.");
+assert(!styleCss.includes(".panel"), "Old side-panel styles should be removed.");
+assert(appSource.includes("createGlobe"), "App should initialize Cesium directly.");
 assert(
-  panelHtml.includes('id="researchQueue"'),
-  "Research coverage queue should stay in the left panel."
-);
-assert(
-  panelHtml.includes('<details id="help"'),
-  "Help content should stay available but collapsed by default."
-);
-assert(panelHtml.includes('class="results-shell"'), "Results should stay in the left panel.");
-assert(!panelHtml.includes('id="layers"'), "Layer controls should not live in the left panel.");
-assert(!panelHtml.includes('id="tools"'), "Tool controls should not live in the left panel.");
-assert(!panelHtml.includes('id="legend"'), "Legend should not live in the left panel.");
-assert(!panelHtml.includes('id="themeToggle"'), "Theme toggle should not live in the left panel.");
-assert(
-  !panelHtml.includes('id="checkpointPassport"'),
-  "Checkpoint passport should not live in the left panel."
-);
-
-assert(
-  mapHtml.includes('class="map-side map-toolbar"'),
-  "Map tools dock should live inside the map wrapper."
-);
-assert(mapHtml.includes('id="layers"'), "Layer controls should live in the map tools dock.");
-assert(mapHtml.includes('id="tools"'), "Tool controls should live in the map tools dock.");
-assert(mapHtml.includes('id="legend"'), "Legend should live in the map tools dock.");
-assert(mapHtml.includes('id="themeToggle"'), "Theme toggle should live in the map tools dock.");
-assert(mapHtml.includes('id="panelScrim"'), "Mobile panel scrim should live in the map wrapper.");
-assert(
-  mapHtml.includes('id="checkpointPassport"'),
-  "Checkpoint passport should live in the map wrapper."
-);
-assert(
-  mapHtml.indexOf('class="map-side map-toolbar"') < mapHtml.indexOf('id="map"'),
-  "Map dock should render before the map canvas."
+  !appSource.includes("createFallbackMap"),
+  "App should not keep the old map compatibility facade."
 );
 
-assert(
-  !styleCss.includes("Focused layout repair") && !styleCss.includes(".app--research .map-side"),
-  "Main map layout overrides should not remain in the shared stylesheet."
-);
-assert(
-  mapUiCss.includes(".app--research .map-side") &&
-    mapUiCss.includes(".app--research .tool-grid") &&
-    mapUiCss.includes(".app--research .checkpoint-passport") &&
-    mapUiCss.includes(":focus-visible") &&
-    mapUiCss.includes('html[data-theme="dark"]') &&
-    mapUiCss.includes("@media (max-width: 900px)"),
-  "Dedicated map UI stylesheet should own desktop and mobile map layout."
-);
-assert(
-  !mapUiCss.includes("app--redesign") && !mapUiCss.includes("2026 redesign shell"),
-  "Dedicated map UI stylesheet should not keep the temporary redesign override layer."
-);
-assert(
-  !/(^|\n)\.btn\s*\{/.test(mapUiCss),
-  "Dedicated map UI stylesheet should avoid unscoped global button rules."
-);
-assert(swSource.includes('"./map-ui.css"'), "Service worker should precache map-ui.css.");
-assert(
-  !appSource.includes('dom.panelEl.classList.add("open")'),
-  "Mobile panel should not force-open over the map on startup."
-);
-assert(
-  appSource.includes('addEventListener?.("keydown"') &&
-    appSource.includes('event.key !== "Escape"'),
-  "Map UI should support Escape for dismissing transient panels."
-);
-assert(swSource.includes('"./js/theme.js"'), "Service worker should precache theme.js.");
-assert(swSource.includes('"./js/passport.js"'), "Service worker should precache passport.js.");
-assert(swSource.includes('"./js/enrichment.js"'), "Service worker should precache enrichment.js.");
-assert(
-  swSource.includes('"./js/cesiumGlobe.js"'),
-  "Service worker should precache cesiumGlobe.js."
-);
-assert(
-  swSource.includes('"./js/sourceTrust.js"'),
-  "Service worker should precache sourceTrust.js."
-);
-assert(
-  swSource.includes('"./js/vendor/cesium/Widgets/widgets.css"') &&
-    swSource.includes('"./js/vendor/cesium/Cesium.js"') &&
-    swSource.includes('"./js/vendor/cesium/LICENSE.md"') &&
-    swSource.includes('"./js/vendor/cesium/Assets/Textures/NaturalEarthII/tilemapresource.xml"'),
-  "Service worker should precache the local Cesium runtime."
-);
-assert(
-  swSource.includes('"./data/checkpoint_enrichment.json"'),
-  "Service worker should precache checkpoint enrichment data."
-);
-assert(
-  swSource.includes('"./data/research_coverage_report.json"'),
-  "Service worker should precache research coverage data."
-);
+await access(new URL("../js/checkpoints.js", import.meta.url));
+await access(new URL("../js/cesiumGlobe.js", import.meta.url));
+await access(new URL("../data/checkpoints.geojson", import.meta.url));
 
 console.log("layout structure smoke test passed");
