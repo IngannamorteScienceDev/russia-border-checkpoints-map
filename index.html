@@ -30,6 +30,44 @@
         <div id="stats" class="stats" aria-label="Сводка по КПП"></div>
       </header>
 
+      <section id="controlPanel" class="control-panel" aria-label="Инструменты КПП">
+        <label class="field field--search">
+          <span>Поиск КПП</span>
+          <input
+            id="checkpointSearch"
+            type="search"
+            autocomplete="off"
+            placeholder="Название, страна, регион или ID"
+          />
+        </label>
+
+        <div class="control-panel__grid">
+          <label class="field">
+            <span>Тип</span>
+            <select id="typeFilter"></select>
+          </label>
+          <label class="field">
+            <span>Статус</span>
+            <select id="statusFilter"></select>
+          </label>
+        </div>
+
+        <div class="control-panel__actions">
+          <label class="toggle">
+            <input id="clusterToggle" type="checkbox" checked />
+            <span>Кластеры</span>
+          </label>
+          <button id="fitFiltered" class="tool-button" type="button">Показать выборку</button>
+          <button id="resetFilters" class="tool-button tool-button--muted" type="button">
+            Сброс
+          </button>
+        </div>
+
+        <div id="searchResults" class="search-results" hidden></div>
+      </section>
+
+      <nav id="cameraDock" class="camera-dock" aria-label="Пресеты камеры"></nav>
+
       <aside id="checkpointInspector" class="inspector" aria-live="polite" hidden></aside>
       <aside id="legend" class="legend" aria-label="Легенда типов КПП"></aside>
 

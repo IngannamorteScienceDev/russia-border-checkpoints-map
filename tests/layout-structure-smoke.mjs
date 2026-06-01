@@ -7,6 +7,7 @@ function assert(condition, message) {
 const indexHtml = await readFile(new URL("../index.html", import.meta.url), "utf-8");
 const styleCss = await readFile(new URL("../style.css", import.meta.url), "utf-8");
 const appSource = await readFile(new URL("../app.js", import.meta.url), "utf-8");
+const globeSource = await readFile(new URL("../js/cesiumGlobe.js", import.meta.url), "utf-8");
 
 assert(indexHtml.includes('id="map"'), "Main page should include the Cesium container.");
 assert(
@@ -14,7 +15,12 @@ assert(
   "Main page should include the checkpoint inspector."
 );
 assert(indexHtml.includes('id="legend"'), "Main page should include the type legend.");
-assert(indexHtml.includes('id="stats"'), "Main page should include minimal stats.");
+assert(indexHtml.includes('id="stats"'), "Main page should include stats.");
+assert(indexHtml.includes('id="checkpointSearch"'), "Main page should include checkpoint search.");
+assert(indexHtml.includes('id="typeFilter"'), "Main page should include a type filter.");
+assert(indexHtml.includes('id="statusFilter"'), "Main page should include a status filter.");
+assert(indexHtml.includes('id="clusterToggle"'), "Main page should include a cluster toggle.");
+assert(indexHtml.includes('id="cameraDock"'), "Main page should include camera presets.");
 assert(
   indexHtml.includes("CESIUM_BASE_URL"),
   "Main page should configure the local Cesium base URL."
@@ -26,8 +32,6 @@ assert(
 );
 
 for (const removedId of [
-  "searchInput",
-  "typeFilter",
   "favoritesOnly",
   "shareLink",
   "exportCsv",
@@ -42,10 +46,14 @@ for (const removedId of [
 
 assert(!indexHtml.includes('rel="manifest"'), "Minimal shell should not register as a PWA.");
 assert(!indexHtml.includes("map-ui.css"), "Dedicated old map UI stylesheet should be removed.");
-assert(styleCss.includes(".globe-shell"), "Styles should define the new globe-first shell.");
+assert(styleCss.includes(".globe-shell"), "Styles should define the globe-first shell.");
+assert(styleCss.includes(".control-panel"), "Styles should define the rebuilt control panel.");
+assert(styleCss.includes(".camera-dock"), "Styles should define Cesium camera controls.");
 assert(styleCss.includes("@media (max-width: 760px)"), "Styles should include a mobile layout.");
 assert(!styleCss.includes(".panel"), "Old side-panel styles should be removed.");
 assert(appSource.includes("createGlobe"), "App should initialize Cesium directly.");
+assert(appSource.includes("flyToCameraPreset"), "App should wire camera presets.");
+assert(globeSource.includes("dataSource.clustering"), "Cesium layer should use entity clustering.");
 assert(
   !appSource.includes("createFallbackMap"),
   "App should not keep the old map compatibility facade."

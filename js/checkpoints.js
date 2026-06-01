@@ -1,15 +1,117 @@
 import { UNKNOWN_VALUE } from "./config.js";
 
 const DATA_URL = "./data/checkpoints.geojson";
+const UTF8_DECODER = new TextDecoder("utf-8", { fatal: false });
+const WINDOWS_1252_EXTENSIONS = new Map([
+  [0x80, "€"],
+  [0x82, "‚"],
+  [0x83, "ƒ"],
+  [0x84, "„"],
+  [0x85, "…"],
+  [0x86, "†"],
+  [0x87, "‡"],
+  [0x88, "ˆ"],
+  [0x89, "‰"],
+  [0x8a, "Š"],
+  [0x8b, "‹"],
+  [0x8c, "Œ"],
+  [0x8e, "Ž"],
+  [0x91, "‘"],
+  [0x92, "’"],
+  [0x93, "“"],
+  [0x94, "”"],
+  [0x95, "•"],
+  [0x96, "–"],
+  [0x97, "—"],
+  [0x98, "˜"],
+  [0x99, "™"],
+  [0x9a, "š"],
+  [0x9b, "›"],
+  [0x9c, "œ"],
+  [0x9e, "ž"],
+  [0x9f, "Ÿ"]
+]);
+const WINDOWS_1251_BYTES = createByteMap("windows-1251");
+const WINDOWS_1252_BYTES = createByteMap("windows-1252");
+
+function createByteMap(encoding) {
+  const decoder = new TextDecoder(encoding);
+  const map = new Map();
+
+  for (let byte = 0; byte <= 255; byte += 1) {
+    map.set(decoder.decode(Uint8Array.of(byte)), byte);
+  }
+
+  if (encoding === "windows-1252") {
+    for (const [byte, character] of WINDOWS_1252_EXTENSIONS) {
+      map.set(character, byte);
+    }
+  }
+
+  return map;
+}
+
+function encodeWithMap(text, byteMap) {
+  const bytes = [];
+
+  for (const character of text) {
+    const byte = byteMap.get(character);
+    if (byte === undefined) return null;
+    bytes.push(byte);
+  }
+
+  return Uint8Array.from(bytes);
+}
+
+function decodeAsUtf8(text, byteMap) {
+  const bytes = encodeWithMap(text, byteMap);
+  if (!bytes) return "";
+
+  return UTF8_DECODER.decode(bytes);
+}
+
+function mojibakeScore(text) {
+  const westernMarkers = text.match(/[ÐÑÂ�]/g)?.length || 0;
+  const cyrillicPairs = text.match(/[РС][\u0400-\u045f\u00a0-\u02ff]/g)?.length || 0;
+  const replacementMarkers = text.match(/\uFFFD/g)?.length || 0;
+
+  return westernMarkers * 3 + cyrillicPairs + replacementMarkers * 8;
+}
+
+function isBetterRepair(candidate, current) {
+  if (!candidate || candidate === current || candidate.includes("\uFFFD")) return false;
+
+  return mojibakeScore(candidate) < mojibakeScore(current);
+}
+
+export function repairText(value) {
+  let current = String(value ?? "");
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const windows1252 = decodeAsUtf8(current, WINDOWS_1252_BYTES);
+    if (isBetterRepair(windows1252, current)) {
+      current = windows1252;
+      continue;
+    }
+
+    const windows1251 = decodeAsUtf8(current, WINDOWS_1251_BYTES);
+    if (isBetterRepair(windows1251, current)) {
+      current = windows1251;
+      continue;
+    }
+
+    break;
+  }
+
+  return current;
+}
 
 function cleanText(value) {
-  return String(value ?? "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return repairText(value).replace(/\s+/g, " ").trim();
 }
 
 function normalized(value) {
-  return cleanText(value).toLowerCase().replaceAll("ё", "е");
+  return cleanText(value).toLocaleLowerCase("ru-RU").replaceAll("ё", "е");
 }
 
 function firstValue(props, keys) {
@@ -27,8 +129,8 @@ function normalizeType(value) {
   const text = normalized(value);
 
   if (text.includes("авто")) return "Автомобильный";
-  if (text.includes("желез")) return "Железнодорожный";
-  if (text.includes("воздуш")) return "Воздушный";
+  if (text.includes("желез") || text.includes("ж/д")) return "Железнодорожный";
+  if (text.includes("воздуш") || text.includes("аэропорт")) return "Воздушный";
   if (text.includes("морск")) return "Морской";
   if (text.includes("реч")) return "Речной";
   if (text.includes("пеш")) return "Пешеходный";
@@ -79,6 +181,20 @@ function extractSubject(props) {
   );
 }
 
+function extractOperationalStatus(props) {
+  const explicitStatus = firstValue(props, [
+    "current_status",
+    "operational_status",
+    "state",
+    "condition"
+  ]);
+
+  if (explicitStatus) return explicitStatus;
+  if (props.is_functional !== undefined && props.is_functional !== null) return props.is_functional;
+
+  return firstValue(props, ["status"]);
+}
+
 function normalizeFeature(feature, index) {
   const coordinates = feature.geometry?.coordinates;
   if (!Array.isArray(coordinates)) return null;
@@ -91,10 +207,7 @@ function normalizeFeature(feature, index) {
   const name =
     firstValue(props, ["checkpoint_name", "name", "title"]) || `КПП ${String(index + 1)}`;
   const type = normalizeType(firstValue(props, ["checkpoint_type", "type", "kind"]));
-  const status = normalizeStatus(
-    firstValue(props, ["current_status", "operational_status", "status", "state", "condition"]) ||
-      props.is_functional
-  );
+  const status = normalizeStatus(extractOperationalStatus(props));
 
   return {
     type: "Feature",
@@ -110,6 +223,8 @@ function normalizeFeature(feature, index) {
       __status: status,
       __country: extractCountry(props),
       __subject: extractSubject(props),
+      __address: firstValue(props, ["address", "checkpoint_address"]),
+      __workingTime: firstValue(props, ["working_time", "work_time", "schedule"]),
       __source: firstValue(props, ["source", "source_url", "url", "href"])
     }
   };

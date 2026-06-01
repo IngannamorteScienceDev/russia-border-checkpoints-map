@@ -1,4 +1,4 @@
-import { DEFAULT_CAMERA, TYPE_COLORS } from "./config.js";
+import { CAMERA_PRESETS, DEFAULT_CAMERA, TYPE_COLORS } from "./config.js";
 
 const CHECKPOINT_SOURCE_ID = "checkpoints";
 
@@ -29,6 +29,57 @@ function createNaturalEarthLayer(Cesium) {
   );
 }
 
+function boundsForFeatures(features) {
+  let west = Number.POSITIVE_INFINITY;
+  let south = Number.POSITIVE_INFINITY;
+  let east = Number.NEGATIVE_INFINITY;
+  let north = Number.NEGATIVE_INFINITY;
+
+  for (const feature of features) {
+    const coordinates = coordinatesOf(feature);
+    if (!coordinates) continue;
+
+    const [longitude, latitude] = coordinates;
+    west = Math.min(west, longitude);
+    south = Math.min(south, latitude);
+    east = Math.max(east, longitude);
+    north = Math.max(north, latitude);
+  }
+
+  if (![west, south, east, north].every(Number.isFinite)) return null;
+
+  const width = Math.max(0.8, east - west);
+  const height = Math.max(0.8, north - south);
+  const padding = Math.max(width, height) * 0.16;
+
+  return {
+    west: Math.max(-180, west - padding),
+    south: Math.max(-90, south - padding),
+    east: Math.min(180, east + padding),
+    north: Math.min(90, north + padding)
+  };
+}
+
+export function flyToBounds(viewer, bounds, { duration = 0.8 } = {}) {
+  const Cesium = globalThis.Cesium;
+  const destination = Cesium.Rectangle.fromDegrees(
+    bounds.west,
+    bounds.south,
+    bounds.east,
+    bounds.north
+  );
+
+  viewer.camera.flyTo({
+    destination,
+    duration
+  });
+}
+
+export function flyToCameraPreset(viewer, presetId) {
+  const preset = CAMERA_PRESETS.find((item) => item.id === presetId) || CAMERA_PRESETS[0];
+  flyToBounds(viewer, preset.bounds);
+}
+
 export function createGlobe({ container }) {
   const Cesium = globalThis.Cesium;
   const viewer = new Cesium.Viewer(container, {
@@ -44,6 +95,12 @@ export function createGlobe({ container }) {
     selectionIndicator: false,
     timeline: false,
     terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+    contextOptions: {
+      webgl: {
+        antialias: true,
+        preserveDrawingBuffer: true
+      }
+    },
     requestRenderMode: false
   });
 
@@ -54,6 +111,7 @@ export function createGlobe({ container }) {
   viewer.scene.skyAtmosphere.show = true;
   viewer.scene.moon.show = false;
   viewer.scene.fog.enabled = false;
+
   const initialTarget = Cesium.Rectangle.center(
     Cesium.Rectangle.fromDegrees(
       DEFAULT_CAMERA.west,
@@ -62,11 +120,18 @@ export function createGlobe({ container }) {
       DEFAULT_CAMERA.north
     )
   );
-  viewer.camera.lookAt(
-    Cesium.Cartesian3.fromRadians(initialTarget.longitude, initialTarget.latitude),
-    new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-68), 9300000)
-  );
-  viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+  viewer.camera.setView({
+    destination: Cesium.Cartesian3.fromRadians(
+      initialTarget.longitude,
+      initialTarget.latitude,
+      10200000
+    ),
+    orientation: {
+      heading: 0,
+      pitch: -Cesium.Math.PI_OVER_TWO,
+      roll: 0
+    }
+  });
 
   return viewer;
 }
@@ -75,7 +140,27 @@ export function createCheckpointLayer({ viewer, features, onSelect }) {
   const Cesium = globalThis.Cesium;
   const dataSource = new Cesium.CustomDataSource(CHECKPOINT_SOURCE_ID);
   const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+  const entitiesById = new Map();
   let selectedEntity = null;
+  let clusteringEnabled = true;
+
+  dataSource.clustering.enabled = clusteringEnabled;
+  dataSource.clustering.pixelRange = 46;
+  dataSource.clustering.minimumClusterSize = 4;
+  dataSource.clustering.clusterEvent.addEventListener((clusteredEntities, cluster) => {
+    cluster.billboard.show = false;
+    cluster.label.show = true;
+    cluster.label.text = String(clusteredEntities.length);
+    cluster.label.fillColor = Cesium.Color.fromCssColorString("#071512");
+    cluster.label.outlineColor = Cesium.Color.WHITE;
+    cluster.label.outlineWidth = 0;
+    cluster.label.font = "700 14px Inter, sans-serif";
+    cluster.point.show = true;
+    cluster.point.pixelSize = Math.min(42, 24 + clusteredEntities.length * 0.18);
+    cluster.point.color = Cesium.Color.fromCssColorString("#f2c94c");
+    cluster.point.outlineColor = Cesium.Color.fromCssColorString("#071512");
+    cluster.point.outlineWidth = 3;
+  });
 
   function styleEntity(entity, isSelected = false) {
     const feature = entity.kppFeature;
@@ -101,7 +186,7 @@ export function createCheckpointLayer({ viewer, features, onSelect }) {
   function selectFeature(feature) {
     const coordinates = coordinatesOf(feature);
     const entity = dataSource.entities.getById(entityId(feature));
-    if (!coordinates || !entity) return;
+    if (!coordinates || !entity || !entity.show) return;
 
     clearSelection();
     selectedEntity = entity;
@@ -119,6 +204,34 @@ export function createCheckpointLayer({ viewer, features, onSelect }) {
     });
 
     onSelect?.(feature);
+    viewer.scene.requestRender();
+  }
+
+  function setVisibleFeatures(visibleFeatures) {
+    const visibleIds = new Set(visibleFeatures.map((feature) => feature.properties.__id));
+
+    for (const [featureId, entity] of entitiesById) {
+      entity.show = visibleIds.has(featureId);
+    }
+
+    if (selectedEntity && !selectedEntity.show) {
+      clearSelection();
+      onSelect?.(null);
+    }
+
+    viewer.scene.requestRender();
+  }
+
+  function flyToFeatures(visibleFeatures) {
+    const bounds = boundsForFeatures(visibleFeatures);
+    if (!bounds) return;
+
+    flyToBounds(viewer, bounds);
+  }
+
+  function setClustered(enabled) {
+    clusteringEnabled = Boolean(enabled);
+    dataSource.clustering.enabled = clusteringEnabled;
     viewer.scene.requestRender();
   }
 
@@ -142,6 +255,7 @@ export function createCheckpointLayer({ viewer, features, onSelect }) {
     });
 
     entity.kppFeature = feature;
+    entitiesById.set(feature.properties.__id, entity);
   }
 
   viewer.dataSources.add(dataSource);
@@ -170,6 +284,12 @@ export function createCheckpointLayer({ viewer, features, onSelect }) {
     dataSource,
     selectFeature,
     clearSelection,
+    setVisibleFeatures,
+    flyToFeatures,
+    setClustered,
+    flyHome() {
+      flyToBounds(viewer, DEFAULT_CAMERA);
+    },
     destroy() {
       handler.destroy();
       viewer.dataSources.remove(dataSource, true);
