@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#071512" />
-    <title>КПП РФ на глобусе</title>
+    <title>
+      &#1050;&#1055;&#1055; &#1056;&#1060; &#1085;&#1072;
+      &#1075;&#1083;&#1086;&#1073;&#1091;&#1089;&#1077;
+    </title>
 
     <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./js/vendor/cesium/Widgets/widgets.css" />
@@ -13,67 +16,135 @@
   <body>
     <div id="loader" class="loader" role="status" aria-live="polite">
       <div class="loader__card">
-        <div class="loader__title">КПП РФ</div>
+        <div class="loader__title">&#1050;&#1055;&#1055; &#1056;&#1060;</div>
         <div class="loader__bar"><div id="loaderProgress" class="loader__barFill"></div></div>
-        <div id="loaderText" class="loader__text">Подготавливаем Cesium-глобус...</div>
+        <div id="loaderText" class="loader__text">
+          &#1055;&#1086;&#1076;&#1075;&#1086;&#1090;&#1072;&#1074;&#1083;&#1080;&#1074;&#1072;&#1077;&#1084;
+          Cesium-&#1075;&#1083;&#1086;&#1073;&#1091;&#1089;...
+        </div>
       </div>
     </div>
 
     <main class="globe-shell">
-      <div id="map" class="globe" aria-label="Глобус с пунктами пропуска РФ"></div>
+      <div
+        id="map"
+        class="globe"
+        aria-label="&#1043;&#1083;&#1086;&#1073;&#1091;&#1089; &#1089; &#1087;&#1091;&#1085;&#1082;&#1090;&#1072;&#1084;&#1080; &#1087;&#1088;&#1086;&#1087;&#1091;&#1089;&#1082;&#1072; &#1056;&#1060;"
+      ></div>
 
       <header class="topbar">
         <div class="topbar__title">
           <span>CesiumJS Globe</span>
-          <h1>Пункты пропуска РФ</h1>
+          <h1>
+            &#1055;&#1091;&#1085;&#1082;&#1090;&#1099;
+            &#1087;&#1088;&#1086;&#1087;&#1091;&#1089;&#1082;&#1072; &#1056;&#1060;
+          </h1>
         </div>
-        <div id="stats" class="stats" aria-label="Сводка по КПП"></div>
+        <div
+          id="stats"
+          class="stats"
+          aria-label="&#1057;&#1074;&#1086;&#1076;&#1082;&#1072; &#1087;&#1086; &#1050;&#1055;&#1055;"
+        ></div>
       </header>
 
-      <section id="controlPanel" class="control-panel" aria-label="Инструменты КПП">
+      <section
+        id="controlPanel"
+        class="control-panel"
+        aria-label="&#1048;&#1085;&#1089;&#1090;&#1088;&#1091;&#1084;&#1077;&#1085;&#1090;&#1099; &#1050;&#1055;&#1055;"
+      >
         <label class="field field--search">
-          <span>Поиск КПП</span>
+          <span>&#1055;&#1086;&#1080;&#1089;&#1082; &#1050;&#1055;&#1055;</span>
           <input
             id="checkpointSearch"
             type="search"
             autocomplete="off"
-            placeholder="Название, страна, регион или ID"
+            placeholder="&#1053;&#1072;&#1079;&#1074;&#1072;&#1085;&#1080;&#1077;, &#1089;&#1090;&#1088;&#1072;&#1085;&#1072;, &#1088;&#1077;&#1075;&#1080;&#1086;&#1085; &#1080;&#1083;&#1080; ID"
           />
         </label>
 
         <div class="control-panel__grid">
           <label class="field">
-            <span>Тип</span>
+            <span>&#1058;&#1080;&#1087;</span>
             <select id="typeFilter"></select>
           </label>
           <label class="field">
-            <span>Статус</span>
+            <span>&#1057;&#1090;&#1072;&#1090;&#1091;&#1089;</span>
             <select id="statusFilter"></select>
           </label>
         </div>
 
-        <div class="control-panel__actions">
+        <div class="control-panel__grid">
+          <label class="field">
+            <span>&#1055;&#1086;&#1076;&#1083;&#1086;&#1078;&#1082;&#1072;</span>
+            <select id="imageryMode"></select>
+          </label>
+          <label class="field">
+            <span>&#1056;&#1072;&#1076;&#1080;&#1091;&#1089;</span>
+            <select id="radiusSelect">
+              <option value="50">50 &#1082;&#1084;</option>
+              <option value="100" selected>100 &#1082;&#1084;</option>
+              <option value="250">250 &#1082;&#1084;</option>
+              <option value="500">500 &#1082;&#1084;</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="control-panel__toggles">
           <label class="toggle">
             <input id="clusterToggle" type="checkbox" checked />
-            <span>Кластеры</span>
+            <span>&#1050;&#1083;&#1072;&#1089;&#1090;&#1077;&#1088;&#1099;</span>
           </label>
-          <button id="fitFiltered" class="tool-button" type="button">Показать выборку</button>
+          <label class="toggle">
+            <input id="qualityToggle" type="checkbox" />
+            <span
+              >&#1050;&#1072;&#1095;&#1077;&#1089;&#1090;&#1074;&#1086;
+              &#1082;&#1086;&#1086;&#1088;&#1076;&#1080;&#1085;&#1072;&#1090;</span
+            >
+          </label>
+        </div>
+
+        <div class="control-panel__actions">
+          <button id="fitFiltered" class="tool-button" type="button">
+            &#1055;&#1086;&#1082;&#1072;&#1079;&#1072;&#1090;&#1100;
+          </button>
+          <button id="tableToggle" class="tool-button" type="button">
+            &#1056;&#1077;&#1077;&#1089;&#1090;&#1088;
+          </button>
+          <button id="exportCsv" class="tool-button" type="button">CSV</button>
+          <button id="copyShare" class="tool-button" type="button">Share</button>
           <button id="resetFilters" class="tool-button tool-button--muted" type="button">
-            Сброс
+            &#1057;&#1073;&#1088;&#1086;&#1089;
           </button>
         </div>
 
         <div id="searchResults" class="search-results" hidden></div>
       </section>
 
-      <nav id="cameraDock" class="camera-dock" aria-label="Пресеты камеры"></nav>
+      <section id="dataPanel" class="data-panel" aria-live="polite" hidden></section>
+
+      <nav
+        id="cameraDock"
+        class="camera-dock"
+        aria-label="&#1055;&#1088;&#1077;&#1089;&#1077;&#1090;&#1099; &#1082;&#1072;&#1084;&#1077;&#1088;&#1099;"
+      ></nav>
 
       <aside id="checkpointInspector" class="inspector" aria-live="polite" hidden></aside>
-      <aside id="legend" class="legend" aria-label="Легенда типов КПП"></aside>
+      <aside
+        id="legend"
+        class="legend"
+        aria-label="&#1051;&#1077;&#1075;&#1077;&#1085;&#1076;&#1072; &#1050;&#1055;&#1055;"
+      ></aside>
 
       <div id="mapFallback" class="map-fallback" role="alert" hidden>
-        <b>Глобус временно недоступен</b>
-        <span>CesiumJS runtime не загрузился.</span>
+        <b
+          >&#1043;&#1083;&#1086;&#1073;&#1091;&#1089;
+          &#1074;&#1088;&#1077;&#1084;&#1077;&#1085;&#1085;&#1086;
+          &#1085;&#1077;&#1076;&#1086;&#1089;&#1090;&#1091;&#1087;&#1077;&#1085;</b
+        >
+        <span
+          >CesiumJS runtime &#1085;&#1077;
+          &#1079;&#1072;&#1075;&#1088;&#1091;&#1079;&#1080;&#1083;&#1089;&#1103;.</span
+        >
       </div>
     </main>
 

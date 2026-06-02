@@ -5,41 +5,47 @@
 [![Data](https://img.shields.io/badge/data-GeoJSON-yellow)](#)
 [![Pipeline](https://img.shields.io/badge/data%20pipeline-Python-informational)](#)
 
-CesiumJS-приложение для просмотра пунктов пропуска через государственную границу РФ на глобусе.
+CesiumJS application for exploring Russian Federation border checkpoints on a 3D globe.
 
-Проект намеренно пересобирается заново вокруг Cesium. Старые функции вроде избранного, QR, экспорта, шаринга, PWA-оболочки, страниц версий и исследовательских панелей удалены из фронтенда. Возвращать функции стоит только тогда, когда они дают понятный сценарий работы на глобусе.
+The frontend has been rebuilt around a small, Cesium-native product surface. Old ad-hoc features were removed first, then useful tools were reintroduced as focused workflows: search, filters, camera presets, clustering, analysis overlays, export, sharing, and a checkpoint register.
 
-## Текущее ядро
+## Current Frontend
 
-- локальный CesiumJS runtime;
-- загрузка `data/checkpoints.geojson`;
-- восстановление русских строк, если в данных встречается mojibake;
-- нормализация названия, типа, статуса, страны, региона, адреса и координат КПП;
-- отрисовка точек через Cesium `CustomDataSource` и `Entity`;
-- кластеризация точек средствами Cesium;
-- поиск по названию, ID, стране, региону, типу и адресу;
-- фильтры по типу и статусу;
-- пресеты камеры: обзор, запад, юг, Сибирь, Дальний Восток;
-- инспектор выбранного КПП с фокусом камеры на точке;
-- адаптивный интерфейс для мобильных экранов.
+- Local CesiumJS runtime.
+- High-definition default imagery for GitHub Pages via Esri World Imagery.
+- OpenStreetMap and local Natural Earth fallback imagery modes.
+- Loading and normalization of `data/checkpoints.geojson`.
+- Runtime repair for mojibake strings in the source data.
+- Checkpoint rendering through Cesium `CustomDataSource` and `Entity`.
+- Cesium clustering for dense regions.
+- Search by checkpoint name, ID, country, region, type, address, corridor, and foreign checkpoint.
+- Filters by checkpoint type and status.
+- Camera presets for overview, west, south, Siberia, and Far East.
+- Coordinate-quality visualization mode.
+- Selected-checkpoint radius overlay and nearest-checkpoint geodesic line.
+- Inspector with quality, radius, nearest checkpoint, and source data.
+- Filtered checkpoint register.
+- CSV export for the current selection.
+- Share URL generation for filters, imagery mode, radius, and selected checkpoint.
+- Responsive desktop/mobile UI.
 
-## Локальный запуск
+## Local Run
 
-Открывайте проект через локальный HTTP-сервер, иначе браузер может заблокировать `fetch()` GeoJSON.
+Use a local HTTP server. Opening the HTML file directly can block `fetch()` for GeoJSON.
 
 ```bash
 python -m http.server 8000
 ```
 
-После запуска откройте `http://localhost:8000`.
+Then open `http://localhost:8000`.
 
-## Данные
+## Data
 
-Основной файл фронтенда:
+Main frontend dataset:
 
 - `data/checkpoints.geojson`
 
-Pipeline и служебные отчеты данных сохранены:
+Data pipeline files are still available:
 
 - `raw_data/rosgranstroy_map_data.json`
 - `data/checkpoints_v1.csv`
@@ -48,13 +54,13 @@ Pipeline и служебные отчеты данных сохранены:
 - `data/research_coverage_report.json`
 - `data/checkpoint_enrichment.json`
 
-Полный pipeline:
+Full pipeline:
 
 ```bash
 python scripts/run_pipeline.py
 ```
 
-## Проверки
+## Checks
 
 ```bash
 npm run lint
@@ -63,17 +69,10 @@ npm run test:frontend
 python -m unittest discover -s tests -v
 ```
 
-## Следующий этап
+## Notes
 
-Полезные Cesium-native функции, которые стоит добавлять дальше:
+The raw GeoJSON still preserves upstream text exactly. The frontend repairs mojibake at load time so the user interface stays readable without breaking dataset hashes and pipeline validation.
 
-- измерение расстояний от выбранного КПП;
-- геодезические линии к сопредельным пунктам;
-- режим анализа плотности по участкам границы;
-- аккуратные слои данных вместо старой панели слоев;
-- экспорт только после того, как будет понятен рабочий сценарий;
-- визуальная проверка качества координат прямо на глобусе.
+## License
 
-## Лицензия
-
-Проект распространяется по лицензии **Personal Use License**. Полные условия см. в `LICENSE`.
+Personal Use License. See `LICENSE`.

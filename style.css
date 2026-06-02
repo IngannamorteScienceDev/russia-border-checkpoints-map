@@ -98,7 +98,8 @@ button {
 .map-fallback,
 .loader__card,
 .control-panel,
-.camera-dock {
+.camera-dock,
+.data-panel {
   border: 1px solid var(--line);
   background: var(--panel);
   box-shadow: var(--shadow);
@@ -170,11 +171,17 @@ button {
   gap: 10px;
 }
 
+.control-panel__toggles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
 .control-panel__actions {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
-  gap: 9px;
+  gap: 8px;
 }
 
 .field {
@@ -216,7 +223,7 @@ button {
   min-width: 0;
   color: var(--text);
   font-size: 13px;
-  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .toggle input {
@@ -237,8 +244,9 @@ button {
 .tool-button {
   min-height: 38px;
   min-width: 0;
-  padding: 0 11px;
+  padding: 0 9px;
   overflow: hidden;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -329,6 +337,10 @@ button {
   padding: 14px;
 }
 
+.legend__item:disabled {
+  cursor: default;
+}
+
 .legend__items {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -375,7 +387,7 @@ button {
 
 .inspector {
   position: absolute;
-  top: 326px;
+  top: 470px;
   right: 20px;
   z-index: 7;
   width: min(390px, calc(100vw - 40px));
@@ -383,7 +395,7 @@ button {
 
 .inspector__card {
   position: relative;
-  max-height: calc(100vh - 366px);
+  max-height: calc(100vh - 510px);
   overflow: auto;
   padding: 18px;
   background: var(--panel-strong);
@@ -457,6 +469,97 @@ button {
   margin-top: 14px;
   padding: 9px 12px;
   text-decoration: none;
+}
+
+.data-panel {
+  position: absolute;
+  top: 124px;
+  left: 20px;
+  z-index: 6;
+  width: min(460px, calc(100vw - 40px));
+  max-height: min(620px, calc(100vh - 210px));
+  overflow: hidden;
+}
+
+.data-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 14px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.data-panel__head span,
+.data-panel__hint {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.data-panel__head b {
+  display: block;
+  margin-top: 2px;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.data-panel__close {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--field);
+  color: var(--text);
+}
+
+.data-panel__hint {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  text-transform: none;
+}
+
+.checkpoint-table {
+  display: grid;
+  max-height: min(500px, calc(100vh - 310px));
+  overflow: auto;
+}
+
+.checkpoint-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.5fr) minmax(82px, 0.8fr) minmax(82px, 0.8fr) 72px;
+  gap: 8px;
+  align-items: center;
+  min-height: 46px;
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text);
+  text-align: left;
+}
+
+.checkpoint-row:hover,
+.checkpoint-row--active {
+  background: rgba(242, 201, 76, 0.16);
+}
+
+.checkpoint-row b,
+.checkpoint-row span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkpoint-row b {
+  font-size: 13px;
 }
 
 .map-fallback {
@@ -569,6 +672,7 @@ button {
   .stats {
     width: 100%;
     min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .stat {
@@ -594,8 +698,9 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .control-panel__toggles,
   .control-panel__actions {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .toggle {
@@ -628,6 +733,28 @@ button {
     display: none;
   }
 
+  .data-panel {
+    top: auto;
+    right: 10px;
+    bottom: 70px;
+    left: 10px;
+    width: auto;
+    max-height: 48vh;
+  }
+
+  .checkpoint-table {
+    max-height: 34vh;
+  }
+
+  .checkpoint-row {
+    grid-template-columns: minmax(120px, 1fr) 76px;
+  }
+
+  .checkpoint-row span:nth-of-type(2),
+  .checkpoint-row span:nth-of-type(3) {
+    display: none;
+  }
+
   .inspector {
     top: auto;
     right: 10px;
@@ -637,6 +764,10 @@ button {
   }
 
   .globe-shell--inspecting .control-panel {
+    display: none;
+  }
+
+  .globe-shell--inspecting .data-panel {
     display: none;
   }
 
@@ -662,10 +793,6 @@ button {
   .stat span,
   .field span {
     font-size: 10px;
-  }
-
-  .stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .stat b {
