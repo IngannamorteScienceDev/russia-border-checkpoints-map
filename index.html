@@ -101,7 +101,41 @@
               &#1082;&#1086;&#1086;&#1088;&#1076;&#1080;&#1085;&#1072;&#1090;</span
             >
           </label>
+          <label class="toggle">
+            <input id="terrainToggle" type="checkbox" checked />
+            <span>&#1056;&#1077;&#1083;&#1100;&#1077;&#1092;</span>
+          </label>
+          <label class="toggle">
+            <input id="viewshedToggle" type="checkbox" checked />
+            <span>Viewshed</span>
+          </label>
+          <label class="toggle">
+            <input id="corridorsToggle" type="checkbox" />
+            <span>&#1050;&#1086;&#1088;&#1080;&#1076;&#1086;&#1088;&#1099;</span>
+          </label>
+          <label class="toggle">
+            <input id="flowsToggle" type="checkbox" />
+            <span>&#1055;&#1086;&#1090;&#1086;&#1082;&#1080;</span>
+          </label>
+          <label class="toggle">
+            <input id="heatmapToggle" type="checkbox" />
+            <span>Heatmap</span>
+          </label>
+          <label class="toggle">
+            <input id="tilesToggle" type="checkbox" />
+            <span>3D Tiles</span>
+          </label>
         </div>
+
+        <label class="field field--tileset">
+          <span>3D Tiles URL</span>
+          <input
+            id="tilesetUrl"
+            type="url"
+            autocomplete="off"
+            placeholder="https://.../tileset.json"
+          />
+        </label>
 
         <div class="control-panel__actions">
           <button id="fitFiltered" class="tool-button" type="button">
@@ -117,6 +151,7 @@
           </button>
         </div>
 
+        <div id="analysisStatus" class="analysis-status" hidden></div>
         <div id="searchResults" class="search-results" hidden></div>
       </section>
 

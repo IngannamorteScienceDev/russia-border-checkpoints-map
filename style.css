@@ -162,6 +162,8 @@ button {
   display: grid;
   gap: 12px;
   width: min(390px, calc(100vw - 40px));
+  max-height: min(460px, calc(100vh - 190px));
+  overflow: auto;
   padding: 14px;
 }
 
@@ -178,10 +180,16 @@ button {
 }
 
 .control-panel__actions {
+  position: sticky;
+  bottom: -14px;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
   gap: 8px;
+  margin: 0 -14px;
+  border-top: 1px solid var(--line);
+  background: var(--panel-strong);
+  padding: 10px 14px 14px;
 }
 
 .field {
@@ -204,6 +212,10 @@ button {
 
 .field input {
   padding: 0 12px;
+}
+
+.field--tileset {
+  min-height: 58px;
 }
 
 .field select {
@@ -230,6 +242,28 @@ button {
   width: 18px;
   height: 18px;
   accent-color: var(--accent);
+}
+
+.analysis-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.analysis-status span {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(238, 246, 239, 0.14);
+  background: rgba(255, 255, 255, 0.065);
+  padding: 5px 7px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .tool-button,
@@ -387,7 +421,7 @@ button {
 
 .inspector {
   position: absolute;
-  top: 470px;
+  top: 604px;
   right: 20px;
   z-index: 7;
   width: min(390px, calc(100vw - 40px));
@@ -395,10 +429,16 @@ button {
 
 .inspector__card {
   position: relative;
-  max-height: calc(100vh - 510px);
+  max-height: calc(100vh - 636px);
   overflow: auto;
   padding: 18px;
   background: var(--panel-strong);
+}
+
+.globe-shell--inspecting .camera-dock {
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
 }
 
 .inspector__close {
@@ -704,7 +744,7 @@ button {
   }
 
   .toggle {
-    grid-column: 1 / -1;
+    font-size: 12px;
   }
 
   .tool-button {

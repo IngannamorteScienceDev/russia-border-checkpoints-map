@@ -7,10 +7,13 @@ import {
 } from "./js/config.js";
 import { buildDatasetSummary, formatCoordinates, loadCheckpoints } from "./js/checkpoints.js";
 import {
+  analyzeVisibility,
   createCheckpointLayer,
   createGlobe,
   flyToCameraPreset,
-  setImageryMode
+  setInfrastructureTiles,
+  setImageryMode,
+  setTerrainEnabled
 } from "./js/cesiumGlobe.js";
 
 const TEXT = {
@@ -36,6 +39,14 @@ const TEXT = {
     "\u0421\u043e\u043f\u0440\u0435\u0434\u0435\u043b\u044c\u043d\u044b\u0439 \u041a\u041f\u041f",
   corridor: "\u041a\u043e\u0440\u0438\u0434\u043e\u0440",
   quality: "\u041a\u0430\u0447\u0435\u0441\u0442\u0432\u043e",
+  terrainHeight: "\u0412\u044b\u0441\u043e\u0442\u0430",
+  terrainRelief: "\u0420\u0435\u043b\u044c\u0435\u0444",
+  heightDelta: "\u041f\u0435\u0440\u0435\u043f\u0430\u0434",
+  lineOfSight: "Line of Sight",
+  visibleCheckpoints:
+    "\u041f\u0440\u044f\u043c\u0430\u044f \u0432\u0438\u0434\u0438\u043c\u043e\u0441\u0442\u044c",
+  blockedCheckpoints:
+    "\u041f\u0435\u0440\u0435\u043a\u0440\u044b\u0442\u043e \u0440\u0435\u043b\u044c\u0435\u0444\u043e\u043c",
   nearest: "\u0411\u043b\u0438\u0436\u0430\u0439\u0448\u0438\u0439 \u041a\u041f\u041f",
   distance: "\u0420\u0430\u0441\u0441\u0442\u043e\u044f\u043d\u0438\u0435",
   withinRadius: "\u0412 \u0440\u0430\u0434\u0438\u0443\u0441\u0435",
@@ -50,6 +61,11 @@ const TEXT = {
     "\u0421\u0441\u044b\u043b\u043a\u0430 \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0430",
   share: "Share",
   ready: "\u0413\u043e\u0442\u043e\u0432\u043e",
+  terrainReady: "\u0420\u0435\u043b\u044c\u0435\u0444",
+  terrainFallback: "\u0420\u0435\u043b\u044c\u0435\u0444: fallback",
+  viewshedLoading: "\u0421\u0447\u0438\u0442\u0430\u0435\u043c viewshed...",
+  tilesReady: "3D Tiles",
+  tilesFallback: "3D Tiles: fallback",
   loadingGlobe:
     "\u0417\u0430\u043f\u0443\u0441\u043a\u0430\u0435\u043c Cesium-\u0433\u043b\u043e\u0431\u0443\u0441...",
   loadingPoints:
@@ -79,6 +95,14 @@ const dom = {
   radiusSelect: document.getElementById("radiusSelect"),
   clusterToggle: document.getElementById("clusterToggle"),
   qualityToggle: document.getElementById("qualityToggle"),
+  terrainToggle: document.getElementById("terrainToggle"),
+  viewshedToggle: document.getElementById("viewshedToggle"),
+  corridorsToggle: document.getElementById("corridorsToggle"),
+  flowsToggle: document.getElementById("flowsToggle"),
+  heatmapToggle: document.getElementById("heatmapToggle"),
+  tilesToggle: document.getElementById("tilesToggle"),
+  tilesetUrl: document.getElementById("tilesetUrl"),
+  analysisStatus: document.getElementById("analysisStatus"),
   fitFiltered: document.getElementById("fitFiltered"),
   tableToggle: document.getElementById("tableToggle"),
   exportCsv: document.getElementById("exportCsv"),
@@ -97,7 +121,11 @@ const state = {
   type: "all",
   status: "all",
   colorMode: "type",
-  panelOpen: false
+  panelOpen: false,
+  visibilityAnalysis: null,
+  visibilityToken: 0,
+  terrainStatus: null,
+  tilesStatus: null
 };
 
 let viewer = null;
@@ -285,6 +313,14 @@ function formatDistance(value) {
   return `${Math.round(value)} \u043a\u043c`;
 }
 
+function formatMeters(value, { signed = false } = {}) {
+  if (!Number.isFinite(value)) return "";
+
+  const rounded = Math.round(value);
+  const prefix = signed && rounded > 0 ? "+" : "";
+  return `${prefix}${rounded} \u043c`;
+}
+
 function analysisFor(feature) {
   if (!feature) {
     return {
@@ -307,13 +343,111 @@ function analysisFor(feature) {
   };
 }
 
+function visibilityFor(feature) {
+  if (!feature) return null;
+  if (state.visibilityAnalysis?.featureId !== feature.properties.__id) return null;
+  return state.visibilityAnalysis.result || null;
+}
+
+function visibilityKey(feature, analysis) {
+  const candidates = analysis.nearest
+    .slice(0, 10)
+    .map((item) => item.feature.properties.__id)
+    .join(",");
+
+  return [
+    feature.properties.__id,
+    analysis.radiusKm,
+    viewer?.kppTerrainStatus?.mode || "ellipsoid",
+    candidates
+  ].join(":");
+}
+
+function renderAnalysisStatus() {
+  if (!dom.analysisStatus) return;
+
+  const items = [];
+  if (state.terrainStatus) {
+    items.push(state.terrainStatus.enabled ? TEXT.terrainReady : TEXT.terrainFallback);
+  }
+
+  if (state.visibilityAnalysis?.loading) items.push(TEXT.viewshedLoading);
+
+  if (state.tilesStatus?.mode) {
+    items.push(state.tilesStatus.enabled ? TEXT.tilesReady : TEXT.tilesFallback);
+  }
+
+  dom.analysisStatus.hidden = !items.length;
+  dom.analysisStatus.innerHTML = items.map((item) => `<span>${escapeHtml(item)}</span>`).join("");
+}
+
+function queueVisibilityAnalysis(feature, analysis) {
+  if (!viewer || !feature || !dom.viewshedToggle.checked) return;
+
+  const targets = analysis.nearest.slice(0, 10).map((item) => item.feature);
+  const key = visibilityKey(feature, analysis);
+
+  if (state.visibilityAnalysis?.key === key) return;
+
+  const token = state.visibilityToken + 1;
+  state.visibilityToken = token;
+  state.visibilityAnalysis = {
+    key,
+    featureId: feature.properties.__id,
+    loading: true,
+    result: null
+  };
+  renderAnalysisStatus();
+
+  analyzeVisibility(viewer, feature, targets, {
+    radiusKm: analysis.radiusKm,
+    rayCount: 24,
+    sampleCount: 14,
+    observerHeightMeters: 8,
+    targetHeightMeters: 4
+  })
+    .then((result) => {
+      if (state.visibilityToken !== token) return;
+      if (state.selectedFeature?.properties.__id !== feature.properties.__id) return;
+
+      state.visibilityAnalysis = {
+        key,
+        featureId: feature.properties.__id,
+        loading: false,
+        result
+      };
+      checkpointLayer?.setAnalysis({
+        feature,
+        nearestFeature: analysis.nearest[0]?.feature,
+        radiusKm: analysis.radiusKm,
+        visibility: result
+      });
+      renderInspector(feature);
+      renderAnalysisStatus();
+    })
+    .catch((error) => {
+      console.error(error);
+      if (state.visibilityToken !== token) return;
+      state.visibilityAnalysis = {
+        key,
+        featureId: feature.properties.__id,
+        loading: false,
+        result: null
+      };
+      renderAnalysisStatus();
+    });
+}
+
 function updateSelectedAnalysis() {
   const analysis = analysisFor(state.selectedFeature);
+  const visibility = visibilityFor(state.selectedFeature);
   checkpointLayer?.setAnalysis({
     feature: state.selectedFeature,
     nearestFeature: analysis.nearest[0]?.feature,
-    radiusKm: analysis.radiusKm
+    radiusKm: analysis.radiusKm,
+    visibility
   });
+  if (state.selectedFeature) queueVisibilityAnalysis(state.selectedFeature, analysis);
   return analysis;
 }
 
@@ -331,6 +465,16 @@ function renderInspector(feature) {
   const coords = formatCoordinates(feature.geometry?.coordinates);
   const analysis = updateSelectedAnalysis();
   const nearest = analysis.nearest[0];
+  const visibility = visibilityFor(feature);
+  const nearestVisibility = nearest
+    ? visibility?.targets?.find((target) => target.featureId === nearest.feature.properties.__id)
+    : null;
+  const visibleCount = visibility?.targets?.filter((target) => target.visible).length;
+  const blockedCount = visibility?.targets?.filter((target) => !target.visible).length;
+  const heightDelta =
+    nearestVisibility && Number.isFinite(nearestVisibility.targetHeightMeters)
+      ? nearestVisibility.targetHeightMeters - visibility.originHeightMeters
+      : null;
 
   dom.inspector.hidden = false;
   dom.inspector.innerHTML = `
@@ -353,6 +497,17 @@ function renderInspector(feature) {
         ${detailRow(TEXT.foreignCheckpoint, props.__foreignCheckpoint)}
         ${detailRow(TEXT.corridor, props.__corridor)}
         ${detailRow(TEXT.quality, `${props.__quality.label}: ${props.__quality.reason}`)}
+        ${visibility ? detailRow(TEXT.terrainHeight, formatMeters(visibility.originHeightMeters)) : ""}
+        ${visibility ? detailRow(TEXT.terrainRelief, formatMeters(visibility.reliefMeters)) : ""}
+        ${Number.isFinite(heightDelta) ? detailRow(TEXT.heightDelta, formatMeters(heightDelta, { signed: true })) : ""}
+        ${
+          visibility
+            ? detailRow(TEXT.visibleCheckpoints, `${visibleCount}/${visibility.targets.length}`)
+            : state.visibilityAnalysis?.loading
+              ? detailRow(TEXT.lineOfSight, TEXT.viewshedLoading)
+              : ""
+        }
+        ${visibility ? detailRow(TEXT.blockedCheckpoints, String(blockedCount)) : ""}
         ${nearest ? detailRow(TEXT.nearest, `${nearest.feature.properties.__name} · ${formatDistance(nearest.distance)}`) : ""}
         ${detailRow(`${TEXT.withinRadius} ${analysis.radiusKm} \u043a\u043c`, String(analysis.withinRadius))}
       </div>
@@ -372,6 +527,11 @@ function renderInspector(feature) {
 
 function handleSelection(feature) {
   state.selectedFeature = feature;
+  if (!feature) {
+    state.visibilityToken += 1;
+    state.visibilityAnalysis = null;
+    renderAnalysisStatus();
+  }
   renderInspector(feature);
   renderDataPanel();
 }
@@ -507,6 +667,49 @@ function renderDataPanel() {
   });
 }
 
+function updateAnalyticLayers() {
+  checkpointLayer?.setCorridors({
+    enabled: dom.corridorsToggle.checked,
+    features: state.filteredFeatures
+  });
+  checkpointLayer?.setFlows({
+    enabled: dom.flowsToggle.checked,
+    features: state.filteredFeatures
+  });
+  checkpointLayer?.setHeatmap({
+    enabled: dom.heatmapToggle.checked,
+    features: state.filteredFeatures
+  });
+  checkpointLayer?.setInfrastructure({
+    enabled: dom.tilesToggle.checked,
+    features: state.filteredFeatures
+  });
+}
+
+async function updateTerrainMode() {
+  if (!viewer) return;
+
+  state.terrainStatus = await setTerrainEnabled(viewer, dom.terrainToggle.checked);
+  state.visibilityToken += 1;
+  state.visibilityAnalysis = null;
+  if (state.selectedFeature) renderInspector(state.selectedFeature);
+  renderAnalysisStatus();
+}
+
+async function updateTilesMode() {
+  if (!viewer) return;
+
+  checkpointLayer?.setInfrastructure({
+    enabled: dom.tilesToggle.checked,
+    features: state.filteredFeatures
+  });
+  state.tilesStatus = await setInfrastructureTiles(viewer, {
+    enabled: dom.tilesToggle.checked,
+    url: dom.tilesetUrl.value
+  });
+  renderAnalysisStatus();
+}
+
 function applyFilters({ fit = false } = {}) {
   state.query = normalizeSearch(dom.search.value);
   state.type = dom.typeFilter.value || "all";
@@ -526,6 +729,7 @@ function applyFilters({ fit = false } = {}) {
 
   const summary = buildDatasetSummary(state.filteredFeatures);
   checkpointLayer?.setVisibleFeatures(state.filteredFeatures);
+  updateAnalyticLayers();
   renderStats(summary, state.features.length);
   renderLegend();
   renderResults(state.filteredFeatures);
@@ -540,12 +744,23 @@ function resetFilters() {
   dom.typeFilter.value = "all";
   dom.statusFilter.value = "all";
   dom.qualityToggle.checked = false;
+  dom.terrainToggle.checked = true;
+  dom.viewshedToggle.checked = true;
+  dom.corridorsToggle.checked = false;
+  dom.flowsToggle.checked = false;
+  dom.heatmapToggle.checked = false;
+  dom.tilesToggle.checked = false;
+  dom.tilesetUrl.value = "";
   state.colorMode = "type";
+  state.visibilityToken += 1;
+  state.visibilityAnalysis = null;
   checkpointLayer?.setColorMode("type");
   checkpointLayer?.clearSelection();
   handleSelection(null);
   applyFilters();
   checkpointLayer?.flyHome();
+  updateTerrainMode().catch((error) => console.error(error));
+  updateTilesMode().catch((error) => console.error(error));
 }
 
 function csvCell(value) {
@@ -602,6 +817,20 @@ function shareUrl() {
   url.searchParams.set("radius", dom.radiusSelect.value);
   if (dom.qualityToggle.checked) url.searchParams.set("quality", "1");
   else url.searchParams.delete("quality");
+  if (!dom.terrainToggle.checked) url.searchParams.set("terrain", "0");
+  else url.searchParams.delete("terrain");
+  if (!dom.viewshedToggle.checked) url.searchParams.set("viewshed", "0");
+  else url.searchParams.delete("viewshed");
+  if (dom.corridorsToggle.checked) url.searchParams.set("corridors", "1");
+  else url.searchParams.delete("corridors");
+  if (dom.flowsToggle.checked) url.searchParams.set("flows", "1");
+  else url.searchParams.delete("flows");
+  if (dom.heatmapToggle.checked) url.searchParams.set("heatmap", "1");
+  else url.searchParams.delete("heatmap");
+  if (dom.tilesToggle.checked) url.searchParams.set("tiles", "1");
+  else url.searchParams.delete("tiles");
+  if (dom.tilesetUrl.value.trim()) url.searchParams.set("tileset", dom.tilesetUrl.value.trim());
+  else url.searchParams.delete("tileset");
   if (state.selectedFeature)
     url.searchParams.set("checkpoint", state.selectedFeature.properties.__id);
   else url.searchParams.delete("checkpoint");
@@ -640,6 +869,13 @@ function readUrlState() {
     imagery: params.get("imagery") || DEFAULT_IMAGERY_MODE,
     radius: params.get("radius") || "100",
     quality: params.get("quality") === "1",
+    terrain: params.get("terrain") !== "0",
+    viewshed: params.get("viewshed") !== "0",
+    corridors: params.get("corridors") === "1",
+    flows: params.get("flows") === "1",
+    heatmap: params.get("heatmap") === "1",
+    tiles: params.get("tiles") === "1",
+    tileset: params.get("tileset") || "",
     checkpoint: params.get("checkpoint") || ""
   };
 }
@@ -661,10 +897,19 @@ function applyUrlState() {
     dom.radiusSelect.value = urlState.radius;
   }
   dom.qualityToggle.checked = urlState.quality;
+  dom.terrainToggle.checked = urlState.terrain;
+  dom.viewshedToggle.checked = urlState.viewshed;
+  dom.corridorsToggle.checked = urlState.corridors;
+  dom.flowsToggle.checked = urlState.flows;
+  dom.heatmapToggle.checked = urlState.heatmap;
+  dom.tilesToggle.checked = urlState.tiles;
+  dom.tilesetUrl.value = urlState.tileset;
   state.colorMode = urlState.quality ? "quality" : "type";
   checkpointLayer?.setColorMode(state.colorMode);
 
   applyFilters();
+  updateTerrainMode().catch((error) => console.error(error));
+  updateTilesMode().catch((error) => console.error(error));
 
   const selected = state.features.find(
     (feature) => feature.properties.__id === urlState.checkpoint
@@ -691,6 +936,8 @@ function bindControls() {
   dom.statusFilter.addEventListener("change", () => applyFilters());
   dom.imageryMode.addEventListener("change", () => setImageryMode(viewer, dom.imageryMode.value));
   dom.radiusSelect.addEventListener("change", () => {
+    state.visibilityToken += 1;
+    state.visibilityAnalysis = null;
     if (state.selectedFeature) renderInspector(state.selectedFeature);
   });
   dom.fitFiltered.addEventListener("click", () =>
@@ -713,6 +960,25 @@ function bindControls() {
     checkpointLayer?.setColorMode(state.colorMode);
     renderLegend();
   });
+  dom.terrainToggle.addEventListener("change", () => {
+    updateTerrainMode().catch((error) => console.error(error));
+  });
+  dom.viewshedToggle.addEventListener("change", () => {
+    state.visibilityToken += 1;
+    state.visibilityAnalysis = null;
+    if (state.selectedFeature) renderInspector(state.selectedFeature);
+    renderAnalysisStatus();
+  });
+  dom.corridorsToggle.addEventListener("change", updateAnalyticLayers);
+  dom.flowsToggle.addEventListener("change", updateAnalyticLayers);
+  dom.heatmapToggle.addEventListener("change", updateAnalyticLayers);
+  dom.tilesToggle.addEventListener("change", () => {
+    updateTilesMode().catch((error) => console.error(error));
+  });
+  dom.tilesetUrl.addEventListener("change", () => {
+    if (!dom.tilesToggle.checked) return;
+    updateTilesMode().catch((error) => console.error(error));
+  });
 }
 
 async function init() {
@@ -725,6 +991,13 @@ async function init() {
 
     setProgress(15, TEXT.loadingGlobe);
     viewer = createGlobe({ container: dom.map });
+    viewer.kppTerrainPromise?.then((status) => {
+      state.terrainStatus = status;
+      state.visibilityToken += 1;
+      state.visibilityAnalysis = null;
+      if (state.selectedFeature) renderInspector(state.selectedFeature);
+      renderAnalysisStatus();
+    });
 
     setProgress(45, TEXT.loadingPoints);
     state.features = await loadCheckpoints({ onProgress: setProgress });
@@ -750,6 +1023,9 @@ async function init() {
       applyFilters,
       exportFilteredCsv,
       copyShareLink,
+      updateAnalyticLayers,
+      updateTerrainMode,
+      updateTilesMode,
       state
     });
     hideLoader();

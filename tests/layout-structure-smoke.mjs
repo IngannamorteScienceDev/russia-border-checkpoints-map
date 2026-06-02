@@ -21,6 +21,14 @@ for (const id of [
   "radiusSelect",
   "clusterToggle",
   "qualityToggle",
+  "terrainToggle",
+  "viewshedToggle",
+  "corridorsToggle",
+  "flowsToggle",
+  "heatmapToggle",
+  "tilesToggle",
+  "tilesetUrl",
+  "analysisStatus",
   "cameraDock",
   "dataPanel",
   "exportCsv",
@@ -45,13 +53,36 @@ assert(!indexHtml.includes('rel="manifest"'), "Minimal shell should not register
 assert(!indexHtml.includes("map-ui.css"), "Old map UI stylesheet should be removed.");
 assert(styleCss.includes(".data-panel"), "Styles should define the checkpoint register.");
 assert(styleCss.includes(".control-panel__toggles"), "Styles should define tool toggles.");
+assert(styleCss.includes(".analysis-status"), "Styles should define GIS analysis status chips.");
 assert(styleCss.includes("@media (max-width: 760px)"), "Styles should include mobile layout.");
 assert(!styleCss.includes(".panel"), "Old side-panel styles should be removed.");
 assert(appSource.includes("setImageryMode"), "App should wire imagery switching.");
 assert(appSource.includes("qualityToggle"), "App should wire coordinate quality mode.");
 assert(appSource.includes("radiusSelect"), "App should wire radius analysis.");
+assert(appSource.includes("analyzeVisibility"), "App should wire viewshed analysis.");
+assert(appSource.includes("setInfrastructureTiles"), "App should wire 3D Tiles loading.");
 assert(globeSource.includes("World_Imagery"), "Cesium layer should use HD satellite imagery.");
 assert(globeSource.includes("OpenStreetMap"), "Cesium layer should offer an OSM mode.");
+assert(
+  globeSource.includes("createWorldTerrainAsync"),
+  "Cesium layer should request real terrain."
+);
+assert(
+  globeSource.includes("sampleTerrainMostDetailed"),
+  "Cesium layer should sample terrain heights."
+);
+assert(
+  globeSource.includes("Cesium3DTileset.fromUrl"),
+  "Cesium layer should support custom 3D Tiles."
+);
+assert(
+  globeSource.includes("PolylineArrowMaterialProperty"),
+  "Cesium layer should animate flow routes."
+);
+assert(
+  globeSource.includes("HEATMAP_SOURCE_ID"),
+  "Cesium layer should expose heatmap surface data."
+);
 assert(globeSource.includes("setAnalysis"), "Cesium layer should expose analysis overlays.");
 assert(globeSource.includes("setColorMode"), "Cesium layer should expose quality coloring.");
 

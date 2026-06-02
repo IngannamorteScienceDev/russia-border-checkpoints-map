@@ -147,6 +147,13 @@ assert(appSource.includes("__KPP_GLOBE_READY__"), "App should expose a readiness
 assert(appSource.includes("exportFilteredCsv"), "App should include CSV export.");
 assert(appSource.includes("copyShareLink"), "App should include share URL generation.");
 assert(appSource.includes("analysisFor"), "App should include checkpoint analysis.");
+assert(
+  appSource.includes("queueVisibilityAnalysis"),
+  "App should queue selected-checkpoint viewshed analysis."
+);
+assert(appSource.includes("updateAnalyticLayers"), "App should update global GIS overlays.");
+assert(appSource.includes("updateTerrainMode"), "App should wire terrain mode changes.");
+assert(appSource.includes("updateTilesMode"), "App should wire 3D Tiles mode changes.");
 assert(!appSource.includes("localStorage"), "App should not keep old localStorage features.");
 assert(!appSource.includes("navigator.geolocation"), "App should not keep geolocation.");
 
