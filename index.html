@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
+    <div class="ambient-backdrop" aria-hidden="true"></div>
     <div id="loader" class="loader" role="status" aria-live="polite">
       <div class="loader__card">
         <div class="loader__title">&#1050;&#1055;&#1055; &#1056;&#1060;</div>
@@ -34,7 +35,7 @@
 
       <header class="topbar">
         <div class="topbar__title">
-          <span>CesiumJS Globe</span>
+          <span>Border Intelligence</span>
           <h1>
             &#1055;&#1091;&#1085;&#1082;&#1090;&#1099;
             &#1087;&#1088;&#1086;&#1087;&#1091;&#1089;&#1082;&#1072; &#1056;&#1060;
@@ -109,43 +110,15 @@
             <input id="viewshedToggle" type="checkbox" checked />
             <span>Viewshed</span>
           </label>
-          <label class="toggle">
-            <input id="corridorsToggle" type="checkbox" />
-            <span>&#1050;&#1086;&#1088;&#1080;&#1076;&#1086;&#1088;&#1099;</span>
-          </label>
-          <label class="toggle">
-            <input id="flowsToggle" type="checkbox" />
-            <span>&#1055;&#1086;&#1090;&#1086;&#1082;&#1080;</span>
-          </label>
-          <label class="toggle">
-            <input id="heatmapToggle" type="checkbox" />
-            <span>Heatmap</span>
-          </label>
-          <label class="toggle">
-            <input id="tilesToggle" type="checkbox" />
-            <span>3D Tiles</span>
-          </label>
         </div>
-
-        <label class="field field--tileset">
-          <span>3D Tiles URL</span>
-          <input
-            id="tilesetUrl"
-            type="url"
-            autocomplete="off"
-            placeholder="https://.../tileset.json"
-          />
-        </label>
 
         <div class="control-panel__actions">
           <button id="fitFiltered" class="tool-button" type="button">
             &#1055;&#1086;&#1082;&#1072;&#1079;&#1072;&#1090;&#1100;
           </button>
-          <button id="tableToggle" class="tool-button" type="button">
-            &#1056;&#1077;&#1077;&#1089;&#1090;&#1088;
+          <button id="copyShare" class="tool-button" type="button">
+            &#1057;&#1089;&#1099;&#1083;&#1082;&#1072;
           </button>
-          <button id="exportCsv" class="tool-button" type="button">CSV</button>
-          <button id="copyShare" class="tool-button" type="button">Share</button>
           <button id="resetFilters" class="tool-button tool-button--muted" type="button">
             &#1057;&#1073;&#1088;&#1086;&#1089;
           </button>
@@ -154,8 +127,6 @@
         <div id="analysisStatus" class="analysis-status" hidden></div>
         <div id="searchResults" class="search-results" hidden></div>
       </section>
-
-      <section id="dataPanel" class="data-panel" aria-live="polite" hidden></section>
 
       <nav
         id="cameraDock"

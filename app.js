@@ -11,7 +11,6 @@ import {
   createCheckpointLayer,
   createGlobe,
   flyToCameraPreset,
-  setInfrastructureTiles,
   setImageryMode,
   setTerrainEnabled
 } from "./js/cesiumGlobe.js";
@@ -48,24 +47,18 @@ const TEXT = {
   blockedCheckpoints:
     "\u041f\u0435\u0440\u0435\u043a\u0440\u044b\u0442\u043e \u0440\u0435\u043b\u044c\u0435\u0444\u043e\u043c",
   nearest: "\u0411\u043b\u0438\u0436\u0430\u0439\u0448\u0438\u0439 \u041a\u041f\u041f",
-  distance: "\u0420\u0430\u0441\u0441\u0442\u043e\u044f\u043d\u0438\u0435",
   withinRadius: "\u0412 \u0440\u0430\u0434\u0438\u0443\u0441\u0435",
   source:
     "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a",
   notFound:
     "\u041d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e",
-  tableTitle: "\u0420\u0435\u0435\u0441\u0442\u0440 \u041a\u041f\u041f",
-  tableLimit:
-    "\u041f\u043e\u043a\u0430\u0437\u0430\u043d\u044b \u043f\u0435\u0440\u0432\u044b\u0435 80 \u0441\u0442\u0440\u043e\u043a",
   copied:
     "\u0421\u0441\u044b\u043b\u043a\u0430 \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0430",
-  share: "Share",
+  share: "\u0421\u0441\u044b\u043b\u043a\u0430",
   ready: "\u0413\u043e\u0442\u043e\u0432\u043e",
   terrainReady: "\u0420\u0435\u043b\u044c\u0435\u0444",
   terrainFallback: "\u0420\u0435\u043b\u044c\u0435\u0444: fallback",
   viewshedLoading: "\u0421\u0447\u0438\u0442\u0430\u0435\u043c viewshed...",
-  tilesReady: "3D Tiles",
-  tilesFallback: "3D Tiles: fallback",
   loadingGlobe:
     "\u0417\u0430\u043f\u0443\u0441\u043a\u0430\u0435\u043c Cesium-\u0433\u043b\u043e\u0431\u0443\u0441...",
   loadingPoints:
@@ -97,19 +90,11 @@ const dom = {
   qualityToggle: document.getElementById("qualityToggle"),
   terrainToggle: document.getElementById("terrainToggle"),
   viewshedToggle: document.getElementById("viewshedToggle"),
-  corridorsToggle: document.getElementById("corridorsToggle"),
-  flowsToggle: document.getElementById("flowsToggle"),
-  heatmapToggle: document.getElementById("heatmapToggle"),
-  tilesToggle: document.getElementById("tilesToggle"),
-  tilesetUrl: document.getElementById("tilesetUrl"),
   analysisStatus: document.getElementById("analysisStatus"),
   fitFiltered: document.getElementById("fitFiltered"),
-  tableToggle: document.getElementById("tableToggle"),
-  exportCsv: document.getElementById("exportCsv"),
   copyShare: document.getElementById("copyShare"),
   resetFilters: document.getElementById("resetFilters"),
   searchResults: document.getElementById("searchResults"),
-  dataPanel: document.getElementById("dataPanel"),
   cameraDock: document.getElementById("cameraDock")
 };
 
@@ -121,11 +106,9 @@ const state = {
   type: "all",
   status: "all",
   colorMode: "type",
-  panelOpen: false,
   visibilityAnalysis: null,
   visibilityToken: 0,
-  terrainStatus: null,
-  tilesStatus: null
+  terrainStatus: null
 };
 
 let viewer = null;
@@ -373,10 +356,6 @@ function renderAnalysisStatus() {
 
   if (state.visibilityAnalysis?.loading) items.push(TEXT.viewshedLoading);
 
-  if (state.tilesStatus?.mode) {
-    items.push(state.tilesStatus.enabled ? TEXT.tilesReady : TEXT.tilesFallback);
-  }
-
   dom.analysisStatus.hidden = !items.length;
   dom.analysisStatus.innerHTML = items.map((item) => `<span>${escapeHtml(item)}</span>`).join("");
 }
@@ -508,7 +487,7 @@ function renderInspector(feature) {
               : ""
         }
         ${visibility ? detailRow(TEXT.blockedCheckpoints, String(blockedCount)) : ""}
-        ${nearest ? detailRow(TEXT.nearest, `${nearest.feature.properties.__name} · ${formatDistance(nearest.distance)}`) : ""}
+        ${nearest ? detailRow(TEXT.nearest, `${nearest.feature.properties.__name} В· ${formatDistance(nearest.distance)}`) : ""}
         ${detailRow(`${TEXT.withinRadius} ${analysis.radiusKm} \u043a\u043c`, String(analysis.withinRadius))}
       </div>
       ${
@@ -533,7 +512,6 @@ function handleSelection(feature) {
     renderAnalysisStatus();
   }
   renderInspector(feature);
-  renderDataPanel();
 }
 
 function renderResults(features) {
@@ -560,7 +538,7 @@ function renderResults(features) {
       return `
         <button class="search-result" type="button" data-result="${index}">
           <b>${escapeHtml(props.__name)}</b>
-          <span>${escapeHtml([props.__type, props.__country, props.__subject].filter(Boolean).join(" · "))}</span>
+          <span>${escapeHtml([props.__type, props.__country, props.__subject].filter(Boolean).join(" В· "))}</span>
         </button>
       `;
     })
@@ -616,76 +594,6 @@ function matchesFilters(feature) {
   return true;
 }
 
-function renderDataPanel() {
-  dom.dataPanel.hidden = !state.panelOpen;
-  if (!state.panelOpen) {
-    dom.dataPanel.innerHTML = "";
-    return;
-  }
-
-  const rows = state.filteredFeatures.slice(0, 80);
-  const selectedId = state.selectedFeature?.properties.__id;
-
-  dom.dataPanel.innerHTML = `
-    <div class="data-panel__head">
-      <div>
-        <span>${TEXT.tableTitle}</span>
-        <b>${state.filteredFeatures.length}</b>
-      </div>
-      <button class="data-panel__close" type="button">\u00d7</button>
-    </div>
-    <div class="data-panel__hint">${TEXT.tableLimit}</div>
-    <div class="checkpoint-table" role="table">
-      ${rows
-        .map((feature, index) => {
-          const props = feature.properties;
-          const isSelected = selectedId === props.__id;
-
-          return `
-            <button class="checkpoint-row${isSelected ? " checkpoint-row--active" : ""}" type="button" data-row="${index}">
-              <b>${escapeHtml(props.__name)}</b>
-              <span>${escapeHtml(props.__type)}</span>
-              <span>${escapeHtml(props.__country)}</span>
-              <span>${escapeHtml(props.__quality.label)}</span>
-            </button>
-          `;
-        })
-        .join("")}
-    </div>
-  `;
-
-  dom.dataPanel.querySelector(".data-panel__close")?.addEventListener("click", () => {
-    state.panelOpen = false;
-    renderDataPanel();
-  });
-
-  dom.dataPanel.querySelectorAll("[data-row]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const feature = rows[Number(button.dataset.row)];
-      if (feature) checkpointLayer?.selectFeature(feature);
-    });
-  });
-}
-
-function updateAnalyticLayers() {
-  checkpointLayer?.setCorridors({
-    enabled: dom.corridorsToggle.checked,
-    features: state.filteredFeatures
-  });
-  checkpointLayer?.setFlows({
-    enabled: dom.flowsToggle.checked,
-    features: state.filteredFeatures
-  });
-  checkpointLayer?.setHeatmap({
-    enabled: dom.heatmapToggle.checked,
-    features: state.filteredFeatures
-  });
-  checkpointLayer?.setInfrastructure({
-    enabled: dom.tilesToggle.checked,
-    features: state.filteredFeatures
-  });
-}
-
 async function updateTerrainMode() {
   if (!viewer) return;
 
@@ -693,20 +601,6 @@ async function updateTerrainMode() {
   state.visibilityToken += 1;
   state.visibilityAnalysis = null;
   if (state.selectedFeature) renderInspector(state.selectedFeature);
-  renderAnalysisStatus();
-}
-
-async function updateTilesMode() {
-  if (!viewer) return;
-
-  checkpointLayer?.setInfrastructure({
-    enabled: dom.tilesToggle.checked,
-    features: state.filteredFeatures
-  });
-  state.tilesStatus = await setInfrastructureTiles(viewer, {
-    enabled: dom.tilesToggle.checked,
-    url: dom.tilesetUrl.value
-  });
   renderAnalysisStatus();
 }
 
@@ -729,11 +623,9 @@ function applyFilters({ fit = false } = {}) {
 
   const summary = buildDatasetSummary(state.filteredFeatures);
   checkpointLayer?.setVisibleFeatures(state.filteredFeatures);
-  updateAnalyticLayers();
   renderStats(summary, state.features.length);
   renderLegend();
   renderResults(state.filteredFeatures);
-  renderDataPanel();
   if (state.selectedFeature) renderInspector(state.selectedFeature);
 
   if (fit) checkpointLayer?.flyToFeatures(state.filteredFeatures);
@@ -746,11 +638,6 @@ function resetFilters() {
   dom.qualityToggle.checked = false;
   dom.terrainToggle.checked = true;
   dom.viewshedToggle.checked = true;
-  dom.corridorsToggle.checked = false;
-  dom.flowsToggle.checked = false;
-  dom.heatmapToggle.checked = false;
-  dom.tilesToggle.checked = false;
-  dom.tilesetUrl.value = "";
   state.colorMode = "type";
   state.visibilityToken += 1;
   state.visibilityAnalysis = null;
@@ -760,52 +647,6 @@ function resetFilters() {
   applyFilters();
   checkpointLayer?.flyHome();
   updateTerrainMode().catch((error) => console.error(error));
-  updateTilesMode().catch((error) => console.error(error));
-}
-
-function csvCell(value) {
-  return `"${String(value ?? "").replaceAll('"', '""')}"`;
-}
-
-function exportFilteredCsv() {
-  const rows = [
-    [
-      "id",
-      "name",
-      "type",
-      "status",
-      "country",
-      "subject",
-      "latitude",
-      "longitude",
-      "quality",
-      "source"
-    ],
-    ...state.filteredFeatures.map((feature) => {
-      const props = feature.properties;
-      const [longitude, latitude] = feature.geometry.coordinates;
-      return [
-        props.__id,
-        props.__name,
-        props.__type,
-        props.__status,
-        props.__country,
-        props.__subject,
-        latitude,
-        longitude,
-        props.__quality.label,
-        props.__source
-      ];
-    })
-  ];
-  const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
-  const blob = new Blob([String.fromCharCode(0xfeff), csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "checkpoints.csv";
-  link.click();
-  URL.revokeObjectURL(url);
 }
 
 function shareUrl() {
@@ -821,19 +662,11 @@ function shareUrl() {
   else url.searchParams.delete("terrain");
   if (!dom.viewshedToggle.checked) url.searchParams.set("viewshed", "0");
   else url.searchParams.delete("viewshed");
-  if (dom.corridorsToggle.checked) url.searchParams.set("corridors", "1");
-  else url.searchParams.delete("corridors");
-  if (dom.flowsToggle.checked) url.searchParams.set("flows", "1");
-  else url.searchParams.delete("flows");
-  if (dom.heatmapToggle.checked) url.searchParams.set("heatmap", "1");
-  else url.searchParams.delete("heatmap");
-  if (dom.tilesToggle.checked) url.searchParams.set("tiles", "1");
-  else url.searchParams.delete("tiles");
-  if (dom.tilesetUrl.value.trim()) url.searchParams.set("tileset", dom.tilesetUrl.value.trim());
-  else url.searchParams.delete("tileset");
-  if (state.selectedFeature)
+  if (state.selectedFeature) {
     url.searchParams.set("checkpoint", state.selectedFeature.properties.__id);
-  else url.searchParams.delete("checkpoint");
+  } else {
+    url.searchParams.delete("checkpoint");
+  }
 
   for (const key of [...url.searchParams.keys()]) {
     if (["", "all", DEFAULT_IMAGERY_MODE, "100"].includes(url.searchParams.get(key))) {
@@ -871,11 +704,6 @@ function readUrlState() {
     quality: params.get("quality") === "1",
     terrain: params.get("terrain") !== "0",
     viewshed: params.get("viewshed") !== "0",
-    corridors: params.get("corridors") === "1",
-    flows: params.get("flows") === "1",
-    heatmap: params.get("heatmap") === "1",
-    tiles: params.get("tiles") === "1",
-    tileset: params.get("tileset") || "",
     checkpoint: params.get("checkpoint") || ""
   };
 }
@@ -899,17 +727,11 @@ function applyUrlState() {
   dom.qualityToggle.checked = urlState.quality;
   dom.terrainToggle.checked = urlState.terrain;
   dom.viewshedToggle.checked = urlState.viewshed;
-  dom.corridorsToggle.checked = urlState.corridors;
-  dom.flowsToggle.checked = urlState.flows;
-  dom.heatmapToggle.checked = urlState.heatmap;
-  dom.tilesToggle.checked = urlState.tiles;
-  dom.tilesetUrl.value = urlState.tileset;
   state.colorMode = urlState.quality ? "quality" : "type";
   checkpointLayer?.setColorMode(state.colorMode);
 
   applyFilters();
   updateTerrainMode().catch((error) => console.error(error));
-  updateTilesMode().catch((error) => console.error(error));
 
   const selected = state.features.find(
     (feature) => feature.properties.__id === urlState.checkpoint
@@ -943,11 +765,6 @@ function bindControls() {
   dom.fitFiltered.addEventListener("click", () =>
     checkpointLayer?.flyToFeatures(state.filteredFeatures)
   );
-  dom.tableToggle.addEventListener("click", () => {
-    state.panelOpen = !state.panelOpen;
-    renderDataPanel();
-  });
-  dom.exportCsv.addEventListener("click", exportFilteredCsv);
   dom.copyShare.addEventListener("click", () => {
     copyShareLink().catch((error) => console.error(error));
   });
@@ -969,16 +786,6 @@ function bindControls() {
     if (state.selectedFeature) renderInspector(state.selectedFeature);
     renderAnalysisStatus();
   });
-  dom.corridorsToggle.addEventListener("change", updateAnalyticLayers);
-  dom.flowsToggle.addEventListener("change", updateAnalyticLayers);
-  dom.heatmapToggle.addEventListener("change", updateAnalyticLayers);
-  dom.tilesToggle.addEventListener("change", () => {
-    updateTilesMode().catch((error) => console.error(error));
-  });
-  dom.tilesetUrl.addEventListener("change", () => {
-    if (!dom.tilesToggle.checked) return;
-    updateTilesMode().catch((error) => console.error(error));
-  });
 }
 
 async function init() {
@@ -991,13 +798,15 @@ async function init() {
 
     setProgress(15, TEXT.loadingGlobe);
     viewer = createGlobe({ container: dom.map });
-    viewer.kppTerrainPromise?.then((status) => {
-      state.terrainStatus = status;
-      state.visibilityToken += 1;
-      state.visibilityAnalysis = null;
-      if (state.selectedFeature) renderInspector(state.selectedFeature);
-      renderAnalysisStatus();
-    });
+    viewer.kppTerrainPromise
+      ?.then((status) => {
+        state.terrainStatus = status;
+        state.visibilityToken += 1;
+        state.visibilityAnalysis = null;
+        if (state.selectedFeature) renderInspector(state.selectedFeature);
+        renderAnalysisStatus();
+      })
+      .catch((error) => console.error(error));
 
     setProgress(45, TEXT.loadingPoints);
     state.features = await loadCheckpoints({ onProgress: setProgress });
@@ -1015,20 +824,21 @@ async function init() {
     bindControls();
     applyUrlState();
     setProgress(100, TEXT.ready);
-
-    globalThis.__KPP_GLOBE_READY__?.({
-      viewer,
-      features: state.features,
-      checkpointLayer,
-      applyFilters,
-      exportFilteredCsv,
-      copyShareLink,
-      updateAnalyticLayers,
-      updateTerrainMode,
-      updateTilesMode,
-      state
-    });
     hideLoader();
+
+    try {
+      globalThis.__KPP_GLOBE_READY__?.({
+        viewer,
+        features: state.features,
+        checkpointLayer,
+        applyFilters,
+        copyShareLink,
+        updateTerrainMode,
+        state
+      });
+    } catch (error) {
+      console.error(error);
+    }
   } catch (error) {
     console.error(error);
     showFallback(String(error?.message || error));
