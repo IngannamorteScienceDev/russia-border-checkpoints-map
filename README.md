@@ -7,7 +7,7 @@
 
 CesiumJS application for exploring Russian Federation border checkpoints on a 3D globe.
 
-The frontend is intentionally limited to features backed by real data or Cesium terrain sampling: search, filters, camera presets, clustering, terrain-aware checkpoint analysis, visibility checks, and shareable map state.
+The frontend is intentionally limited to features backed by real data or Cesium services: search, filters, camera presets, clustering, terrain-aware checkpoint analysis, visibility checks, OSM buildings, and shareable map state.
 
 ## Current Frontend
 
@@ -23,12 +23,13 @@ The frontend is intentionally limited to features backed by real data or Cesium 
 - Camera presets for overview, west, south, Siberia, and Far East.
 - Coordinate-quality visualization mode.
 - Cesium World Terrain with ellipsoid fallback and terrain-clamped checkpoint markers.
-- Selected-checkpoint radius overlay, terrain-sampled viewshed spokes, and line-of-sight links to nearby checkpoints.
+- Curvature-aware, terrain-sampled viewshed surface and line-of-sight links to nearby checkpoints.
 - Terrain metrics in the inspector: selected height, local relief, nearest-checkpoint height delta, visible and blocked neighbors.
+- Optional Cesium OSM Buildings layer loaded from the real 3D Tiles service.
 - Camera-aware clustering: aggregate clusters from orbit, real points closer in, labels at close zoom.
 - Inspector with quality, radius, nearest checkpoint, terrain analysis, and source data.
 - Share URL generation for filters, imagery mode, radius, and selected checkpoint.
-- Responsive glass-style desktop/mobile UI.
+- Mobile-first bottom sheets for filters, regions, legend, and checkpoint details.
 
 ## Local Run
 
@@ -60,6 +61,8 @@ Full pipeline:
 python scripts/run_pipeline.py
 ```
 
+The pipeline normalizes source records through a temporary JSON file. It no longer creates or consumes CSV files.
+
 ## Checks
 
 ```bash
@@ -73,7 +76,7 @@ python -m unittest discover -s tests -v
 
 The raw GeoJSON still preserves upstream text exactly. The frontend repairs mojibake at load time so the user interface stays readable without breaking dataset hashes and pipeline validation.
 
-Real terrain depends on the external Cesium World Terrain endpoint and browser network access. If it is unavailable, the app keeps running on ellipsoid terrain and marks terrain-dependent analysis as degraded.
+Real terrain and OSM buildings depend on Cesium ion and browser network access. A deployment can set `window.CESIUM_ION_TOKEN` before loading CesiumJS. If terrain is unavailable, the app keeps running on ellipsoid terrain and marks terrain-dependent analysis as degraded.
 
 ## License
 

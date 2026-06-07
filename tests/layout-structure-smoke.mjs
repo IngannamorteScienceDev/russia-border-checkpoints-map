@@ -8,6 +8,18 @@ const indexHtml = await readFile(new URL("../index.html", import.meta.url), "utf
 const styleCss = await readFile(new URL("../style.css", import.meta.url), "utf-8");
 const appSource = await readFile(new URL("../app.js", import.meta.url), "utf-8");
 const globeSource = await readFile(new URL("../js/cesiumGlobe.js", import.meta.url), "utf-8");
+const normalizeSource = await readFile(
+  new URL("../scripts/01_parse_rosgranstroy.py", import.meta.url),
+  "utf-8"
+);
+const geojsonBuildSource = await readFile(
+  new URL("../scripts/02_build_geojson.py", import.meta.url),
+  "utf-8"
+);
+const pipelineSource = await readFile(
+  new URL("../scripts/run_pipeline.py", import.meta.url),
+  "utf-8"
+);
 
 for (const id of [
   "map",
@@ -23,8 +35,15 @@ for (const id of [
   "qualityToggle",
   "terrainToggle",
   "viewshedToggle",
+  "buildingsToggle",
   "analysisStatus",
   "cameraDock",
+  "closeControls",
+  "mobileBackdrop",
+  "mobileToolbar",
+  "mobileFilters",
+  "mobileRegions",
+  "mobileLegend",
   "fitFiltered",
   "resetFilters",
   "copyShare"
@@ -61,6 +80,12 @@ assert(!indexHtml.includes("map-ui.css"), "Old map UI stylesheet should be remov
 assert(styleCss.includes(".ambient-backdrop"), "Styles should define the modern backdrop.");
 assert(styleCss.includes(".control-panel__toggles"), "Styles should define tool toggles.");
 assert(styleCss.includes(".analysis-status"), "Styles should define GIS analysis status chips.");
+assert(styleCss.includes(".mobile-toolbar"), "Styles should define mobile navigation.");
+assert(styleCss.includes(".mobile-backdrop"), "Styles should define mobile sheet backdrop.");
+assert(
+  styleCss.includes(".mobile-sheet--controls .control-panel"),
+  "Styles should expose filters as a mobile sheet."
+);
 assert(
   styleCss.includes(".globe-shell--inspecting .control-panel"),
   "Styles should prevent the inspector and controls from overlapping."
@@ -75,6 +100,8 @@ assert(appSource.includes("qualityToggle"), "App should wire coordinate quality 
 assert(appSource.includes("radiusSelect"), "App should wire radius analysis.");
 assert(appSource.includes("analyzeVisibility"), "App should wire viewshed analysis.");
 assert(appSource.includes("updateTerrainMode"), "App should wire terrain mode changes.");
+assert(appSource.includes("updateBuildingsMode"), "App should wire real 3D buildings.");
+assert(appSource.includes("setMobilePanel"), "App should wire mobile sheets.");
 assert(!appSource.includes("setInfrastructureTiles"), "App should not keep decorative 3D Tiles.");
 assert(!appSource.includes("exportFilteredCsv"), "App should not keep CSV export.");
 assert(!appSource.includes("updateAnalyticLayers"), "App should not keep decorative overlays.");
@@ -88,6 +115,15 @@ assert(
 assert(
   globeSource.includes("sampleTerrainMostDetailed"),
   "Cesium layer should sample terrain heights."
+);
+assert(
+  globeSource.includes("createOsmBuildingsAsync"),
+  "Cesium layer should load real OSM buildings."
+);
+assert(globeSource.includes("curvatureDropMeters"), "Viewshed should account for Earth curvature.");
+assert(
+  globeSource.includes("viewshed-surface"),
+  "Cesium layer should render a terrain viewshed surface."
 );
 assert(globeSource.includes("setAnalysis"), "Cesium layer should expose analysis overlays.");
 assert(globeSource.includes("setColorMode"), "Cesium layer should expose quality coloring.");
@@ -108,5 +144,9 @@ for (const removedCesiumFeature of [
 await access(new URL("../js/checkpoints.js", import.meta.url));
 await access(new URL("../js/cesiumGlobe.js", import.meta.url));
 await access(new URL("../data/checkpoints.geojson", import.meta.url));
+for (const source of [normalizeSource, geojsonBuildSource, pipelineSource]) {
+  assert(!source.toLowerCase().includes(".csv"), "Data pipeline should not use CSV files.");
+  assert(!source.includes("import csv"), "Data pipeline should not import the CSV module.");
+}
 
 console.log("layout structure smoke test passed");

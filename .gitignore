@@ -2,5 +2,6 @@
 node_modules/
 __pycache__/
 *.pyc
+data/.checkpoints_normalized.json
 .tmp-chrome-*/
 *-smoke*.png

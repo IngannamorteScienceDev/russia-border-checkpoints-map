@@ -151,6 +151,8 @@ assert(
   "App should queue selected-checkpoint viewshed analysis."
 );
 assert(appSource.includes("updateTerrainMode"), "App should wire terrain mode changes.");
+assert(appSource.includes("updateBuildingsMode"), "App should wire OSM buildings.");
+assert(appSource.includes("setMobilePanel"), "App should include mobile sheet navigation.");
 assert(!appSource.includes("exportFilteredCsv"), "App should not keep CSV export.");
 assert(!appSource.includes("updateAnalyticLayers"), "App should not keep decorative GIS overlays.");
 assert(!appSource.includes("updateTilesMode"), "App should not keep 3D Tiles controls.");

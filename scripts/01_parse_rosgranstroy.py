@@ -1,5 +1,4 @@
 import json
-import csv
 from pathlib import Path
 
 from pipeline_validation import (
@@ -11,9 +10,9 @@ from pipeline_validation import (
 )
 
 INPUT_FILE = Path("raw_data/rosgranstroy_map_data.json")
-OUTPUT_FILE = Path("data/checkpoints_v1.csv")
+OUTPUT_FILE = Path("data/.checkpoints_normalized.json")
 
-CSV_COLUMNS = [
+ROW_FIELDS = [
     "checkpoint_id",
     "checkpoint_name",
     "checkpoint_slug",
@@ -54,6 +53,13 @@ def safe_get(obj, *keys):
             return ""
         obj = obj.get(key)
     return obj if obj is not None else ""
+
+
+def serialize_field(value):
+    if value is None:
+        return ""
+
+    return str(value).replace("\r\n", "\n").replace("\r", "\n")
 
 
 def main():
@@ -134,14 +140,21 @@ def main():
 
     validate_rows(rows)
 
+    normalized_rows = [
+        {
+            field_name: serialize_field(row.get(field_name, ""))
+            for field_name in ROW_FIELDS
+        }
+        for row in rows
+    ]
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with OUTPUT_FILE.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS)
-        writer.writeheader()
-        writer.writerows(rows)
+    OUTPUT_FILE.write_text(
+        json.dumps(normalized_rows, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
     print("Validation passed for rows:", len(rows))
-    print("\nCSV created successfully.")
+    print("\nNormalized JSON created successfully.")
     print("Output file:", OUTPUT_FILE.resolve())
     print("Checkpoint rows:", len(rows))
     print("=== STEP 2 completed ===\n")

@@ -99,6 +99,19 @@ def make_geojson(features):
 
 
 class PipelineValidationTests(unittest.TestCase):
+    def test_pipeline_uses_structured_json_without_csv_stage(self):
+        sources = [
+            (ROOT / "scripts/01_parse_rosgranstroy.py").read_text(encoding="utf-8"),
+            (ROOT / "scripts/02_build_geojson.py").read_text(encoding="utf-8"),
+            (ROOT / "scripts/run_pipeline.py").read_text(encoding="utf-8"),
+        ]
+
+        for source in sources:
+            self.assertNotIn(".csv", source.lower())
+            self.assertNotIn("import csv", source)
+
+        self.assertFalse((ROOT / "data/checkpoints_v1.csv").exists())
+
     def test_validate_raw_payload_returns_data_object(self):
         data = validate_raw_payload({
             "data": {

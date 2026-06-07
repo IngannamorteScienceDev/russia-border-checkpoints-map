@@ -1,4 +1,3 @@
-import csv
 import json
 from pathlib import Path
 
@@ -10,17 +9,20 @@ from pipeline_validation import (
     validate_rows,
 )
 
-INPUT_FILE = Path("data/checkpoints_v1.csv")
+INPUT_FILE = Path("data/.checkpoints_normalized.json")
 OUTPUT_FILE = Path("data/checkpoints.geojson")
 FRONTEND_OUTPUT_FILE = Path("frontend/data/checkpoints.geojson")
 
 
 def main():
     print("=== STEP 3. Build final GeoJSON ===")
-    print("CSV source:", INPUT_FILE.resolve())
+    print("Normalized JSON source:", INPUT_FILE.resolve())
 
-    rows = list(csv.DictReader(INPUT_FILE.open(encoding="utf-8")))
-    print("Rows in CSV:", len(rows))
+    rows = json.loads(INPUT_FILE.read_text(encoding="utf-8"))
+    if not isinstance(rows, list):
+        raise ValidationError("Normalized checkpoint input must be a JSON list.")
+
+    print("Rows in normalized JSON:", len(rows))
     validate_rows(rows)
 
     features = []
@@ -53,7 +55,7 @@ def main():
 
     for output_file in (OUTPUT_FILE, FRONTEND_OUTPUT_FILE):
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        output_file.write_text(serialized_geojson, encoding="utf-8")
+        output_file.write_text(serialized_geojson, encoding="utf-8", newline="\n")
 
     print("Final file:", OUTPUT_FILE.resolve())
     print("Frontend copy:", FRONTEND_OUTPUT_FILE.resolve())

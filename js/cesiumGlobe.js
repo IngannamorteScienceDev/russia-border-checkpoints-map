@@ -3,6 +3,7 @@ import { DEFAULT_CAMERA, DEFAULT_IMAGERY_MODE, QUALITY_LEVELS, TYPE_COLORS } fro
 const CHECKPOINT_SOURCE_ID = "checkpoints";
 const ANALYSIS_SOURCE_ID = "checkpoint-analysis";
 const EARTH_RADIUS_METERS = 6371008.8;
+const ATMOSPHERIC_REFRACTION_COEFFICIENT = 0.13;
 const LABEL_NEAR_DISTANCE = 520000;
 const LABEL_SELECTED_DISTANCE = 1400000;
 
@@ -130,6 +131,12 @@ function cartographicsBetween(Cesium, startCoordinates, endCoordinates, sampleCo
   return positions;
 }
 
+function geodesicDistanceMeters(Cesium, startCoordinates, endCoordinates) {
+  const start = Cesium.Cartographic.fromDegrees(startCoordinates[0], startCoordinates[1], 0);
+  const end = Cesium.Cartographic.fromDegrees(endCoordinates[0], endCoordinates[1], 0);
+  return new Cesium.EllipsoidGeodesic(start, end).surfaceDistance;
+}
+
 function destinationCartographic(Cesium, origin, bearingRadians, distanceMeters) {
   const angularDistance = distanceMeters / EARTH_RADIUS_METERS;
   const latitude = origin.latitude;
@@ -152,12 +159,27 @@ function destinationCartographic(Cesium, origin, bearingRadians, distanceMeters)
   return new Cesium.Cartographic(destinationLongitude, destinationLatitude, 0);
 }
 
-function analyzeSampledLine(samples, { observerHeightMeters, targetHeightMeters }) {
+function curvatureDropMeters(distanceMeters) {
+  return (
+    ((distanceMeters * distanceMeters) / (2 * EARTH_RADIUS_METERS)) *
+    (1 - ATMOSPHERIC_REFRACTION_COEFFICIENT)
+  );
+}
+
+function sampledTerrainSlope(terrainHeight, originTerrain, observerHeightMeters, distanceMeters) {
+  if (distanceMeters <= 0) return Number.NEGATIVE_INFINITY;
+
+  return (
+    (terrainHeight - originTerrain - observerHeightMeters - curvatureDropMeters(distanceMeters)) /
+    distanceMeters
+  );
+}
+
+function analyzeSampledLine(samples, { observerHeightMeters, targetHeightMeters, distanceMeters }) {
   const originTerrain = samples[0]?.height || 0;
   const targetTerrain = samples.at(-1)?.height || 0;
-  const observerHeight = originTerrain + observerHeightMeters;
-  const targetHeight = targetTerrain + targetHeightMeters;
-  let minimumClearance = Number.POSITIVE_INFINITY;
+  const totalDistance = Math.max(1, Number(distanceMeters) || 1);
+  let maximumTerrainSlope = Number.NEGATIVE_INFINITY;
   let highestTerrain = Number.NEGATIVE_INFINITY;
   let lowestTerrain = Number.POSITIVE_INFINITY;
 
@@ -170,17 +192,74 @@ function analyzeSampledLine(samples, { observerHeightMeters, targetHeightMeters 
     if (index === 0 || index === samples.length - 1) continue;
 
     const fraction = index / (samples.length - 1);
-    const lineHeight = observerHeight + (targetHeight - observerHeight) * fraction;
-    minimumClearance = Math.min(minimumClearance, lineHeight - terrainHeight);
+    const sampleDistance = totalDistance * fraction;
+    maximumTerrainSlope = Math.max(
+      maximumTerrainSlope,
+      sampledTerrainSlope(terrainHeight, originTerrain, observerHeightMeters, sampleDistance)
+    );
   }
 
-  if (!Number.isFinite(minimumClearance)) minimumClearance = targetHeight - originTerrain;
+  const targetSlope =
+    (targetTerrain +
+      targetHeightMeters -
+      originTerrain -
+      observerHeightMeters -
+      curvatureDropMeters(totalDistance)) /
+    totalDistance;
+  const clearanceMeters = Number.isFinite(maximumTerrainSlope)
+    ? (targetSlope - maximumTerrainSlope) * totalDistance
+    : targetTerrain + targetHeightMeters - originTerrain - observerHeightMeters;
 
   return {
-    visible: minimumClearance >= 0,
-    clearanceMeters: minimumClearance,
+    visible: clearanceMeters >= -0.5,
+    clearanceMeters,
     originHeightMeters: originTerrain,
     targetHeightMeters: targetTerrain,
+    reliefMeters: Math.max(0, highestTerrain - lowestTerrain)
+  };
+}
+
+function analyzeViewshedRay(samples, { observerHeightMeters, targetHeightMeters, distanceMeters }) {
+  const originTerrain = samples[0]?.height || 0;
+  const totalDistance = Math.max(1, Number(distanceMeters) || 1);
+  let maximumTerrainSlope = Number.NEGATIVE_INFINITY;
+  let firstBlockedIndex = null;
+  let highestTerrain = Number.NEGATIVE_INFINITY;
+  let lowestTerrain = Number.POSITIVE_INFINITY;
+
+  for (let index = 0; index < samples.length; index += 1) {
+    const terrainHeight = Number.isFinite(samples[index]?.height) ? samples[index].height : 0;
+    highestTerrain = Math.max(highestTerrain, terrainHeight);
+    lowestTerrain = Math.min(lowestTerrain, terrainHeight);
+    if (index === 0) continue;
+
+    const fraction = index / (samples.length - 1);
+    const sampleDistance = totalDistance * fraction;
+    const targetSlope =
+      (terrainHeight +
+        targetHeightMeters -
+        originTerrain -
+        observerHeightMeters -
+        curvatureDropMeters(sampleDistance)) /
+      sampleDistance;
+    const visible = targetSlope >= maximumTerrainSlope - 0.00001;
+
+    if (!visible && firstBlockedIndex === null) firstBlockedIndex = index;
+    maximumTerrainSlope = Math.max(
+      maximumTerrainSlope,
+      sampledTerrainSlope(terrainHeight, originTerrain, observerHeightMeters, sampleDistance)
+    );
+  }
+
+  const visibleIndex =
+    firstBlockedIndex === null ? samples.length - 1 : Math.max(1, firstBlockedIndex - 1);
+  const visibleSample = samples[visibleIndex];
+
+  return {
+    visible: firstBlockedIndex === null,
+    visibleSample,
+    visibleDistanceMeters: totalDistance * (visibleIndex / (samples.length - 1)),
+    originHeightMeters: originTerrain,
     reliefMeters: Math.max(0, highestTerrain - lowestTerrain)
   };
 }
@@ -295,16 +374,74 @@ export async function setTerrainEnabled(viewer, enabled) {
   return viewer.kppTerrainStatus;
 }
 
+export async function setBuildingsEnabled(viewer, enabled) {
+  const Cesium = globalThis.Cesium;
+  viewer.kppBuildingsRequested = Boolean(enabled);
+
+  if (!enabled) {
+    if (viewer.kppBuildingsTileset) viewer.kppBuildingsTileset.show = false;
+    viewer.kppBuildingsStatus = {
+      enabled: false,
+      mode: "off",
+      message: "3D buildings disabled"
+    };
+    viewer.scene.requestRender();
+    return viewer.kppBuildingsStatus;
+  }
+
+  try {
+    if (!Cesium.createOsmBuildingsAsync) {
+      throw new Error("Cesium OSM Buildings API missing.");
+    }
+
+    if (!viewer.kppBuildingsTileset) {
+      viewer.kppBuildingsPromise ||= Cesium.createOsmBuildingsAsync({
+        defaultColor: Cesium.Color.fromCssColorString("#dce8f5"),
+        enableShowOutline: false,
+        showOutline: false,
+        maximumScreenSpaceError: 24,
+        dynamicScreenSpaceError: true
+      });
+      viewer.kppBuildingsTileset = await viewer.kppBuildingsPromise;
+      viewer.scene.primitives.add(viewer.kppBuildingsTileset);
+    }
+
+    if (!viewer.kppBuildingsRequested) {
+      return setBuildingsEnabled(viewer, false);
+    }
+
+    viewer.kppBuildingsTileset.show = true;
+    viewer.kppBuildingsStatus = {
+      enabled: true,
+      mode: "osm",
+      message: "Cesium OSM Buildings"
+    };
+  } catch (error) {
+    console.warn("OSM buildings unavailable", error);
+    viewer.kppBuildingsPromise = null;
+    if (viewer.kppBuildingsTileset) viewer.kppBuildingsTileset.show = false;
+    viewer.kppBuildingsStatus = {
+      enabled: false,
+      mode: "unavailable",
+      message: String(error?.message || error)
+    };
+  }
+
+  viewer.scene.requestRender();
+  return viewer.kppBuildingsStatus;
+}
+
 export async function analyzeVisibility(
   viewer,
   originFeature,
   targetFeatures,
   {
     radiusKm = 100,
-    rayCount = 24,
-    sampleCount = 14,
+    rayCount = 48,
+    sampleCount = 32,
     observerHeightMeters = 8,
-    targetHeightMeters = 4
+    targetHeightMeters = 4,
+    surfaceHeightMeters = 1.7
   } = {}
 ) {
   const Cesium = globalThis.Cesium;
@@ -336,7 +473,8 @@ export async function analyzeVisibility(
       startIndex,
       length: sampleCount + 1,
       feature: targetFeature,
-      coordinates: targetCoordinates
+      coordinates: targetCoordinates,
+      distanceMeters: geodesicDistanceMeters(Cesium, originCoordinates, targetCoordinates)
     });
   }
 
@@ -351,7 +489,8 @@ export async function analyzeVisibility(
       kind: "ray",
       startIndex,
       length: sampleCount + 1,
-      coordinates: endCoordinates
+      coordinates: endCoordinates,
+      distanceMeters: radiusMeters
     });
   }
 
@@ -367,10 +506,18 @@ export async function analyzeVisibility(
       descriptor.startIndex,
       descriptor.startIndex + descriptor.length
     );
-    const line = analyzeSampledLine(lineSamples, {
-      observerHeightMeters,
-      targetHeightMeters
-    });
+    const line =
+      descriptor.kind === "target"
+        ? analyzeSampledLine(lineSamples, {
+            observerHeightMeters,
+            targetHeightMeters,
+            distanceMeters: descriptor.distanceMeters
+          })
+        : analyzeViewshedRay(lineSamples, {
+            observerHeightMeters,
+            targetHeightMeters: surfaceHeightMeters,
+            distanceMeters: descriptor.distanceMeters
+          });
     originHeightMeters = line.originHeightMeters;
     reliefMeters = Math.max(reliefMeters, line.reliefMeters);
 
@@ -384,9 +531,13 @@ export async function analyzeVisibility(
         coordinates: descriptor.coordinates
       });
     } else {
+      const visibleCoordinates = line.visibleSample
+        ? [degrees(line.visibleSample.longitude), degrees(line.visibleSample.latitude)]
+        : originCoordinates;
       rays.push({
         visible: line.visible,
-        clearanceMeters: line.clearanceMeters,
+        visibleCoordinates,
+        visibleDistanceMeters: line.visibleDistanceMeters,
         reliefMeters: line.reliefMeters,
         coordinates: descriptor.coordinates
       });
@@ -399,12 +550,18 @@ export async function analyzeVisibility(
     targets,
     rays,
     originHeightMeters,
-    reliefMeters
+    reliefMeters,
+    method: "terrain-horizon",
+    rayCount,
+    sampleCount
   };
 }
 
 export function createGlobe({ container }) {
   const Cesium = globalThis.Cesium;
+  const configuredIonToken = String(globalThis.CESIUM_ION_TOKEN || "").trim();
+  if (configuredIonToken) Cesium.Ion.defaultAccessToken = configuredIonToken;
+
   const ellipsoidTerrainProvider = new Cesium.EllipsoidTerrainProvider();
   const viewer = new Cesium.Viewer(container, {
     animation: false,
@@ -434,11 +591,17 @@ export function createGlobe({ container }) {
     mode: "ellipsoid",
     message: "Ellipsoid terrain"
   };
-  viewer.resolutionScale = Math.min(globalThis.devicePixelRatio || 1, 2);
+  viewer.kppBuildingsStatus = {
+    enabled: false,
+    mode: "off",
+    message: "3D buildings disabled"
+  };
+  const mobileLayout = globalThis.matchMedia?.("(max-width: 760px)").matches ?? false;
+  viewer.resolutionScale = Math.min(globalThis.devicePixelRatio || 1, mobileLayout ? 1.35 : 2);
   viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString("#111827");
   viewer.scene.globe.enableLighting = false;
   viewer.scene.globe.depthTestAgainstTerrain = false;
-  viewer.scene.globe.maximumScreenSpaceError = 1.5;
+  viewer.scene.globe.maximumScreenSpaceError = mobileLayout ? 2.4 : 1.5;
   viewer.scene.highDynamicRange = false;
   viewer.scene.skyAtmosphere.show = true;
   viewer.scene.moon.show = false;
@@ -597,6 +760,39 @@ export function createCheckpointLayer({ viewer, features, onSelect }) {
     });
   }
 
+  function addViewshedSurface(source, originCoordinates, rays) {
+    const boundary = rays
+      .map((ray) => ray.visibleCoordinates)
+      .filter((coordinates) => Array.isArray(coordinates));
+    if (boundary.length < 3) return;
+
+    source.entities.add({
+      id: "viewshed-surface",
+      polygon: {
+        hierarchy: Cesium.Cartesian3.fromDegreesArray(boundary.flat()),
+        material: Cesium.Color.fromCssColorString("#6ee7b7").withAlpha(0.16),
+        outline: true,
+        outlineColor: Cesium.Color.fromCssColorString("#6ee7b7").withAlpha(0.7),
+        arcType: Cesium.ArcType.GEODESIC,
+        height: 0,
+        heightReference: groundHeightReference(Cesium)
+      }
+    });
+
+    source.entities.add({
+      id: "viewshed-origin",
+      position: Cesium.Cartesian3.fromDegrees(originCoordinates[0], originCoordinates[1]),
+      point: {
+        pixelSize: 9,
+        color: Cesium.Color.fromCssColorString("#6ee7b7"),
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 2,
+        heightReference: groundHeightReference(Cesium),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY
+      }
+    });
+  }
+
   function setAnalysis({ feature, nearestFeature, radiusKm, visibility }) {
     clearAnalysis();
     if (!feature) return;
@@ -629,13 +825,36 @@ export function createCheckpointLayer({ viewer, features, onSelect }) {
     }
 
     if (visibility?.rays?.length) {
+      addViewshedSurface(analysisSource, coordinates, visibility.rays);
+
       visibility.rays.forEach((ray, index) => {
-        addSurfaceLine(analysisSource, `viewshed-ray-${index}`, coordinates, ray.coordinates, {
-          color: ray.visible ? "#6ee7b7" : "#fb7185",
-          alpha: ray.visible ? 0.72 : 0.5,
-          dashed: !ray.visible,
-          width: 2
-        });
+        const visibleCoordinates = ray.visibleCoordinates || ray.coordinates;
+        addSurfaceLine(
+          analysisSource,
+          `viewshed-visible-${index}`,
+          coordinates,
+          visibleCoordinates,
+          {
+            color: "#6ee7b7",
+            alpha: 0.58,
+            width: 2
+          }
+        );
+
+        if (!ray.visible) {
+          addSurfaceLine(
+            analysisSource,
+            `viewshed-blocked-${index}`,
+            visibleCoordinates,
+            ray.coordinates,
+            {
+              color: "#fb7185",
+              alpha: 0.5,
+              dashed: true,
+              width: 2
+            }
+          );
+        }
       });
     }
 

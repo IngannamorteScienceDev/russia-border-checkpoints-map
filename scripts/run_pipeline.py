@@ -4,16 +4,17 @@ from datetime import datetime
 from pathlib import Path
 
 GENERATED_FILES = [
-    Path("data/checkpoints_v1.csv"),
+    Path("data/.checkpoints_normalized.json"),
     Path("data/checkpoints.geojson"),
     Path("data/data_quality_report.json"),
     Path("data/research_coverage_report.json"),
     Path("frontend/data/checkpoints.geojson"),
 ]
+INTERMEDIATE_FILES = [Path("data/.checkpoints_normalized.json")]
 
 PIPELINE_STEPS = [
     ("STEP 1. Fetch Rosgranstroy data", ["python", "scripts/00_fetch_rosgranstroy.py"]),
-    ("STEP 2. Normalize data to CSV", ["python", "scripts/01_parse_rosgranstroy.py"]),
+    ("STEP 2. Normalize data to JSON", ["python", "scripts/01_parse_rosgranstroy.py"]),
     ("STEP 3. Build final GeoJSON", ["python", "scripts/02_build_geojson.py"]),
     ("STEP 4. Update dataset changelog", ["python", "scripts/03_update_changelog.py"]),
     ("STEP 5. Write data quality report", ["python", "scripts/04_write_quality_report.py"]),
@@ -57,6 +58,13 @@ def run_step(title, command):
     print(f"{title} completed successfully.\n")
 
 
+def remove_intermediate_files():
+    for file in INTERMEDIATE_FILES:
+        if file.exists():
+            file.unlink()
+            print(f"Removed intermediate file: {file}")
+
+
 def main():
     start_time = datetime.now()
 
@@ -68,6 +76,8 @@ def main():
 
     for title, command in PIPELINE_STEPS:
         run_step(title, command)
+
+    remove_intermediate_files()
 
     end_time = datetime.now()
     duration = end_time - start_time

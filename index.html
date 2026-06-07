@@ -53,6 +53,24 @@
         class="control-panel"
         aria-label="&#1048;&#1085;&#1089;&#1090;&#1088;&#1091;&#1084;&#1077;&#1085;&#1090;&#1099; &#1050;&#1055;&#1055;"
       >
+        <div class="sheet-header">
+          <div>
+            <span class="sheet-header__eyebrow">Map tools</span>
+            <b
+              >&#1060;&#1080;&#1083;&#1100;&#1090;&#1088;&#1099; &#1080;
+              &#1089;&#1083;&#1086;&#1080;</b
+            >
+          </div>
+          <button
+            id="closeControls"
+            class="sheet-header__close"
+            type="button"
+            aria-label="&#1047;&#1072;&#1082;&#1088;&#1099;&#1090;&#1100; &#1092;&#1080;&#1083;&#1100;&#1090;&#1088;&#1099;"
+          >
+            &times;
+          </button>
+        </div>
+
         <label class="field field--search">
           <span>&#1055;&#1086;&#1080;&#1089;&#1082; &#1050;&#1055;&#1055;</span>
           <input
@@ -110,6 +128,10 @@
             <input id="viewshedToggle" type="checkbox" checked />
             <span>Viewshed</span>
           </label>
+          <label class="toggle">
+            <input id="buildingsToggle" type="checkbox" />
+            <span>3D-&#1079;&#1076;&#1072;&#1085;&#1080;&#1103;</span>
+          </label>
         </div>
 
         <div class="control-panel__actions">
@@ -141,6 +163,30 @@
         aria-label="&#1051;&#1077;&#1075;&#1077;&#1085;&#1076;&#1072; &#1050;&#1055;&#1055;"
       ></aside>
 
+      <button
+        id="mobileBackdrop"
+        class="mobile-backdrop"
+        type="button"
+        aria-label="&#1047;&#1072;&#1082;&#1088;&#1099;&#1090;&#1100; &#1086;&#1090;&#1082;&#1088;&#1099;&#1090;&#1091;&#1102; &#1087;&#1072;&#1085;&#1077;&#1083;&#1100;"
+        hidden
+      ></button>
+
+      <nav
+        id="mobileToolbar"
+        class="mobile-toolbar"
+        aria-label="&#1052;&#1086;&#1073;&#1080;&#1083;&#1100;&#1085;&#1072;&#1103; &#1085;&#1072;&#1074;&#1080;&#1075;&#1072;&#1094;&#1080;&#1103;"
+      >
+        <button id="mobileFilters" type="button" data-mobile-panel="controls">
+          &#1060;&#1080;&#1083;&#1100;&#1090;&#1088;&#1099;
+        </button>
+        <button id="mobileRegions" type="button" data-mobile-panel="regions">
+          &#1056;&#1077;&#1075;&#1080;&#1086;&#1085;&#1099;
+        </button>
+        <button id="mobileLegend" type="button" data-mobile-panel="legend">
+          &#1051;&#1077;&#1075;&#1077;&#1085;&#1076;&#1072;
+        </button>
+      </nav>
+
       <div id="mapFallback" class="map-fallback" role="alert" hidden>
         <b
           >&#1043;&#1083;&#1086;&#1073;&#1091;&#1089;
@@ -156,6 +202,7 @@
 
     <script>
       window.CESIUM_BASE_URL = "./js/vendor/cesium/";
+      window.CESIUM_ION_TOKEN = window.CESIUM_ION_TOKEN || "";
     </script>
     <script src="./js/vendor/cesium/Cesium.js"></script>
     <script type="module" src="./app.js"></script>

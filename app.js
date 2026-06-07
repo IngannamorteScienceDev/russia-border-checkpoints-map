@@ -11,6 +11,7 @@ import {
   createCheckpointLayer,
   createGlobe,
   flyToCameraPreset,
+  setBuildingsEnabled,
   setImageryMode,
   setTerrainEnabled
 } from "./js/cesiumGlobe.js";
@@ -25,6 +26,9 @@ const TEXT = {
   typeLegend: "\u0422\u0438\u043f\u044b \u041a\u041f\u041f",
   qualityLegend:
     "\u041a\u0430\u0447\u0435\u0441\u0442\u0432\u043e \u043a\u043e\u043e\u0440\u0434\u0438\u043d\u0430\u0442",
+  legendPanel: "\u041b\u0435\u0433\u0435\u043d\u0434\u0430",
+  regionsPanel: "\u0420\u0435\u0433\u0438\u043e\u043d\u044b",
+  closePanel: "\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u043f\u0430\u043d\u0435\u043b\u044c",
   checkpoint: "\u041f\u0443\u043d\u043a\u0442 \u043f\u0440\u043e\u043f\u0443\u0441\u043a\u0430",
   closeCard:
     "\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0443",
@@ -58,6 +62,9 @@ const TEXT = {
   ready: "\u0413\u043e\u0442\u043e\u0432\u043e",
   terrainReady: "\u0420\u0435\u043b\u044c\u0435\u0444",
   terrainFallback: "\u0420\u0435\u043b\u044c\u0435\u0444: fallback",
+  buildingsReady: "3D-\u0437\u0434\u0430\u043d\u0438\u044f",
+  buildingsUnavailable:
+    "3D-\u0437\u0434\u0430\u043d\u0438\u044f: \u043d\u0435\u0442 \u0434\u043e\u0441\u0442\u0443\u043f\u0430",
   viewshedLoading: "\u0421\u0447\u0438\u0442\u0430\u0435\u043c viewshed...",
   loadingGlobe:
     "\u0417\u0430\u043f\u0443\u0441\u043a\u0430\u0435\u043c Cesium-\u0433\u043b\u043e\u0431\u0443\u0441...",
@@ -90,12 +97,16 @@ const dom = {
   qualityToggle: document.getElementById("qualityToggle"),
   terrainToggle: document.getElementById("terrainToggle"),
   viewshedToggle: document.getElementById("viewshedToggle"),
+  buildingsToggle: document.getElementById("buildingsToggle"),
   analysisStatus: document.getElementById("analysisStatus"),
   fitFiltered: document.getElementById("fitFiltered"),
   copyShare: document.getElementById("copyShare"),
   resetFilters: document.getElementById("resetFilters"),
   searchResults: document.getElementById("searchResults"),
-  cameraDock: document.getElementById("cameraDock")
+  cameraDock: document.getElementById("cameraDock"),
+  closeControls: document.getElementById("closeControls"),
+  mobileBackdrop: document.getElementById("mobileBackdrop"),
+  mobileToolbar: document.getElementById("mobileToolbar")
 };
 
 const state = {
@@ -108,7 +119,9 @@ const state = {
   colorMode: "type",
   visibilityAnalysis: null,
   visibilityToken: 0,
-  terrainStatus: null
+  terrainStatus: null,
+  buildingsStatus: null,
+  mobilePanel: null
 };
 
 let viewer = null;
@@ -166,6 +179,48 @@ function hideLoader() {
 
   dom.loader.classList.add("loader--hidden");
   setTimeout(() => dom.loader?.remove(), 260);
+}
+
+function isMobileLayout() {
+  return globalThis.matchMedia?.("(max-width: 760px)").matches ?? false;
+}
+
+function syncMobilePanels() {
+  const panel = isMobileLayout() ? state.mobilePanel : null;
+
+  for (const name of ["controls", "regions", "legend"]) {
+    dom.shell?.classList.toggle(`mobile-sheet--${name}`, panel === name);
+  }
+
+  dom.mobileToolbar?.querySelectorAll("[data-mobile-panel]").forEach((button) => {
+    const active = button.dataset.mobilePanel === panel;
+    button.classList.toggle("mobile-toolbar__button--active", active);
+    button.setAttribute("aria-expanded", String(active));
+  });
+
+  if (dom.mobileBackdrop) {
+    dom.mobileBackdrop.hidden = !isMobileLayout() || (!panel && !state.selectedFeature);
+  }
+}
+
+function setMobilePanel(panel, { focusSearch = false } = {}) {
+  state.mobilePanel = state.mobilePanel === panel ? null : panel;
+  syncMobilePanels();
+
+  if (state.mobilePanel === "controls" && focusSearch) {
+    setTimeout(() => dom.search?.focus(), 180);
+  }
+}
+
+function closeMobileOverlay() {
+  if (state.selectedFeature) {
+    checkpointLayer?.clearSelection();
+    handleSelection(null);
+    return;
+  }
+
+  state.mobilePanel = null;
+  syncMobilePanels();
 }
 
 function showFallback(message) {
@@ -231,6 +286,13 @@ function renderLegend() {
       }));
 
   dom.legend.innerHTML = `
+    <div class="sheet-header">
+      <div>
+        <span class="sheet-header__eyebrow">${TEXT.legendPanel}</span>
+        <b>${title}</b>
+      </div>
+      <button class="sheet-header__close" type="button" data-close-sheet aria-label="${TEXT.closePanel}">\u00d7</button>
+    </div>
     <div class="legend__title">${title}</div>
     <div class="legend__items">
       ${entries
@@ -248,6 +310,11 @@ function renderLegend() {
         .join("")}
     </div>
   `;
+
+  dom.legend.querySelector("[data-close-sheet]")?.addEventListener("click", () => {
+    state.mobilePanel = null;
+    syncMobilePanels();
+  });
 
   if (isQuality) return;
 
@@ -354,6 +421,10 @@ function renderAnalysisStatus() {
     items.push(state.terrainStatus.enabled ? TEXT.terrainReady : TEXT.terrainFallback);
   }
 
+  if (state.buildingsStatus && dom.buildingsToggle.checked) {
+    items.push(state.buildingsStatus.enabled ? TEXT.buildingsReady : TEXT.buildingsUnavailable);
+  }
+
   if (state.visibilityAnalysis?.loading) items.push(TEXT.viewshedLoading);
 
   dom.analysisStatus.hidden = !items.length;
@@ -380,8 +451,8 @@ function queueVisibilityAnalysis(feature, analysis) {
 
   analyzeVisibility(viewer, feature, targets, {
     radiusKm: analysis.radiusKm,
-    rayCount: 24,
-    sampleCount: 14,
+    rayCount: isMobileLayout() ? 36 : 48,
+    sampleCount: isMobileLayout() ? 24 : 32,
     observerHeightMeters: 8,
     targetHeightMeters: 4
   })
@@ -432,6 +503,8 @@ function updateSelectedAnalysis() {
 
 function renderInspector(feature) {
   dom.shell?.classList.toggle("globe-shell--inspecting", Boolean(feature));
+  if (feature) state.mobilePanel = null;
+  syncMobilePanels();
 
   if (!feature) {
     dom.inspector.hidden = true;
@@ -487,7 +560,7 @@ function renderInspector(feature) {
               : ""
         }
         ${visibility ? detailRow(TEXT.blockedCheckpoints, String(blockedCount)) : ""}
-        ${nearest ? detailRow(TEXT.nearest, `${nearest.feature.properties.__name} В· ${formatDistance(nearest.distance)}`) : ""}
+        ${nearest ? detailRow(TEXT.nearest, `${nearest.feature.properties.__name} \u00b7 ${formatDistance(nearest.distance)}`) : ""}
         ${detailRow(`${TEXT.withinRadius} ${analysis.radiusKm} \u043a\u043c`, String(analysis.withinRadius))}
       </div>
       ${
@@ -512,6 +585,7 @@ function handleSelection(feature) {
     renderAnalysisStatus();
   }
   renderInspector(feature);
+  syncMobilePanels();
 }
 
 function renderResults(features) {
@@ -538,7 +612,7 @@ function renderResults(features) {
       return `
         <button class="search-result" type="button" data-result="${index}">
           <b>${escapeHtml(props.__name)}</b>
-          <span>${escapeHtml([props.__type, props.__country, props.__subject].filter(Boolean).join(" В· "))}</span>
+          <span>${escapeHtml([props.__type, props.__country, props.__subject].filter(Boolean).join(" \u00b7 "))}</span>
         </button>
       `;
     })
@@ -557,13 +631,29 @@ function renderResults(features) {
 }
 
 function renderCameraDock() {
-  dom.cameraDock.innerHTML = CAMERA_PRESETS.map(
-    (preset) => `
-      <button class="camera-dock__button" type="button" data-camera="${escapeHtml(preset.id)}">
-        ${escapeHtml(preset.label)}
-      </button>
-    `
-  ).join("");
+  dom.cameraDock.innerHTML = `
+    <div class="sheet-header">
+      <div>
+        <span class="sheet-header__eyebrow">Camera</span>
+        <b>${TEXT.regionsPanel}</b>
+      </div>
+      <button class="sheet-header__close" type="button" data-close-sheet aria-label="${TEXT.closePanel}">\u00d7</button>
+    </div>
+    <div class="camera-dock__items">
+      ${CAMERA_PRESETS.map(
+        (preset) => `
+          <button class="camera-dock__button" type="button" data-camera="${escapeHtml(preset.id)}">
+            ${escapeHtml(preset.label)}
+          </button>
+        `
+      ).join("")}
+    </div>
+  `;
+
+  dom.cameraDock.querySelector("[data-close-sheet]")?.addEventListener("click", () => {
+    state.mobilePanel = null;
+    syncMobilePanels();
+  });
 
   dom.cameraDock.querySelectorAll("[data-camera]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -575,6 +665,10 @@ function renderCameraDock() {
         .forEach((activeButton) => activeButton.classList.remove("camera-dock__button--active"));
       button.classList.add("camera-dock__button--active");
       flyToCameraPreset(viewer, preset);
+      if (isMobileLayout()) {
+        state.mobilePanel = null;
+        syncMobilePanels();
+      }
     });
   });
 
@@ -601,6 +695,13 @@ async function updateTerrainMode() {
   state.visibilityToken += 1;
   state.visibilityAnalysis = null;
   if (state.selectedFeature) renderInspector(state.selectedFeature);
+  renderAnalysisStatus();
+}
+
+async function updateBuildingsMode() {
+  if (!viewer) return;
+
+  state.buildingsStatus = await setBuildingsEnabled(viewer, dom.buildingsToggle.checked);
   renderAnalysisStatus();
 }
 
@@ -638,6 +739,7 @@ function resetFilters() {
   dom.qualityToggle.checked = false;
   dom.terrainToggle.checked = true;
   dom.viewshedToggle.checked = true;
+  dom.buildingsToggle.checked = false;
   state.colorMode = "type";
   state.visibilityToken += 1;
   state.visibilityAnalysis = null;
@@ -647,6 +749,7 @@ function resetFilters() {
   applyFilters();
   checkpointLayer?.flyHome();
   updateTerrainMode().catch((error) => console.error(error));
+  updateBuildingsMode().catch((error) => console.error(error));
 }
 
 function shareUrl() {
@@ -662,6 +765,8 @@ function shareUrl() {
   else url.searchParams.delete("terrain");
   if (!dom.viewshedToggle.checked) url.searchParams.set("viewshed", "0");
   else url.searchParams.delete("viewshed");
+  if (dom.buildingsToggle.checked) url.searchParams.set("buildings", "1");
+  else url.searchParams.delete("buildings");
   if (state.selectedFeature) {
     url.searchParams.set("checkpoint", state.selectedFeature.properties.__id);
   } else {
@@ -704,6 +809,7 @@ function readUrlState() {
     quality: params.get("quality") === "1",
     terrain: params.get("terrain") !== "0",
     viewshed: params.get("viewshed") !== "0",
+    buildings: params.get("buildings") === "1",
     checkpoint: params.get("checkpoint") || ""
   };
 }
@@ -727,11 +833,13 @@ function applyUrlState() {
   dom.qualityToggle.checked = urlState.quality;
   dom.terrainToggle.checked = urlState.terrain;
   dom.viewshedToggle.checked = urlState.viewshed;
+  dom.buildingsToggle.checked = urlState.buildings;
   state.colorMode = urlState.quality ? "quality" : "type";
   checkpointLayer?.setColorMode(state.colorMode);
 
   applyFilters();
   updateTerrainMode().catch((error) => console.error(error));
+  updateBuildingsMode().catch((error) => console.error(error));
 
   const selected = state.features.find(
     (feature) => feature.properties.__id === urlState.checkpoint
@@ -786,6 +894,25 @@ function bindControls() {
     if (state.selectedFeature) renderInspector(state.selectedFeature);
     renderAnalysisStatus();
   });
+  dom.buildingsToggle.addEventListener("change", () => {
+    updateBuildingsMode().catch((error) => console.error(error));
+  });
+  dom.closeControls.addEventListener("click", () => {
+    state.mobilePanel = null;
+    syncMobilePanels();
+  });
+  dom.mobileToolbar.querySelectorAll("[data-mobile-panel]").forEach((button) => {
+    button.addEventListener("click", () => {
+      setMobilePanel(button.dataset.mobilePanel, {
+        focusSearch: button.dataset.mobilePanel === "controls"
+      });
+    });
+  });
+  dom.mobileBackdrop.addEventListener("click", closeMobileOverlay);
+  globalThis.matchMedia?.("(max-width: 760px)").addEventListener("change", () => {
+    if (!isMobileLayout()) state.mobilePanel = null;
+    syncMobilePanels();
+  });
 }
 
 async function init() {
@@ -822,6 +949,7 @@ async function init() {
     populateControls(state.features);
     renderCameraDock();
     bindControls();
+    syncMobilePanels();
     applyUrlState();
     setProgress(100, TEXT.ready);
     hideLoader();
@@ -833,6 +961,7 @@ async function init() {
         checkpointLayer,
         applyFilters,
         copyShareLink,
+        updateBuildingsMode,
         updateTerrainMode,
         state
       });
